@@ -1,0 +1,23 @@
+name: Update data
+on:
+  schedule:
+    - cron: "0 5 * * *"   # every day, 05:00 UTC (07:00 Paris in summer)
+  workflow_dispatch:       # allows a manual run from the Actions tab
+permissions:
+  contents: write
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python scripts/build_data.py
+      - name: Commit if data changed
+        run: |
+          git config user.name "lecart-bot"
+          git config user.email "lecart-bot@users.noreply.github.com"
+          git add data.json data/
+          git diff --cached --quiet || git commit -m "Daily data update $(date -u +%F)"
+          git push
