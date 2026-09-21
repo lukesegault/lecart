@@ -133,15 +133,44 @@ h2{font-size:clamp(24px,3vw,30px);letter-spacing:-.025em;margin:0 0 6px;font-wei
 .chart-wrap{background:var(--surface);border-radius:18px;padding:16px 10px 8px;overflow-x:auto}
 .chart-wrap svg{display:block;min-width:640px;width:100%;height:auto}
 .chart-wrap .lbl{cursor:pointer}
-/* small multiples */
-.multi{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:14px}
-.mp{margin:0;background:var(--surface);border-radius:18px;padding:14px 14px 8px;border-top:4px solid var(--c,var(--ink))}
-.mp h3{margin:0;font-size:17px}
-.mp .nums{font-variant-numeric:tabular-nums;font-size:13.5px;color:var(--muted);margin:2px 0 6px}
-.mp svg{display:block;width:100%;height:auto}
+/* divergence chart (polls vs markets over time) */
+.dv{background:var(--surface);border-radius:18px;padding:16px 18px 14px}
+.dv-head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-start;gap:10px 16px}
+.dv-title{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;min-width:0}
+.dv-title h3{margin:0;font-size:22px;letter-spacing:-.02em}
+.dv-pill{font:700 13px var(--sans);padding:3px 10px;border-radius:999px;white-space:nowrap;background:var(--market-soft);color:var(--market)}
+.dv-pill.neg{background:var(--poll-soft);color:var(--poll)}
+.dv-actions{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.pills{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0 0}
+.pills button,.dv-export{font:600 13.5px var(--sans);border:1.5px solid var(--rule);background:var(--surface);color:var(--muted);padding:6px 14px;border-radius:999px;cursor:pointer}
+.pills button[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.dv-export{display:inline-flex;align-items:center;gap:6px;color:var(--ink)}
+.dv-export:disabled{opacity:.6;cursor:wait}
+.dv-msg{font-size:13px;color:var(--warn)}
+.dv-model{margin:12px 0 0;font-size:14px;line-height:1.5;color:var(--muted)}
+.dv-qnote{margin:6px 0 0;font-size:13px;color:var(--warn)}
+.dv-chart{margin-top:8px}
+.dv-chart svg{display:block;width:100%;height:auto;touch-action:pan-y}
+.dv-chart .evm{cursor:pointer;outline:none}
+.dv-chart .evm circle:first-child{fill:transparent;stroke:none}
+.dv-chart .evm circle:nth-child(2){fill:var(--surface);stroke:var(--faint)}
+.dv-chart .evm text{fill:var(--ink)}
+.dv-chart .evm.on circle:nth-child(2){fill:var(--ink);stroke:var(--ink)}
+.dv-chart .evm.on text{fill:var(--bg)}
+.dv-chart .evm:focus-visible circle:nth-child(2){stroke:var(--poll);stroke-width:3}
+.dv-readout{margin:6px 0 0;min-height:1.5em;font-size:13.5px;color:var(--muted)}
+.dv-legend{list-style:none;margin:10px 0 0;padding:0;display:flex;flex-wrap:wrap;gap:6px 20px;font-size:12.5px;color:var(--muted)}
+.dv-legend li{display:flex;align-items:center;gap:8px}
+.dv-legend .tint{width:22px;height:11px;border-radius:3px;background:var(--market-soft);border:1px solid var(--market)}
+.dv-evl{list-style:none;margin:14px 0 0;padding:0;display:flex;flex-wrap:wrap;gap:8px}
+.dv-evl button{display:inline-flex;align-items:center;gap:8px;font:500 13.5px var(--sans);border:1.5px solid var(--rule);background:var(--surface);color:var(--ink);padding:5px 12px 5px 6px;border-radius:999px;cursor:pointer;text-align:left}
+.dv-evl button.on,.dv-evl button[aria-pressed="true"]{border-color:var(--ink)}
+.dv-evl b{display:inline-grid;place-items:center;width:20px;height:20px;border-radius:50%;border:1px solid var(--faint);font-size:11px;flex:none}
+.dv-note{margin:10px 0 0;min-height:4.5em;padding:12px 14px;border-radius:12px;background:var(--soft);font-size:14.5px;line-height:1.55}
+.dv-note strong{display:block;font-size:15px}
+.dv-note .d{display:block;color:var(--muted);font-size:12.5px;margin:1px 0 4px}
+.dv-note p{margin:0}
 .note-f{margin:14px 0 0;font-size:14px}
-.events{list-style:none;margin:12px 0 0;padding:0;display:grid;gap:6px;font-size:14px;color:var(--muted)}
-.events b{display:inline-grid;place-items:center;width:20px;height:20px;border-radius:50%;background:var(--surface);border:1px solid var(--faint);color:var(--ink);font-size:11px;margin-right:4px}
 /* method */
 .method{font-family:var(--serif);font-size:16.5px;line-height:1.65;max-width:42em}
 .method p{margin:0 0 12px}
@@ -242,10 +271,31 @@ footer p{margin:0}
 
 <section id="multiSection" aria-labelledby="h-multi">
   <h2 id="h-multi" data-i="h2f">Marchés et sondages dans le temps</h2>
-  <p class="sub" data-i="subF">Pour chacun des trois principaux candidats : les <span class="lp">● sondages</span> (score au premier tour, moyenne hebdomadaire des enquêtes) et les <span class="lm">◆ marchés</span> (chances de victoire, moyenne hebdomadaire des prix). Deux mesures différentes, tracées sur la même échelle. L'axe des sondages est à gauche, celui des marchés à droite. Les repères numérotés signalent des événements.</p>
-  <div class="multi" id="multi"></div>
+  <p class="sub" data-i="subF">Choisissez un candidat : les <span class="lp">● sondages</span> (score au premier tour, moyenne hebdomadaire des enquêtes) et les <span class="lm">◆ marchés</span> (chances de victoire, moyenne hebdomadaire des prix) sont tracés sur la même échelle. La zone colorée est l'écart entre les deux courbes. Survolez ou touchez un repère numéroté pour lire la note.</p>
+  <div class="dv">
+    <div class="dv-head">
+      <div class="dv-title"><h3 id="dvName"></h3><span class="dv-pill" id="dvPill"></span></div>
+      <div class="dv-actions">
+        <div class="seg sm" id="dvTf" role="group">
+          <button type="button" data-tf="1M" aria-pressed="false">1M</button>
+          <button type="button" data-tf="3M" aria-pressed="false">3M</button>
+          <button type="button" data-tf="6M" aria-pressed="false">6M</button>
+          <button type="button" data-tf="ALL" aria-pressed="true" data-i="tfAll">Tout</button>
+        </div>
+        <button type="button" class="dv-export" id="dvExport"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14"/></svg><span data-i="dvExport">Exporter (PNG / Presse)</span></button>
+      </div>
+    </div>
+    <span class="dv-msg" id="dvExpMsg" role="alert"></span>
+    <div class="pills" id="dvPills" role="group"></div>
+    <p class="dv-model" id="dvModel"></p>
+    <p class="dv-qnote" id="dvQnote" hidden></p>
+    <div class="dv-chart" id="dvChart" role="group"></div>
+    <p class="dv-readout" id="dvReadout" aria-live="polite"></p>
+    <ul class="dv-legend" id="dvLegend"></ul>
+    <ul class="dv-evl" id="dvEvents"></ul>
+    <div class="dv-note" id="dvNote" aria-live="polite"></div>
+  </div>
   <p class="sub note-f" data-i="noteF">Un point marque une semaine avec au moins un sondage. Le trait des sondages s'interrompt quand plus de cinq semaines séparent deux enquêtes. Les marchés sont des moyennes hebdomadaires des prix quotidiens.</p>
-  <ol class="events" id="events"></ol>
 </section>
 
 <section aria-labelledby="h-method">
@@ -272,7 +322,7 @@ let DATA;
 try{ DATA=await (await fetch("data.json",{cache:"no-store"})).json(); }
 catch(e){ document.getElementById("board").innerHTML="<p style=\"padding:16px\">Data could not be loaded. / Les données n'ont pas pu être chargées.</p>"; return; }
 const MARKET=DATA.markets.candidates;
-let EVENTS=[]; try{ EVENTS=await (await fetch("data/events.json",{cache:"no-store"})).json(); }catch(e){}
+let EVENTS=[]; try{ EVENTS=await (await fetch("data/events.json",{cache:"no-store"})).json(); EVENTS.sort((a,b)=>a.date<b.date?-1:1); }catch(e){}
 
 const LEVELS={low:{base:1,k:.12,run:3.5},mid:{base:1.5,k:.2,run:6},high:{base:2,k:.3,run:9}};
 
@@ -301,10 +351,19 @@ fr:{
  h2d:"L'évolution des sondages de premier tour",subD:"Moyenne mensuelle des intentions de vote au premier tour, tous scénarios confondus. Survolez ou touchez un nom pour le mettre en avant.",
  chartAria:"Graphique des moyennes mensuelles des sondages de premier tour depuis septembre 2025",
  h2f:"Marchés et sondages dans le temps",
- subF:"Pour chacun des trois principaux candidats : les <span class=\"lp\">● sondages</span> (score au premier tour, moyenne hebdomadaire des enquêtes) et les <span class=\"lm\">◆ marchés</span> (chances de victoire, moyenne hebdomadaire des prix). Deux mesures différentes, tracées sur la même échelle. L'axe des sondages est à gauche, celui des marchés à droite. Les repères numérotés signalent des événements.",
+ subF:"Choisissez un candidat : les <span class=\"lp\">● sondages</span> (score au premier tour, moyenne hebdomadaire des enquêtes) et les <span class=\"lm\">◆ marchés</span> (chances de victoire, moyenne hebdomadaire des prix) sont tracés sur la même échelle. La zone colorée est l'écart entre les deux courbes. Survolez ou touchez un repère numéroté pour lire la note.",
  noteF:"Un point marque une semaine avec au moins un sondage. Le trait des sondages s'interrompt quand plus de cinq semaines séparent deux enquêtes. Les marchés sont des moyennes hebdomadaires des prix quotidiens.",
- axP:"Sondages : % au 1er tour",axM:"Marchés : % de victoire",evList:"Événements repérés sur les graphiques",
- multiAria:(n,p,m)=>`${n} : sondages ${p}, marchés ${m}, moyennes hebdomadaires depuis novembre 2025`,
+ tfAll:"Tout",dvExport:"Exporter (PNG / Presse)",dvCand:"Candidat",dvPeriod:"Période",evList:"Événements repérés sur le graphique",
+ dvToday:(v,u,p,m)=>`Aujourd'hui, chances ${v} : <span class="lp">sondages (modèle, incertitude ${u}) ${p}</span>, <span class="lm">marchés ${m}</span>.`,
+ dvNoQual:"L'historique du marché « second tour » est trop court pour être tracé : la courbe montre les chances de victoire.",
+ dvHint:"Survolez ou touchez un repère pour lire la note.",
+ dvLast:(m,mw,p,pw)=>`Derniers relevés : <span class="lm">marché ${m}</span> (semaine du ${mw}), <span class="lp">sondages ${p}</span> (semaine du ${pw}).`,
+ dvAt:(w,m,p,g)=>`Semaine du ${w} : <span class="lm">marché ${m}</span>, <span class="lp">sondages ${p}</span>, écart ${g}.`,
+ dvLegM:"Marché : chances de victoire",dvLegP:"Sondages : score au premier tour",dvLegG:"Écart entre les deux",
+ dvCap:"Score des sondages au premier tour et chances de victoire implicites du marché, moyennes hebdomadaires.",
+ dvSrc:"Sources : sondages MieuxVoter/presidentielle2027 ; prix du marché Polymarket, présentés comme données.",
+ dvAsOf:"Données au",dvNoPoll:"aucun sondage",dvExpFail:"L'export a échoué. Réessayez.",dvEv:"Repères",
+ dvAria:n=>`Courbes des sondages et du marché pour ${n}, avec l'écart entre les deux`,
  ev1:"Le Pen se déclare,",ev2:"Bardella n'est plus testé",
  months:["janv.","févr.","mars","avr.","mai","juin","juil.","août","sept.","oct.","nov.","déc."],
  h2e:"Méthode",
@@ -340,10 +399,19 @@ en:{
  h2d:"How first-round polls have moved",subD:"Monthly average of first-round voting intentions across all tested scenarios. Hover or tap a name to highlight it.",
  chartAria:"Line chart of monthly first-round polling averages since September 2025",
  h2f:"Markets and polls over time",
- subF:"For each of the three leading candidates: <span class=\"lp\">● polls</span> (first-round score, weekly average of surveys) and <span class=\"lm\">◆ markets</span> (chance of winning, weekly average of prices). Two different measures on the same scale. The polls axis is on the left, the markets axis on the right. Numbered markers flag events.",
+ subF:"Choose a candidate: <span class=\"lp\">● polls</span> (first-round score, weekly average of surveys) and <span class=\"lm\">◆ markets</span> (chance of winning, weekly average of prices) are plotted on the same scale. The shaded area is the gap between the two lines. Hover or tap a numbered marker to read its note.",
  noteF:"A dot marks a week with at least one poll. The poll line breaks when more than five weeks separate two surveys. Markets are weekly averages of daily prices.",
- axP:"Polls: % first round",axM:"Markets: % to win",evList:"Events marked on the charts",
- multiAria:(n,p,m)=>`${n}: polls ${p}, markets ${m}, weekly averages since November 2025`,
+ tfAll:"All",dvExport:"Export (PNG / Press)",dvCand:"Candidate",dvPeriod:"Period",evList:"Events marked on the chart",
+ dvToday:(v,u,p,m)=>`Today, chance of ${v}: <span class="lp">polls (model, ${u} uncertainty) ${p}</span>, <span class="lm">markets ${m}</span>.`,
+ dvNoQual:"The \"reach the runoff\" market has too little history to plot: the line shows the chance of winning.",
+ dvHint:"Hover or tap a marker to read the note.",
+ dvLast:(m,mw,p,pw)=>`Latest: <span class="lm">market ${m}</span> (week of ${mw}), <span class="lp">polls ${p}</span> (week of ${pw}).`,
+ dvAt:(w,m,p,g)=>`Week of ${w}: <span class="lm">market ${m}</span>, <span class="lp">polls ${p}</span>, gap ${g}.`,
+ dvLegM:"Market: chance of winning",dvLegP:"Polls: first-round score",dvLegG:"Gap between the two",
+ dvCap:"First-round poll score and market-implied chance of winning, weekly averages.",
+ dvSrc:"Sources: polls from MieuxVoter/presidentielle2027; market prices from Polymarket, shown as data.",
+ dvAsOf:"Data as of",dvNoPoll:"no poll",dvExpFail:"Export failed. Please try again.",dvEv:"Markers",
+ dvAria:n=>`Polls and market lines for ${n}, with the gap between them`,
  ev1:"Le Pen declares,",ev2:"Bardella no longer tested",
  months:["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"],
  h2e:"Method",
@@ -474,45 +542,179 @@ function trend(){
   svg.querySelectorAll(".lbl").forEach(el=>{el.addEventListener("mouseenter",()=>set(el.dataset.c));el.addEventListener("click",e=>{e.stopPropagation();set(el.dataset.c)})});
   svg.addEventListener("mouseleave",()=>set(null)); svg.addEventListener("click",()=>set(null));
 }
-function multi(){
-  const sec=document.getElementById("multiSection"), WK=DATA.weekly;
-  if(!WK){ sec.hidden=true; return } sec.hidden=false;
-  const esc=v=>String(v).replace(/&/g,"&amp;").replace(/</g,"&lt;");
-  const weeks=WK.weeks, ts=d=>Date.parse(d+"T00:00:00Z"), t0=ts(weeks[0]), t1=ts(weeks[weeks.length-1]);
-  const W=320,H=232,ml=24,mr=26,mt=38,mb=26;
-  const ymax=Math.max(40,Math.ceil(Math.max(...Object.values(WK.series).flatMap(s=>[...s.poll,...s.market]).filter(v=>v!=null))/10)*10);
-  const px=tt=>ml+(tt-t0)/(t1-t0)*(W-ml-mr), x=i=>px(ts(weeks[i])), y=v=>mt+(1-v/ymax)*(H-mt-mb);
-  const evs=EVENTS.filter(e=>ts(e.date)>=t0&&ts(e.date)<=t1).sort((a,b)=>ts(a.date)-ts(b.date));
-  // frame shared by the three panels: grid, both y-axes (same scale), month ticks, event markers
-  let g=`<text x="0" y="12" font-size="11" font-weight="700" fill="var(--poll)">${t("axP")}</text><text x="${W}" y="12" text-anchor="end" font-size="11" font-weight="700" fill="var(--market)">${t("axM")}</text>`;
-  for(let v=0;v<=ymax;v+=10) g+=`<line x1="${ml}" x2="${W-mr}" y1="${y(v)}" y2="${y(v)}" stroke="var(--rule)"/><text x="${ml-5}" y="${y(v)+4}" text-anchor="end" font-size="11" fill="var(--poll)">${v}</text><text x="${W-mr+5}" y="${y(v)+4}" font-size="11" fill="var(--market)">${v}</text>`;
-  const d0=new Date(t0);
-  for(let k=1;;k++){
-    const dt=new Date(Date.UTC(d0.getUTCFullYear(),d0.getUTCMonth()+k,1)); if(+dt>t1) break;
-    const xx=px(+dt), mo=dt.getUTCMonth()+1;
-    g+=`<line x1="${xx}" x2="${xx}" y1="${H-mb}" y2="${H-mb+4}" stroke="var(--faint)"/>`;
-    if(mo%2===1) g+=`<text x="${xx}" y="${H-8}" text-anchor="middle" font-size="11" fill="var(--muted)">${monthLab(dt.getUTCFullYear()+"-"+String(mo).padStart(2,"0"),1)}</text>`;
-  }
-  evs.forEach((e,i)=>{ const xx=px(ts(e.date));
-    g+=`<line x1="${xx}" x2="${xx}" y1="${mt-5}" y2="${H-mb}" stroke="var(--faint)" stroke-dasharray="3 4"/><circle cx="${xx}" cy="${mt-12}" r="7" fill="var(--surface)" stroke="var(--faint)"/><text x="${xx}" y="${mt-8.5}" text-anchor="middle" font-size="10" font-weight="700" fill="var(--ink)">${i+1}</text>`});
-  document.getElementById("multi").innerHTML=Object.entries(WK.series).map(([c,s])=>{
-    const P=pathOf(s.poll,x,y,5), M=pathOf(s.market,x,y), f=(MARKET.find(m=>m.c===c)||{}).f||"far-right";
-    let h=g+`<path d="${M.d}" fill="none" stroke="var(--market)" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/><path d="${P.d}" fill="none" stroke="var(--poll)" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>`;
-    if(M.last!=null){ const cx=x(M.last), cy=y(s.market[M.last]); h+=`<rect x="${cx-4.5}" y="${cy-4.5}" width="9" height="9" rx="1.5" transform="rotate(45 ${cx} ${cy})" fill="var(--market)" stroke="var(--surface)" stroke-width="1.5"/>`; }
-    s.poll.forEach((v,i)=>{ if(v!=null) h+=`<circle cx="${x(i)}" cy="${y(v)}" r="${i===P.last?4.5:2.8}" fill="var(--poll)" stroke="var(--surface)" stroke-width="1.5"/>`});
-    const pl=P.last==null?null:s.poll[P.last], ml_=M.last==null?null:s.market[M.last];
-    return `<figure class="mp" style="--c:var(--${f})"><figcaption><h3>${c}</h3><div class="nums"><span class="lp">${t("polls")} ${pl==null?"–":pct(pl)}</span>, <span class="lm">${t("markets")} ${ml_==null?"–":pct(ml_)}</span></div></figcaption><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${t("multiAria")(c,pl==null?"–":pct(pl),ml_==null?"–":pct(ml_))}">${h}</svg></figure>`}).join("");
-  const dfmt=d=>{const [yy,mm,dd]=d.split("-"); return (+dd)+" "+t("months")[+mm-1]+" "+yy};
-  const ol=document.getElementById("events"); ol.hidden=!evs.length; ol.setAttribute("aria-label",t("evList"));
-  ol.innerHTML=evs.map((e,i)=>`<li><b>${i+1}</b> ${dfmt(e.date)} · ${esc(e[lang]||e.fr)}</li>`).join("");
+// ---- Divergence chart: polls vs markets over time, from the weekly series of data.json ------------
+const DV={cand:null,tf:"ALL",pin:null,hov:null,w:0,geo:null,ro:null};
+const DV_DAYS={"1M":30,"3M":91,"6M":183,ALL:1e9};
+const DV_PAGE={poll:"var(--poll)",market:"var(--market)",fill:"var(--market-soft)",rule:"var(--rule)",muted:"var(--muted)",faint:"var(--faint)",ink:"var(--ink)",surface:"var(--surface)"};
+const DV_LIGHT={poll:"#3446A6",market:"#0B8474",fill:"rgba(11,132,116,.18)",rule:"#DDE0E7",muted:"#5A6071",faint:"#9EA4B2",ink:"#161922",surface:"#FFFFFF"};
+const dvTs=d=>Date.parse(d+"T00:00:00Z");
+const xml=v=>String(v).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/"/g,"&quot;");
+const dvDate=d=>{const [yy,mm,dd]=d.split("-"); return (+dd)+" "+t("months")[+mm-1]+" "+yy};
+const dvSigned=d=>{const r=Math.round(d*10)/10; const a=Math.abs(r).toFixed(1); return (r>0?"+":r<0?"−":"")+(lang==="fr"?a.replace(".",","):a)+nb+"pts"};
+const dvLastIdx=a=>{for(let i=a.length-1;i>=0;i--) if(a[i]!=null) return i; return -1};
+const dvNote=e=>e[lang==="fr"?"noteFr":"noteEn"]||"";
+
+function dvData(){
+  const WK=DATA.weekly; if(!WK||!WK.weeks.length) return null;
+  const names=Object.keys(WK.series); if(!DV.cand||!WK.series[DV.cand]) DV.cand=names[0];
+  const s=WK.series[DV.cand], cut=dvTs(WK.weeks[WK.weeks.length-1])-DV_DAYS[DV.tf]*864e5;
+  const a=Math.max(0,WK.weeks.findIndex(w=>dvTs(w)>=cut));
+  return {names,cand:DV.cand,weeks:WK.weeks.slice(a),poll:s.poll.slice(a),market:s.market.slice(a)};
 }
+
+/** SVG markup of the chart. Pure: `col` decides page colours (CSS variables) or literal ones (PNG export). */
+function dvChart(o){
+  const {W,H,weeks,poll,market,col}=o, ml=40,mr=14,mt=32,mb=28, n=weeks.length;
+  const t0=dvTs(weeks[0]), t1=dvTs(weeks[n-1]), span=Math.max(1,t1-t0), days=span/864e5;
+  const px=tt=>ml+(tt-t0)/span*(W-ml-mr), x=i=>px(dvTs(weeks[i]));
+  const vals=[...poll,...market].filter(v=>v!=null), ymax=Math.max(40,Math.ceil(Math.max(0,...vals)/10)*10);
+  const y=v=>mt+(1-v/ymax)*(H-mt-mb), pctTxt=lang==="fr"?nb+"%":"%";
+  let g="";
+  for(let v=0;v<=ymax;v+=10) g+=`<line x1="${ml}" x2="${W-mr}" y1="${y(v)}" y2="${y(v)}" stroke="${col.rule}"/><text x="${ml-6}" y="${y(v)+4}" text-anchor="end" font-size="12" fill="${col.muted}">${v}${pctTxt}</text>`;
+  const tick=(xx,label)=>`<line x1="${xx}" x2="${xx}" y1="${H-mb}" y2="${H-mb+4}" stroke="${col.faint}"/>`+(label?`<text x="${xx}" y="${H-8}" text-anchor="middle" font-size="12" fill="${col.muted}">${label}</text>`:"");
+  if(days<=45) weeks.forEach((w,i)=>{const [,mm,dd]=w.split("-"); g+=tick(x(i),(+dd)+" "+t("months")[+mm-1])});
+  else{ const d0=new Date(t0); for(let k=1;;k++){ const dt=new Date(Date.UTC(d0.getUTCFullYear(),d0.getUTCMonth()+k,1)); if(+dt>t1) break; const mo=dt.getUTCMonth()+1;
+    g+=tick(px(+dt),(days<=240||mo%2===1)?monthLab(dt.getUTCFullYear()+"-"+String(mo).padStart(2,"0"),1):""); } }
+  // the écart: for each run of poll points at most 5 weeks apart, the polygon between the poll line and the market line
+  const P=poll.map((v,i)=>v==null?null:i).filter(i=>i!=null);
+  for(let k=0;k<P.length;){ let e=k; while(e+1<P.length&&P[e+1]-P[e]<=5) e++;
+    if(e>k){ const fwd=[],back=[]; for(let j=k;j<=e;j++) fwd.push(x(P[j]).toFixed(1)+" "+y(poll[P[j]]).toFixed(1));
+      for(let i=P[e];i>=P[k];i--) if(market[i]!=null) back.push(x(i).toFixed(1)+" "+y(market[i]).toFixed(1));
+      if(back.length) g+=`<path d="M${fwd.join(" L")} L${back.join(" L")} Z" fill="${col.fill}" stroke="none"/>`; }
+    k=e+1; }
+  const M=pathOf(market,x,y,2), Pp=pathOf(poll,x,y,5);   // one missing market week is bridged, like the shaded area
+  g+=`<path d="${M.d}" fill="none" stroke="${col.market}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/><path d="${Pp.d}" fill="none" stroke="${col.poll}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>`;
+  if(M.last!=null){ const cx=x(M.last), cy=y(market[M.last]); g+=`<rect x="${cx-4.5}" y="${cy-4.5}" width="9" height="9" rx="1.5" transform="rotate(45 ${cx} ${cy})" fill="${col.market}" stroke="${col.surface}" stroke-width="1.5"/>`; }
+  poll.forEach((v,i)=>{ if(v!=null) g+=`<circle cx="${x(i)}" cy="${y(v)}" r="${i===Pp.last?4.5:2.8}" fill="${col.poll}" stroke="${col.surface}" stroke-width="1.5"/>`});
+  if(o.interactive) g+=`<line id="dvGuide" y1="${mt}" y2="${H-mb}" stroke="${col.ink}" stroke-opacity=".35" visibility="hidden"/><g id="dvDots"></g>`;
+  (o.events||[]).forEach((e,i)=>{ const tt=dvTs(e.date); if(tt<t0||tt>t1) return; const xx=px(tt), cy=mt-16;
+    g+=`<line x1="${xx}" x2="${xx}" y1="${cy+9}" y2="${H-mb}" stroke="${col.faint}" stroke-dasharray="2 3"/>`+
+      `<g class="evm" data-e="${i}"${o.interactive?` role="button" tabindex="0" aria-label="${xml(e[lang])}" aria-pressed="false"`:""}><circle cx="${xx}" cy="${cy}" r="15" fill="transparent" stroke="none"/><circle cx="${xx}" cy="${cy}" r="9.5" fill="${col.surface}" stroke="${col.faint}" stroke-width="1.5"/><text x="${xx}" y="${cy+4}" text-anchor="middle" font-size="11" font-weight="700" fill="${col.ink}">${i+1}</text></g>`; });
+  return {svg:g, geo:{W,H,ml,mr,mt,mb,x,y,n}};
+}
+
+function dvSummary(D){
+  const im=dvLastIdx(D.market), ip=dvLastIdx(D.poll);
+  return {im,ip,m:im<0?null:D.market[im],p:ip<0?null:D.poll[ip],mw:im<0?"":D.weeks[im],pw:ip<0?"":D.weeks[ip]};
+}
+
+function dvReadout(idx){
+  const G=DV.geo, D=G&&G.D; if(!D) return; const guide=document.getElementById("dvGuide"), dots=document.getElementById("dvDots"), out=document.getElementById("dvReadout");
+  if(idx==null){ if(guide){guide.setAttribute("visibility","hidden"); dots.innerHTML="";}
+    const S=dvSummary(D); out.innerHTML=S.m==null||S.p==null?"":t("dvLast")(pct1(S.m),dvDate(S.mw),pct1(S.p),dvDate(S.pw)); return; }
+  const m=D.market[idx], p=D.poll[idx], xx=G.x(idx);
+  guide.setAttribute("x1",xx); guide.setAttribute("x2",xx); guide.setAttribute("visibility","visible");
+  dots.innerHTML=(m!=null?`<circle cx="${xx}" cy="${G.y(m)}" r="5" fill="var(--market)" stroke="var(--surface)" stroke-width="2"/>`:"")+(p!=null?`<circle cx="${xx}" cy="${G.y(p)}" r="5" fill="var(--poll)" stroke="var(--surface)" stroke-width="2"/>`:"");
+  out.innerHTML=t("dvAt")(dvDate(D.weeks[idx]),m==null?"–":pct1(m),p==null?t("dvNoPoll"):pct1(p),m!=null&&p!=null?dvSigned(m-p):"–");
+}
+
+/** Marker and chip highlight + note panel: hovered event first, else the pinned one. No redraw, so keyboard focus survives. */
+function dvSync(){
+  const i=DV.hov!=null?DV.hov:DV.pin, e=i!=null?EVENTS[i]:null;
+  document.querySelectorAll("#dvChart .evm").forEach(gm=>{const on=+gm.dataset.e===i; gm.classList.toggle("on",on); gm.setAttribute("aria-pressed",String(+gm.dataset.e===DV.pin))});
+  document.querySelectorAll("#dvEvents button").forEach(b=>{const k=+b.dataset.e; b.classList.toggle("on",k===i); b.setAttribute("aria-pressed",String(k===DV.pin))});
+  document.getElementById("dvNote").innerHTML=e?`<strong>${xml(e[lang])}</strong><span class="d">${dvDate(e.date)}</span><p>${xml(dvNote(e))}</p>`:`<span style="color:var(--muted)">${t("dvHint")}</span>`;
+}
+function dvToggleEvent(i){ DV.pin=DV.pin===i?null:i; dvSync(); }
+
+function dvDrawChart(){
+  const box=document.getElementById("dvChart"), D=dvData(); if(!D) return;
+  const W=Math.max(280,Math.round(box.clientWidth)||640), H=W<520?250:340; DV.w=Math.round(box.clientWidth);
+  const C=dvChart({W,H,weeks:D.weeks,poll:D.poll,market:D.market,events:EVENTS,col:DV_PAGE,interactive:true});
+  box.setAttribute("aria-label",t("dvAria")(D.cand));
+  box.innerHTML=`<svg id="dvSvg" viewBox="0 0 ${W} ${H}" role="presentation">${C.svg}</svg>`;
+  DV.geo={...C.geo,D};
+  const svg=document.getElementById("dvSvg");
+  const near=e=>{const r=svg.getBoundingClientRect(), px=(e.clientX-r.left)/r.width*W; let b=0; for(let i=1;i<D.weeks.length;i++) if(Math.abs(C.geo.x(i)-px)<Math.abs(C.geo.x(b)-px)) b=i; return b};
+  svg.addEventListener("pointermove",e=>dvReadout(near(e)));
+  svg.addEventListener("pointerdown",e=>dvReadout(near(e)));
+  svg.addEventListener("pointerleave",e=>{ if(e.pointerType==="mouse") dvReadout(null) });
+  svg.querySelectorAll(".evm").forEach(gm=>{ const i=+gm.dataset.e;
+    gm.addEventListener("pointerenter",e=>{ if(e.pointerType==="mouse"){DV.hov=i;dvSync()} });
+    gm.addEventListener("pointerleave",e=>{ if(e.pointerType==="mouse"){DV.hov=null;dvSync()} });
+    gm.addEventListener("focus",()=>{ if(gm.matches(":focus-visible")){DV.hov=i;dvSync()} }); gm.addEventListener("blur",()=>{DV.hov=null;dvSync()});   // keyboard focus previews; a mouse or touch click must not leave a sticky hover
+    gm.addEventListener("click",e=>{e.stopPropagation();dvToggleEvent(i)});
+    gm.addEventListener("keydown",e=>{ if(e.key==="Enter"||e.key===" "){e.preventDefault();dvToggleEvent(i)} }); });
+  dvReadout(null); dvSync();
+}
+
+function renderDv(){
+  const sec=document.getElementById("multiSection"), D=dvData();
+  if(!D){ sec.hidden=true; return } sec.hidden=false;
+  const S=dvSummary(D), gap=S.m!=null&&S.p!=null?S.m-S.p:null;
+  document.getElementById("dvName").textContent=D.cand;
+  const pill=document.getElementById("dvPill"); pill.hidden=gap==null; if(gap!=null){ pill.textContent=t("gapCol")+" "+dvSigned(gap); pill.classList.toggle("neg",gap<0) }
+  const pills=document.getElementById("dvPills"); pills.setAttribute("aria-label",t("dvCand"));
+  pills.innerHTML=D.names.map(n=>`<button type="button" data-c="${xml(n)}" aria-pressed="${n===D.cand}">${xml(surname(n))}</button>`).join("");
+  pills.querySelectorAll("button").forEach(b=>b.addEventListener("click",()=>{DV.cand=b.dataset.c;renderDv()}));
+  const tf=document.getElementById("dvTf"); tf.setAttribute("aria-label",t("dvPeriod"));
+  tf.querySelectorAll("button").forEach(b=>{ b.setAttribute("aria-pressed",String(b.dataset.tf===DV.tf)); b.onclick=()=>{DV.tf=b.dataset.tf;renderDv()}; });
+  // the toggles above the board drive this line: real poll simulation and real market price, for the chosen question and uncertainty
+  const r=rows().find(x=>x.c===D.cand), verb=state.q==="win"?t("verbW"):t("verbQ");
+  document.getElementById("dvModel").innerHTML=r?t("dvToday")(verb,t(state.u).toLowerCase(),r.poll==null?"–":pct(r.poll),pct(r.market)):"";
+  const qn=document.getElementById("dvQnote"); qn.hidden=state.q!=="qual"; qn.textContent=t("dvNoQual");
+  document.getElementById("dvLegend").innerHTML=
+    `<li><svg width="26" height="10" aria-hidden="true"><line x1="1" x2="25" y1="5" y2="5" stroke="var(--market)" stroke-width="2.5" stroke-linecap="round"/></svg>${t("dvLegM")}</li>`+
+    `<li><svg width="26" height="10" aria-hidden="true"><line x1="1" x2="25" y1="5" y2="5" stroke="var(--poll)" stroke-width="2.5" stroke-linecap="round"/><circle cx="13" cy="5" r="3" fill="var(--poll)"/></svg>${t("dvLegP")}</li>`+
+    `<li><span class="tint" aria-hidden="true"></span>${t("dvLegG")}</li>`;
+  const ev=document.getElementById("dvEvents"); ev.setAttribute("aria-label",t("evList")); ev.hidden=!EVENTS.length; document.getElementById("dvNote").hidden=!EVENTS.length;
+  ev.innerHTML=EVENTS.map((e,i)=>`<li><button type="button" data-e="${i}" aria-pressed="false"><b>${i+1}</b>${xml(e[lang])}</button></li>`).join("");
+  ev.querySelectorAll("button").forEach(b=>{ const i=+b.dataset.e; b.addEventListener("click",()=>dvToggleEvent(i));
+    b.addEventListener("pointerenter",e=>{ if(e.pointerType==="mouse"){DV.hov=i;dvSync()} }); b.addEventListener("pointerleave",e=>{ if(e.pointerType==="mouse"){DV.hov=null;dvSync()} }); });
+  dvDrawChart();
+  const box=document.getElementById("dvChart");
+  if(!DV.ro&&window.ResizeObserver){ DV.ro=new ResizeObserver(()=>{ const w=Math.round(box.clientWidth); if(w&&Math.abs(w-DV.w)>2) dvDrawChart() }); DV.ro.observe(box); }
+}
+
+// Press export: one self-contained SVG card (fonts embedded, literal light colours), rasterised at 2x.
+let DV_FONTS=null;
+async function dvFonts(){
+  if(DV_FONTS) return DV_FONTS;
+  const b64=async u=>{ const r=await fetch(u); if(!r.ok) throw new Error(u); const by=new Uint8Array(await r.arrayBuffer()); let s=""; for(let i=0;i<by.length;i+=0x8000) s+=String.fromCharCode.apply(null,by.subarray(i,i+0x8000)); return btoa(s) };
+  return DV_FONTS={sans:await b64("fonts/schibsted-grotesk-latin.woff2"),serif:await b64("fonts/spectral-500-latin.woff2")};
+}
+async function dvExport(){
+  const D=dvData(), btn=document.getElementById("dvExport"), msg=document.getElementById("dvExpMsg"); if(!D||btn.disabled) return;
+  btn.disabled=true; msg.textContent="";
+  try{
+    let F=null; try{ F=await dvFonts() }catch(e){}
+    const W=1200,H=675,S=2,pad=48,cw=W-2*pad,ch=316,C=DV_LIGHT, Z=dvSummary(D), gap=Z.m!=null&&Z.p!=null?Z.m-Z.p:null;
+    const face=F?`<style>@font-face{font-family:"Schibsted Grotesk";font-weight:400 900;src:url(data:font/woff2;base64,${F.sans}) format("woff2")}@font-face{font-family:"Spectral";font-weight:500;src:url(data:font/woff2;base64,${F.serif}) format("woff2")}</style>`:"";
+    const chart=dvChart({W:cw-24,H:ch,weeks:D.weeks,poll:D.poll,market:D.market,events:EVENTS,col:C,interactive:false}).svg;
+    const cardY=176, legY=cardY+ch+24+30, shown=EVENTS.map((e,i)=>({e,i})).filter(({e})=>{const tt=dvTs(e.date); return tt>=dvTs(D.weeks[0])&&tt<=dvTs(D.weeks[D.weeks.length-1])});
+    let pillSvg=""; if(gap!=null){ const txt=xml(t("gapCol")+" "+dvSigned(gap)), w=txt.length*9.6+30, neg=gap<0;
+      pillSvg=`<rect x="${W-pad-w}" y="92" width="${w}" height="36" rx="18" fill="${neg?"rgba(52,70,166,.16)":C.fill}"/><text x="${W-pad-w/2}" y="116" text-anchor="middle" font-size="18" font-weight="700" fill="${neg?C.poll:C.market}">${txt}</text>`; }
+    const legend=`<line x1="${pad}" x2="${pad+26}" y1="${legY-4}" y2="${legY-4}" stroke="${C.market}" stroke-width="2.5" stroke-linecap="round"/><text x="${pad+34}" y="${legY}" font-size="13" fill="${C.muted}">${xml(t("dvLegM"))}</text>`+
+      `<line x1="${pad+300}" x2="${pad+326}" y1="${legY-4}" y2="${legY-4}" stroke="${C.poll}" stroke-width="2.5" stroke-linecap="round"/><circle cx="${pad+313}" cy="${legY-4}" r="3" fill="${C.poll}"/><text x="${pad+334}" y="${legY}" font-size="13" fill="${C.muted}">${xml(t("dvLegP"))}</text>`+
+      `<rect x="${pad+640}" y="${legY-13}" width="22" height="11" rx="3" fill="${C.fill}" stroke="${C.market}"/><text x="${pad+670}" y="${legY}" font-size="13" fill="${C.muted}">${xml(t("dvLegG"))}</text>`;
+    const evs=shown.length?`<text x="${pad}" y="${legY+26}" font-size="13" fill="${C.muted}">${xml(t("dvEv"))}${lang==="fr"?nb+": ":": "}${shown.map(({e,i})=>(i+1)+". "+xml(e[lang])).join("   ")}</text>`:"";
+    const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" font-family="'Schibsted Grotesk',Helvetica,Arial,sans-serif">${face}`+
+      `<rect width="${W}" height="${H}" fill="#EEF0F4"/>`+
+      `<circle cx="${pad+6}" cy="${pad+6}" r="6" fill="${C.poll}"/><rect x="${pad+21}" y="${pad}" width="12" height="12" rx="2" fill="${C.market}" transform="rotate(45 ${pad+27} ${pad+6})"/><text x="${pad+44}" y="${pad+12}" font-size="17" font-weight="800" fill="${C.ink}">L'Écart · ${xml(t("ctx"))}</text>`+
+      `<text x="${pad}" y="120" font-family="Spectral,Georgia,serif" font-size="46" font-weight="500" fill="${C.ink}">${xml(D.cand)}</text>${pillSvg}`+
+      `<text x="${pad}" y="152" font-size="16" fill="${C.muted}">${xml(t("dvCap"))}</text>`+
+      `<rect x="${pad}" y="${cardY}" width="${cw}" height="${ch+24}" rx="16" fill="${C.surface}" stroke="${C.rule}"/><g transform="translate(${pad+12} ${cardY+12})">${chart}</g>`+
+      `${legend}${evs}`+
+      `<line x1="${pad}" x2="${W-pad}" y1="${H-62}" y2="${H-62}" stroke="${C.rule}"/>`+
+      `<text x="${pad}" y="${H-38}" font-size="12.5" fill="${C.muted}">${xml(t("dvSrc"))} ${xml(t("dvAsOf"))} ${dvDate(D.weeks[D.weeks.length-1])}.</text>`+
+      `<text x="${W-pad}" y="${H-38}" text-anchor="end" font-size="12.5" fill="${C.muted}">lukesegault.github.io/lecart</text></svg>`;
+    const img=new Image(); img.src="data:image/svg+xml;charset=utf-8,"+encodeURIComponent(svg); await img.decode();
+    await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));   // let the embedded fonts settle before drawing
+    const cv=document.createElement("canvas"); cv.width=W*S; cv.height=H*S; cv.getContext("2d").drawImage(img,0,0,W*S,H*S);
+    const blob=await new Promise(r=>cv.toBlob(r,"image/png")); if(!blob) throw new Error("toBlob");
+    const a=document.createElement("a"), slug=surname(D.cand).normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase().replace(/[^a-z0-9]+/g,"-");
+    a.href=URL.createObjectURL(blob); a.download=`lecart-${slug}-${D.weeks[D.weeks.length-1]}.png`; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),4000);
+  }catch(e){ msg.textContent=t("dvExpFail") } finally{ btn.disabled=false }
+}
+document.getElementById("dvExport").addEventListener("click",dvExport);
+
 function table(){
   const d=s=>{const [y,m,dd]=s.split("-");return dd+"/"+m};
   document.querySelector("#polltable tbody").innerHTML=DATA.polls.slice().reverse().map(p=>{
     const f=v=>v==null?"–":(lang==="fr"?String(v).replace(".",","):v);
     return `<tr><td>${p.inst}</td><td>${p.for}</td><td>${d(p.start)} ${t("to")} ${d(p.end)}/${p.end.slice(0,4)}</td><td>${p.n.toLocaleString(lang==="fr"?"fr-FR":"en-GB")}</td><td>${f(p.v["Marine Le Pen"])}</td><td>${f(p.v["Édouard Philippe"])}</td><td>${f(p.v["Jean-Luc Mélenchon"])}</td></tr>`}).join("");
 }
-function renderAll(first){ applyStatic(); renderSpot(first); renderBoard(); trend(); multi(); table(); renderOpt(); }
+function renderAll(first){ applyStatic(); renderSpot(first); renderBoard(); trend(); renderDv(); table(); renderOpt(); }
 
 // Aggregated GoatCounter event (cookie-free). No-op after opt-out, or if count.js has not loaded yet or is blocked.
 const track=name=>{ try{ if(window.lecartOptOut.get()) return; window.goatcounter.count({path:name,title:name,event:true}) }catch(e){} };
@@ -520,8 +722,8 @@ const optEl=document.getElementById("optOut"), optMsg=document.getElementById("o
 const renderOpt=()=>{ optEl.textContent=t(window.lecartOptOut&&window.lecartOptOut.get()?"optIn":"optOut") };
 optEl.addEventListener("click",e=>{ e.preventDefault(); const O=window.lecartOptOut; if(!O) return; const ok=O.set(!O.get()); optMsg.textContent=ok?"":" "+t("optFail"); renderOpt() });
 document.querySelectorAll("[data-lang]").forEach(b=>b.addEventListener("click",()=>{track("lang-"+b.dataset.lang);lang=b.dataset.lang;try{localStorage.setItem("lecart-lang",lang)}catch(e){} renderAll(false)}));
-document.querySelectorAll("[data-q]").forEach(b=>b.addEventListener("click",()=>{track("q-"+b.dataset.q);state.q=b.dataset.q;document.querySelectorAll("[data-q]").forEach(x=>x.setAttribute("aria-pressed",x===b));renderBoard()}));
-document.querySelectorAll("[data-u]").forEach(b=>b.addEventListener("click",()=>{track("u-"+b.dataset.u);state.u=b.dataset.u;document.querySelectorAll("[data-u]").forEach(x=>x.setAttribute("aria-pressed",x===b));renderBoard()}));
+document.querySelectorAll("[data-q]").forEach(b=>b.addEventListener("click",()=>{track("q-"+b.dataset.q);state.q=b.dataset.q;document.querySelectorAll("[data-q]").forEach(x=>x.setAttribute("aria-pressed",x===b));renderBoard();renderDv()}));
+document.querySelectorAll("[data-u]").forEach(b=>b.addEventListener("click",()=>{track("u-"+b.dataset.u);state.u=b.dataset.u;document.querySelectorAll("[data-u]").forEach(x=>x.setAttribute("aria-pressed",x===b));renderBoard();renderDv()}));
 document.getElementById("more").addEventListener("click",()=>{state.all=!state.all;renderBoard()});
 renderAll(true);
 
