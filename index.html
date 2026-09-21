@@ -22,9 +22,8 @@
 <meta name="twitter:image" content="https://lukesegault.github.io/lecart/og-image.png">
 <meta name="twitter:image:alt" content="Marine Le Pen, 85 % dans les sondages contre 38 % sur les marchés (21 septembre 2026)">
 <!--META-END-->
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700;800;900&family=Spectral:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<link rel="preload" href="fonts/schibsted-grotesk-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="fonts/fonts.css">
 <style>
 :root{
   --bg:#EEF0F4; --surface:#FFFFFF; --ink:#161922; --muted:#5A6071; --faint:#9EA4B2; --rule:#DDE0E7; --soft:#F5F6F9;
@@ -155,6 +154,8 @@ th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--rule);font-
 th{color:var(--muted);font-weight:500;position:sticky;top:0;background:var(--surface)}
 footer{padding:26px 0 48px;color:var(--muted);font-size:13.5px;border-top:1px solid var(--rule);margin-top:34px}
 footer a,.method a{color:inherit}
+footer p{margin:0}
+.flinks{margin:10px 0 0}
 @media (max-width:860px){ .hero{grid-template-columns:1fr;gap:24px;padding-top:30px} .two{grid-template-columns:1fr} }
 @media (max-width:640px){
   .brand .ctx,.brand .sep{display:none}
@@ -257,10 +258,14 @@ footer a,.method a{color:inherit}
   </div>
 </section>
 
-<footer data-i="foot">L'Écart est un prototype indépendant, à visée de recherche et de débat. Ce n'est pas une prévision, il n'est affilié à aucun institut ni plateforme, et ne constitue pas une incitation à parier.</footer>
+<footer>
+  <p data-i="foot">L'Écart est un prototype indépendant, à visée de recherche et de débat. Ce n'est pas une prévision, il n'est affilié à aucun institut ni plateforme, et ne constitue pas une incitation à parier.</p>
+  <p class="flinks"><a href="mentions-legales.html" data-i="lnkLegal">Mentions légales</a> · <a href="confidentialite.html" data-i="lnkPriv">Confidentialité</a> · <a href="#" id="optOut" data-i="optOut">Ne pas être compté</a><span id="optMsg" role="status"></span></p>
+</footer>
 </div>
 
 <!--STATIC-END-->
+<script src="analytics.js"></script>
 <script>
 (async()=>{
 let DATA;
@@ -308,6 +313,7 @@ fr:{
  m3:"<strong>Marchés.</strong> Probabilités implicites tirées du dernier prix échangé sur deux marchés Polymarket : le vainqueur, et les qualifiés pour le second tour. Les prix sont présentés comme de simples données. Polymarket n'est pas autorisé en France ; cette page ne renvoie pas vers la plateforme et n'incite pas à parier.",
  m4:"<strong>Sources.</strong> Sondages compilés par le dépôt ouvert <a href=\"https://github.com/MieuxVoter/presidentielle2027\">MieuxVoter/presidentielle2027</a> (licence MIT), à partir d'enquêtes publiées sous le contrôle de la Commission des sondages. Chaque sondage reste la propriété de son institut et de son commanditaire.",
  pollsIncl:"Sondages retenus (50)",thInst:"Institut",thFor:"Commanditaire",thField:"Terrain",thN:"Échantillon",to:"au",
+ lnkLegal:"Mentions légales",lnkPriv:"Confidentialité",optOut:"Ne pas être compté",optIn:"Vous n'êtes pas compté : réactiver le comptage",optFail:"Choix non enregistré : le stockage de votre navigateur est bloqué.",
  foot:"L'Écart est un prototype indépendant, à visée de recherche et de débat. Ce n'est pas une prévision, il n'est affilié à aucun institut ni plateforme, et ne constitue pas une incitation à parier."
 },
 en:{
@@ -346,6 +352,7 @@ en:{
  m3:"<strong>Markets.</strong> Implied probabilities from the last traded price on two Polymarket markets: the overall winner, and who advances to the second round. Prices are shown as data only. Polymarket is not authorised in France; this page does not link to it or encourage trading.",
  m4:"<strong>Sources.</strong> Polls compiled by the open <a href=\"https://github.com/MieuxVoter/presidentielle2027\">MieuxVoter/presidentielle2027</a> repository (MIT licence), from polls published under the supervision of the Commission des sondages. Each poll remains the property of its institute and sponsor.",
  pollsIncl:"Polls included (50)",thInst:"Institute",thFor:"Sponsor",thField:"Fieldwork",thN:"Sample",to:"to",
+ lnkLegal:"Legal notice",lnkPriv:"Privacy",optOut:"Opt out of analytics",optIn:"You are opted out: turn analytics back on",optFail:"Choice not saved: your browser storage is blocked.",
  foot:"L'Écart is an independent prototype for research and discussion. It is not a forecast, is not affiliated with any pollster or platform, and is not an invitation to bet."
 }};
 
@@ -505,19 +512,20 @@ function table(){
     const f=v=>v==null?"–":(lang==="fr"?String(v).replace(".",","):v);
     return `<tr><td>${p.inst}</td><td>${p.for}</td><td>${d(p.start)} ${t("to")} ${d(p.end)}/${p.end.slice(0,4)}</td><td>${p.n.toLocaleString(lang==="fr"?"fr-FR":"en-GB")}</td><td>${f(p.v["Marine Le Pen"])}</td><td>${f(p.v["Édouard Philippe"])}</td><td>${f(p.v["Jean-Luc Mélenchon"])}</td></tr>`}).join("");
 }
-function renderAll(first){ applyStatic(); renderSpot(first); renderBoard(); trend(); multi(); table(); }
+function renderAll(first){ applyStatic(); renderSpot(first); renderBoard(); trend(); multi(); table(); renderOpt(); }
 
-// GoatCounter event (cookie-free). No-op if count.js has not loaded yet or is blocked.
-const track=name=>{ try{ window.goatcounter.count({path:name,title:name,event:true}) }catch(e){} };
+// Aggregated GoatCounter event (cookie-free). No-op after opt-out, or if count.js has not loaded yet or is blocked.
+const track=name=>{ try{ if(window.lecartOptOut.get()) return; window.goatcounter.count({path:name,title:name,event:true}) }catch(e){} };
+const optEl=document.getElementById("optOut"), optMsg=document.getElementById("optMsg");
+const renderOpt=()=>{ optEl.textContent=t(window.lecartOptOut&&window.lecartOptOut.get()?"optIn":"optOut") };
+optEl.addEventListener("click",e=>{ e.preventDefault(); const O=window.lecartOptOut; if(!O) return; const ok=O.set(!O.get()); optMsg.textContent=ok?"":" "+t("optFail"); renderOpt() });
 document.querySelectorAll("[data-lang]").forEach(b=>b.addEventListener("click",()=>{track("lang-"+b.dataset.lang);lang=b.dataset.lang;try{localStorage.setItem("lecart-lang",lang)}catch(e){} renderAll(false)}));
 document.querySelectorAll("[data-q]").forEach(b=>b.addEventListener("click",()=>{track("q-"+b.dataset.q);state.q=b.dataset.q;document.querySelectorAll("[data-q]").forEach(x=>x.setAttribute("aria-pressed",x===b));renderBoard()}));
-document.querySelectorAll("[data-u]").forEach(b=>b.addEventListener("click",()=>{state.u=b.dataset.u;document.querySelectorAll("[data-u]").forEach(x=>x.setAttribute("aria-pressed",x===b));renderBoard()}));
+document.querySelectorAll("[data-u]").forEach(b=>b.addEventListener("click",()=>{track("u-"+b.dataset.u);state.u=b.dataset.u;document.querySelectorAll("[data-u]").forEach(x=>x.setAttribute("aria-pressed",x===b));renderBoard()}));
 document.getElementById("more").addEventListener("click",()=>{state.all=!state.all;renderBoard()});
 renderAll(true);
 
 })();
 </script>
-<script data-goatcounter="https://vikander.goatcounter.com/count"
-        async src="//gc.zgo.at/count.js"></script>
 </body>
 </html>

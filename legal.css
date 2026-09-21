@@ -1,0 +1,53 @@
+:root{
+  --bg:#EEF0F4; --surface:#FFFFFF; --ink:#161922; --muted:#5A6071; --faint:#9EA4B2; --rule:#DDE0E7; --soft:#F5F6F9;
+  --poll:#3446A6; --poll-soft:rgba(52,70,166,.16); --market:#0B8474; --market-soft:rgba(11,132,116,.18); --warn:#A15F00;
+  --far-left:#B8324A; --left:#D0679A; --green:#4B8B3B; --centre:#D59A1E; --right:#2F7FBF; --far-right:#27306B;
+  --sans:"Schibsted Grotesk",-apple-system,"Segoe UI",Helvetica,Arial,sans-serif;
+  --serif:"Spectral",Georgia,"Times New Roman",serif;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){ :root:not([data-theme="light"]){
+  --bg:#101218; --surface:#1A1D25; --ink:#ECEEF3; --muted:#9CA2B1; --faint:#5F6575; --rule:#2B2F3A; --soft:#151820;
+  --poll:#95A3FF; --poll-soft:rgba(149,163,255,.2); --market:#44CDB9; --market-soft:rgba(68,205,185,.2); --warn:#E6A850;
+  --far-left:#E0607A; --left:#E48BB6; --green:#7CBF6A; --centre:#E9B64D; --right:#6BB0E6; --far-right:#8E98E8; }}
+:root[data-theme="dark"]{
+  --bg:#101218; --surface:#1A1D25; --ink:#ECEEF3; --muted:#9CA2B1; --faint:#5F6575; --rule:#2B2F3A; --soft:#151820;
+  --poll:#95A3FF; --poll-soft:rgba(149,163,255,.2); --market:#44CDB9; --market-soft:rgba(68,205,185,.2); --warn:#E6A850;
+  --far-left:#E0607A; --left:#E48BB6; --green:#7CBF6A; --centre:#E9B64D; --right:#6BB0E6; --far-right:#8E98E8; }
+html{scroll-padding-top:calc(env(safe-area-inset-top,0px) + 64px)}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.5;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1100px;margin:0 auto;padding:0 20px}
+/* top bar */
+.bar-top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-bottom:1px solid var(--rule)}
+.bar-top .wrap{display:flex;align-items:center;justify-content:space-between;height:56px;gap:12px}
+.brand{font-weight:900;letter-spacing:-.02em;font-size:18px;display:flex;align-items:center;gap:10px}
+.brand .mark{display:inline-flex;gap:3px;align-items:center}
+.brand .mark i{display:block;width:9px;height:9px}
+.brand .mark i:first-child{background:var(--poll);border-radius:50%}
+.brand .mark i:last-child{background:var(--market);transform:rotate(45deg) scale(.85);border-radius:1.5px}
+.brand .sep{color:var(--faint);font-weight:500}
+.brand .ctx{font-weight:500;color:var(--muted);font-size:14px}
+.seg{display:inline-flex;border:1.5px solid var(--rule);background:var(--surface);border-radius:999px;padding:3px}
+.seg button{font:600 13.5px var(--sans);border:0;background:transparent;color:var(--muted);padding:7px 14px;border-radius:999px;cursor:pointer;transition:background .2s,color .2s}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.seg.sm button{padding:5px 11px;font-size:13px}
+button:focus-visible,summary:focus-visible,a:focus-visible{outline:2px solid var(--poll);outline-offset:3px}
+/* Legal pages: tokens and base rules above are copied verbatim from index.html (keep in sync). Below: page-specific rules. */
+.legal{padding:34px 0 10px;max-width:46em}
+h1{font-size:clamp(30px,4.4vw,44px);line-height:1.05;letter-spacing:-.03em;font-weight:900;margin:0 0 6px;text-wrap:balance}
+h2{font-size:clamp(20px,2.4vw,24px);letter-spacing:-.02em;font-weight:800;margin:28px 0 6px}
+.lede{color:var(--muted);margin:0 0 6px}
+.legal p,.legal li{font-family:var(--serif);font-size:17px;line-height:1.65;margin:0 0 12px}
+.legal ul{padding-left:1.2em;margin:0 0 12px}
+.legal a{color:var(--poll)}
+.legal .optout{font:600 15px var(--sans)}
+.brand a{color:inherit;text-decoration:none}
+.lang-nav{display:flex;gap:16px;font-size:14px}
+.lang-nav a{color:var(--muted)}
+hr.split{border:0;border-top:1px solid var(--rule);margin:44px 0 0}
+footer{padding:26px 0 48px;color:var(--muted);font-size:13.5px;border-top:1px solid var(--rule);margin-top:34px}
+footer a{color:inherit}
+footer p{margin:0}
+@media (max-width:640px){ .brand .ctx,.brand .sep{display:none} }
