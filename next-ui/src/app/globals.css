@@ -1,0 +1,51 @@
+@import "tailwindcss";
+
+/*
+ * L'Écart design tokens: "Editorial Mint & Financial Journalism".
+ * Tailwind v4 is configured in CSS: every --color-* / --font-* below becomes a utility
+ * (bg-mint-50, text-mint-700, border-editorial-border, font-serif, font-mono ...).
+ * src/lib/chartTheme.ts mirrors the hex values for SVG and PNG export: keep both in sync.
+ */
+@theme {
+  /* surfaces */
+  --color-editorial-bg: #FAFAF9;
+  --color-editorial-surface: #FFFFFF;
+  --color-editorial-border: #E2E8F0;
+
+  /* mint accent: market line and actions */
+  --color-mint-50: #E6F7F0;
+  --color-mint-500: #00C48C;
+  --color-mint-700: #007A55;
+
+  /* data neutrals: polling baseline, headings, captions */
+  --color-poll: #64748B;
+  --color-editorial-ink: #0F172A;
+  --color-editorial-muted: #475569;
+}
+
+/* Font variables are injected by next/font in layout.tsx, hence `inline`. */
+@theme inline {
+  --font-serif: var(--font-newsreader), Georgia, "Times New Roman", serif;
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+
+@layer base {
+  html {
+    background: var(--color-editorial-bg);
+  }
+  body {
+    @apply bg-editorial-bg font-sans text-editorial-ink antialiased;
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-mint-700);
+    outline-offset: 2px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
