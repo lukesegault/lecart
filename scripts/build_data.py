@@ -263,13 +263,9 @@ def fr_figures(data):
 def fill_figures(text, figs):
     return re.sub(r"\{\{(\w+)\}\}", lambda m: figs[m.group(1)], text)
 
-def french_strings(page):
-    """FR entries of the T object in index.html: plain strings, plus spotCap (a template literal)."""
-    body = re.search(r"const T=\{\s*fr:\{(.*?)\},\s*en:\{", page, re.S).group(1)
-    fr = {k: json.loads('"' + v + '"') for k, v in re.findall(r'(?<![\w"])(\w+):"((?:[^"\\]|\\.)*)"', body)}
-    cap = re.search(r"spotCap:\(n,p,m\)=>`((?:[^`\\]|\\.)*)`", body)
-    fr["spotCap"] = cap.group(1)
-    return fr
+def french_strings():
+    """The French strings of the page (i18n/fr.json): plain strings, plus lists and objects the static layer ignores."""
+    return json.loads((ROOT / "i18n" / "fr.json").read_text(encoding="utf-8"))
 
 def fill(page, pattern, text):
     page, n = re.subn(pattern, lambda m: m.group(1) + text + m.group(3), page, flags=re.S)
@@ -285,8 +281,8 @@ def static_html(region, fr, hl):
     if keys - set(fr): raise KeyError(f"no FR string for data-i keys: {sorted(keys - set(fr))}")
     region = re.sub(r'(<(\w+)\b[^>]*\bdata-i="(\w+)"[^>]*>)(.*?)(</\2>)',
                     lambda m: m.group(1) + fr[m.group(3)] + m.group(5), region, flags=re.S)
-    cap = fr["spotCap"].replace("${n}", surname(hl["name"]))
-    if "${" in cap: raise ValueError("spotCap uses placeholders other than ${n}")
+    cap = fr["spotCap"].replace("{n}", surname(hl["name"]))
+    if re.search(r"\{\w+\}", cap): raise ValueError("spotCap uses placeholders other than {n}")
     region = fill(region, r'(<p class="who" id="spotWho">)(.*?)(</p>)', hl["name"])
     region = fill(region, r'(<div class="pin p" id="spotP"[^>]*><b>)(.*?)(</b>)', fr_pct(hl["poll"]))
     region = fill(region, r'(<div class="pin m" id="spotM"[^>]*><b>)(.*?)(</b>)', fr_pct(hl["market"]))
@@ -306,6 +302,7 @@ def meta_html(page, fr, hl):
         ("property", "og:image:alt", alt),
         ("name", "twitter:card", "summary_large_image"), ("name", "twitter:title", title),
         ("name", "twitter:description", desc), ("name", "twitter:image", img), ("name", "twitter:image:alt", alt),
+        ("name", "data-version", hl["updated"]),   # cache key of data.json and the event list (see js/app.js)
     ]
     return "\n".join(f'<meta {k}="{n}" content="{attr(c)}">' for k, n, c in tags)
 
@@ -319,7 +316,7 @@ def write_index(hl):
     raw = INDEX.read_bytes().decode("utf-8")
     eol = "\r\n" if "\r\n" in raw else "\n"   # keep the file's own line endings (CRLF checkout on Windows)
     page = raw.replace("\r\n", "\n")
-    fr = {k: fill_figures(v, hl["figs"]) for k, v in french_strings(page).items()}
+    fr = {k: fill_figures(v, hl["figs"]) for k, v in french_strings().items() if isinstance(v, str)}
     page = between(page, "<!--STATIC-START-->", "<!--STATIC-END-->", lambda region: static_html(region, fr, hl))
     page = between(page, "<!--META-START-->", "<!--META-END-->", lambda _: "\n" + meta_html(page, fr, hl) + "\n")
     INDEX.write_bytes(page.replace("\n", eol).encode("utf-8"))
@@ -406,7 +403,7 @@ def main():
         weekly = previous.get("weekly")
     sim, avg = page_views(polls, pairs)
     data = {"updated": datetime.date.today().isoformat(), "polls": slim_polls(polls), "avg": avg, "sim": sim, "trend": trend, "weekly": weekly, "markets": markets}
-    data_path.write_text(json.dumps(data, ensure_ascii=False, indent=1), encoding="utf-8")
+    data_path.write_text(json.dumps(data, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
     print(f"{len(polls)} polls, {len(markets['candidates'])} market candidates, {write_polls_average(history)} weekly poll averages")
     write_static(data)
 
