@@ -66,12 +66,18 @@ def load_polls():
 
 def market_prices(slug):
     events = json.loads(get(GAMMA.format(slug=slug)))
+    if not events:
+        raise ValueError(f"no event returned for slug {slug}")
     out = {}
     for m in events[0]["markets"]:
         name = m.get("groupItemTitle") or m.get("question")
         prices = json.loads(m.get("outcomePrices") or "[]")
-        if name and prices:
+        outcomes = json.loads(m.get("outcomes") or '["Yes","No"]')
+        if name and prices and outcomes[0] == "Yes":
             out[name] = round(100 * float(prices[0]), 1)   # price of "Yes"
+    if not out:
+        raise ValueError(f"no usable markets for slug {slug}")
+    print(f"{slug}: {len(out)} markets:", ", ".join(f"{k}={v}" for k, v in out.items()))
     return out
 
 def main():
@@ -81,9 +87,14 @@ def main():
     try:
         win, qual = market_prices(WIN_SLUG), market_prices(QUAL_SLUG)
         names = [n for n in win if n in FAMILY]
+        print("Unmatched market names (not in FAMILY):", [n for n in win if n not in FAMILY])
+        print("FAMILY names with no market:", [n for n in FAMILY if n not in win])
+        if not names:
+            raise ValueError("no market name matched FAMILY")
         candidates = [{"c": n, "f": FAMILY[n], "win": win.get(n, 0), "qual": qual.get(n, 0)} for n in names]
         markets = {"snapshot": datetime.date.today().isoformat(), "source": "Polymarket", "candidates": candidates}
         hist = ROOT / "data" / "market_history.csv"
+        hist.parent.mkdir(exist_ok=True)
         new = not hist.exists()
         with hist.open("a", newline="") as fh:
             w = csv.writer(fh)
