@@ -28,7 +28,7 @@
 :root{
   --bg:#EEF0F4; --surface:#FFFFFF; --ink:#161922; --muted:#5A6071; --faint:#9EA4B2; --rule:#DDE0E7; --soft:#F5F6F9;
   --poll:#3446A6; --poll-soft:rgba(52,70,166,.16); --market:#0B8474; --market-soft:rgba(11,132,116,.18); --warn:#A15F00;
-  --far-left:#B8324A; --left:#D0679A; --green:#4B8B3B; --centre:#D59A1E; --right:#2F7FBF; --far-right:#27306B;
+  --far-left:#B8324A; --left:#D0679A; --green:#4B8B3B; --centre:#D59A1E; --right:#2F7FBF; --far-right:#5B3A22;
   --sans:"Schibsted Grotesk",-apple-system,"Segoe UI",Helvetica,Arial,sans-serif;
   --serif:"Spectral",Georgia,"Times New Roman",serif;
   box-sizing:border-box;
@@ -37,11 +37,11 @@
 @media (prefers-color-scheme:dark){ :root:not([data-theme="light"]){
   --bg:#101218; --surface:#1A1D25; --ink:#ECEEF3; --muted:#9CA2B1; --faint:#5F6575; --rule:#2B2F3A; --soft:#151820;
   --poll:#95A3FF; --poll-soft:rgba(149,163,255,.2); --market:#44CDB9; --market-soft:rgba(68,205,185,.2); --warn:#E6A850;
-  --far-left:#E0607A; --left:#E48BB6; --green:#7CBF6A; --centre:#E9B64D; --right:#6BB0E6; --far-right:#8E98E8; }}
+  --far-left:#E0607A; --left:#E48BB6; --green:#7CBF6A; --centre:#E9B64D; --right:#6BB0E6; --far-right:#B9804F; }}
 :root[data-theme="dark"]{
   --bg:#101218; --surface:#1A1D25; --ink:#ECEEF3; --muted:#9CA2B1; --faint:#5F6575; --rule:#2B2F3A; --soft:#151820;
   --poll:#95A3FF; --poll-soft:rgba(149,163,255,.2); --market:#44CDB9; --market-soft:rgba(68,205,185,.2); --warn:#E6A850;
-  --far-left:#E0607A; --left:#E48BB6; --green:#7CBF6A; --centre:#E9B64D; --right:#6BB0E6; --far-right:#8E98E8; }
+  --far-left:#E0607A; --left:#E48BB6; --green:#7CBF6A; --centre:#E9B64D; --right:#6BB0E6; --far-right:#B9804F; }
 html{scroll-padding-top:calc(env(safe-area-inset-top,0px) + 64px)}
 *,*::before,*::after{box-sizing:inherit}
 body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.5;-webkit-font-smoothing:antialiased}
@@ -49,7 +49,12 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font
 /* top bar */
 .bar-top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-bottom:1px solid var(--rule)}
 .bar-top .wrap{display:flex;align-items:center;justify-content:space-between;height:56px;gap:12px}
-.brand{font-weight:900;letter-spacing:-.02em;font-size:18px;display:flex;align-items:center;gap:10px}
+.bar-r{display:flex;align-items:center;gap:10px}
+.nav{display:flex;gap:2px;margin:0 auto 0 28px}
+.nav a{color:var(--muted);text-decoration:none;font-weight:600;font-size:14px;padding:7px 12px;border-radius:999px}
+.nav a:hover{color:var(--ink);background:var(--soft)}
+.menu-btn{display:none;align-items:center;gap:7px;font:600 13px var(--sans);color:var(--ink);background:var(--surface);border:1.5px solid var(--rule);border-radius:999px;padding:6px 12px;cursor:pointer}
+.brand{font-weight:900;white-space:nowrap;letter-spacing:-.02em;font-size:18px;display:flex;align-items:center;gap:10px}
 .brand .mark{display:inline-flex;gap:3px;align-items:center}
 .brand .mark i{display:block;width:9px;height:9px}
 .brand .mark i:first-child{background:var(--poll);border-radius:50%}
@@ -181,6 +186,8 @@ summary{cursor:pointer;font-weight:600;font-family:var(--sans)}
 table{border-collapse:collapse;font-size:13px;width:100%;min-width:580px;font-family:var(--sans)}
 th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--rule);font-variant-numeric:tabular-nums}
 th{color:var(--muted);font-weight:500;position:sticky;top:0;background:var(--surface)}
+.hist{margin-top:34px}
+.hist h3{font-size:clamp(20px,2.4vw,24px);letter-spacing:-.02em;margin:0 0 6px;font-weight:800}
 footer{padding:26px 0 48px;color:var(--muted);font-size:13.5px;border-top:1px solid var(--rule);margin-top:34px}
 footer a,.method a{color:inherit}
 footer p{margin:0}
@@ -188,10 +195,27 @@ footer p{margin:0}
 @media (max-width:860px){ .hero{grid-template-columns:1fr;gap:24px;padding-top:30px} .two{grid-template-columns:1fr} }
 @media (max-width:640px){
   .brand .ctx,.brand .sep{display:none}
-  .board{--namecol:112px;--gapcol:70px;padding:4px 12px}
-  .row,.axis{gap:8px}
+  .menu-btn{display:inline-flex}
+  .nav{display:none;position:absolute;top:100%;left:0;right:0;margin:0;flex-direction:column;gap:0;padding:6px 20px 10px;background:var(--surface);border-bottom:1px solid var(--rule);box-shadow:0 12px 24px rgba(0,0,0,.12)}
+  .bar-top.open .nav{display:flex}
+  .nav a{padding:12px 4px;font-size:16px;border-radius:0;border-top:1px solid var(--rule)}
+  .nav a:first-child{border-top:0}
+  /* board: name and gap on one line, track full width below, three ticks, dots of at least 18px */
+  .board{--namecol:auto;--gapcol:auto}
+  .row{grid-template-columns:minmax(0,1fr) auto;gap:6px 10px;padding:12px 0 10px}
+  .row .name{grid-column:1;grid-row:1}
+  .row .gapv{grid-column:2;grid-row:1;white-space:nowrap}
+  .row .gapv br{display:none}
+  .row .gapv b{margin:0 6px 0 0}
+  .row .track{grid-column:1/-1;grid-row:2;height:34px;margin:0 12px}
+  .dot{width:20px;height:20px;margin:-10px 0 0 -10px}
+  .axis{grid-template-columns:1fr;padding:10px 0 6px}
+  .axis>div:not(.ticks){display:none}
+  .axis .ticks{margin:0 12px}
+  .axis .ticks span:nth-child(2),.axis .ticks span:nth-child(4){display:none}
+  .board{padding:4px 12px}
   .name strong{font-size:13.5px} .name small{font-size:11.5px}
-  .gapv{font-size:11px} .gapv b{font-size:12.5px;padding:2px 6px}
+  .gapv{font-size:12px} .gapv b{font-size:13px;padding:2px 7px}
   .spot .pin b{font-size:28px}
 }
 @media (prefers-reduced-motion:reduce){ *{transition:none!important} }
@@ -201,9 +225,17 @@ footer p{margin:0}
 <!--STATIC-START-->
 <div class="bar-top"><div class="wrap">
   <div class="brand"><span class="mark" aria-hidden="true"><i></i><i></i></span>L'Écart<span class="sep">/</span><span class="ctx" data-i="ctx">Présidentielle 2027</span></div>
-  <div class="seg sm" role="group" aria-label="Langue / Language">
-    <button type="button" data-lang="fr" aria-pressed="true">FR</button>
-    <button type="button" data-lang="en" aria-pressed="false">EN</button>
+  <nav class="nav" id="nav">
+    <a href="#multiSection" data-i="navTime">Dans le temps</a>
+    <a href="#compare" data-i="navNow">Aujourd'hui</a>
+    <a href="#method" data-i="navMethod">Méthode</a>
+  </nav>
+  <div class="bar-r">
+    <button type="button" class="menu-btn" id="menuBtn" aria-expanded="false" aria-controls="nav"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg><span data-i="menu">Menu</span></button>
+    <div class="seg sm" role="group" aria-label="Langue / Language">
+      <button type="button" data-lang="fr" aria-pressed="true">FR</button>
+      <button type="button" data-lang="en" aria-pressed="false">EN</button>
+    </div>
   </div>
 </div></div>
 
@@ -228,6 +260,33 @@ footer p{margin:0}
     <p class="cap" id="spotCap">Un modèle fondé sur les seuls sondages donne Le Pen largement favorite. Les parieurs, eux, restent bien plus prudents.</p>
   </div>
 </header>
+
+<section id="multiSection" aria-labelledby="h-multi">
+  <h2 id="h-multi" data-i="h2f">Marchés et sondages dans le temps</h2>
+  <p class="sub" data-i="subF">Choisissez un candidat : les <span class="lp">● sondages</span> (chances de victoire tirées des enquêtes par la simulation décrite dans la Méthode) et les <span class="lm">◆ marchés</span> (chances de victoire, moyenne hebdomadaire des prix) sont deux probabilités du même événement, tracées sur la même échelle. La zone colorée est l'écart entre les deux courbes. Survolez ou touchez un repère numéroté pour lire la note.</p>
+  <div class="dv">
+    <div class="dv-head">
+      <div class="dv-title"><h3 id="dvName"></h3><span class="dv-pill" id="dvPill"></span></div>
+      <div class="dv-actions">
+        <div class="seg sm" id="dvTf" role="group">
+          <button type="button" data-tf="1M" aria-pressed="false">1M</button>
+          <button type="button" data-tf="3M" aria-pressed="false">3M</button>
+          <button type="button" data-tf="6M" aria-pressed="false">6M</button>
+          <button type="button" data-tf="ALL" aria-pressed="true" data-i="tfAll">Tout</button>
+        </div>
+        <button type="button" class="dv-export" id="dvExport"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14"/></svg><span data-i="dvExport">Exporter (PNG / Presse)</span></button>
+      </div>
+    </div>
+    <span class="dv-msg" id="dvExpMsg" role="alert"></span>
+    <div class="pills" id="dvPills" role="group"></div>
+    <div class="dv-chart" id="dvChart" role="group"></div>
+    <p class="dv-readout" id="dvReadout" aria-live="polite"></p>
+    <ul class="dv-legend" id="dvLegend"></ul>
+    <ul class="dv-evl" id="dvEvents"></ul>
+    <div class="dv-note" id="dvNote" aria-live="polite"></div>
+  </div>
+  <p class="sub note-f" data-i="noteF">Chaque semaine, la simulation (incertitude moyenne, mêmes paramètres que dans la Méthode) est appliquée aux sondages de premier et de second tour des 30 jours précédents. Le trait des sondages s'interrompt quand aucune enquête n'a paru sur cette période. Les marchés sont des moyennes hebdomadaires des prix quotidiens. Ce graphique ne dépend pas des réglages du comparateur, dont les chances reposent sur les 60 derniers jours d'enquêtes.</p>
+</section>
 
 <section id="compare" aria-labelledby="h-compare">
   <h2 id="h-compare" data-i="h2a">Deux lectures de la même course</h2>
@@ -264,46 +323,18 @@ footer p{margin:0}
   </div>
 </section>
 
-<section aria-labelledby="h-trend">
-  <h2 id="h-trend" data-i="h2d">L'évolution des sondages de premier tour</h2>
-  <p class="sub" data-i="subD">Moyenne mensuelle des intentions de vote au premier tour, tous scénarios confondus. Survolez ou touchez un nom pour le mettre en avant.</p>
-  <div class="chart-wrap"><svg id="trend" viewBox="0 0 900 390" role="img"></svg></div>
-</section>
-
-<section id="multiSection" aria-labelledby="h-multi">
-  <h2 id="h-multi" data-i="h2f">Marchés et sondages dans le temps</h2>
-  <p class="sub" data-i="subF">Choisissez un candidat : les <span class="lp">● sondages</span> (chances de victoire tirées des enquêtes par la simulation décrite dans la Méthode) et les <span class="lm">◆ marchés</span> (chances de victoire, moyenne hebdomadaire des prix) sont deux probabilités du même événement, tracées sur la même échelle. La zone colorée est l'écart entre les deux courbes. Survolez ou touchez un repère numéroté pour lire la note.</p>
-  <div class="dv">
-    <div class="dv-head">
-      <div class="dv-title"><h3 id="dvName"></h3><span class="dv-pill" id="dvPill"></span></div>
-      <div class="dv-actions">
-        <div class="seg sm" id="dvTf" role="group">
-          <button type="button" data-tf="1M" aria-pressed="false">1M</button>
-          <button type="button" data-tf="3M" aria-pressed="false">3M</button>
-          <button type="button" data-tf="6M" aria-pressed="false">6M</button>
-          <button type="button" data-tf="ALL" aria-pressed="true" data-i="tfAll">Tout</button>
-        </div>
-        <button type="button" class="dv-export" id="dvExport"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14"/></svg><span data-i="dvExport">Exporter (PNG / Presse)</span></button>
-      </div>
-    </div>
-    <span class="dv-msg" id="dvExpMsg" role="alert"></span>
-    <div class="pills" id="dvPills" role="group"></div>
-    <div class="dv-chart" id="dvChart" role="group"></div>
-    <p class="dv-readout" id="dvReadout" aria-live="polite"></p>
-    <ul class="dv-legend" id="dvLegend"></ul>
-    <ul class="dv-evl" id="dvEvents"></ul>
-    <div class="dv-note" id="dvNote" aria-live="polite"></div>
-  </div>
-  <p class="sub note-f" data-i="noteF">Chaque semaine, la simulation (incertitude moyenne, mêmes paramètres que plus haut) est appliquée aux sondages de premier et de second tour des 30 jours précédents. Le trait des sondages s'interrompt quand aucune enquête n'a paru sur cette période. Les marchés sont des moyennes hebdomadaires des prix quotidiens. Ce graphique ne dépend pas des réglages du comparateur, dont les chances reposent sur les 60 derniers jours d'enquêtes.</p>
-</section>
-
-<section aria-labelledby="h-method">
+<section id="method" aria-labelledby="h-method">
   <h2 id="h-method" data-i="h2e">Méthode</h2>
   <div class="method">
     <p data-i="m1"><strong>Des sondages aux probabilités.</strong> Chaque simulation tire au hasard un sondage récent de premier tour, ajoute une erreur de sondage qui croît avec le score du candidat, et retient les deux premiers. Le vainqueur du second tour est tiré à partir de la moyenne des sondages de duel pour cette paire, plus une erreur. Les paires jamais testées sont départagées selon le rapport de force au premier tour. 20 000 simulations par vue. Les chances issues des sondages supposent que le candidat se présente.</p><p data-i="m2"><strong>Incertitude.</strong> À sept mois du scrutin, les sondages peuvent se tromper lourdement : cinq mois avant le vote de 2022, Jean-Luc Mélenchon était sous-estimé de plus de dix points. Le niveau « moyen » ajoute environ 1,5 point plus 20 % du score à l'erreur de premier tour, et 6 points à celle du second tour. Changez le réglage pour mesurer la sensibilité de la lecture sondagière.</p><p data-i="m3"><strong>Marchés.</strong> Probabilités implicites tirées du dernier prix échangé sur deux marchés Polymarket : le vainqueur, et les qualifiés pour le second tour. Les prix sont présentés comme de simples données. Polymarket n'est pas autorisé en France ; cette page ne renvoie pas vers la plateforme et n'incite pas à parier.</p><p data-i="m4"><strong>Sources.</strong> Sondages compilés par le dépôt ouvert <a href="https://github.com/MieuxVoter/presidentielle2027">MieuxVoter/presidentielle2027</a> (licence MIT), à partir d'enquêtes publiées sous le contrôle de la Commission des sondages. Chaque sondage reste la propriété de son institut et de son commanditaire.</p>
     <details><summary data-i="pollsIncl">Sondages retenus (50)</summary>
       <div class="table-wrap"><table id="polltable"><thead><tr><th data-i="thInst">Institut</th><th data-i="thFor">Commanditaire</th><th data-i="thField">Terrain</th><th data-i="thN">Échantillon</th><th>Le Pen</th><th>Philippe</th><th>Mélenchon</th></tr></thead><tbody></tbody></table></div>
     </details>
+  </div>
+  <div class="hist">
+    <h3 id="h-trend" data-i="hTrend">Historique des sondages</h3>
+    <p class="sub" data-i="subD">Moyenne mensuelle des intentions de vote au premier tour, tous scénarios confondus. Survolez ou touchez un nom pour le mettre en avant.</p>
+    <div class="chart-wrap"><svg id="trend" viewBox="0 0 900 390" role="img"></svg></div>
   </div>
 </section>
 
@@ -327,7 +358,7 @@ const LEVELS={low:{base:1,k:.12,run:3.5},mid:{base:1.5,k:.2,run:6},high:{base:2,
 
 const T={
 fr:{
- ctx:"Présidentielle 2027",h1:"Les marchés voient-ils ce que les sondages ratent ?",
+ ctx:"Présidentielle 2027",navTime:"Dans le temps",navNow:"Aujourd'hui",navMethod:"Méthode",menu:"Menu",h1:"Les marchés voient-ils ce que les sondages ratent ?",
  dek:"Sondages et marchés prédictifs tentent tous deux de dire qui sera président de la République en 2027. Ils ne sont pas toujours d'accord. Cette page montre où, et de combien.",
  updated:"Mis à jour le {{upd}}",
  meta:"Prototype. Marchés : relevé du {{snap}}. Sondages : {{n}} enquêtes de premier tour réalisées du {{from}} au {{to}}.",
@@ -348,11 +379,11 @@ fr:{
  read2:"Les marchés maintiennent aussi en vie des noms que les sondages remarquent à peine. David Lisnard est sous les 3 % mais cote comme un vrai outsider, et Jordan Bardella garde une valeur alors que les instituts ont cessé de le tester depuis la déclaration de Marine Le Pen. Information, couverture de risque ou simple manque de liquidité : c'est exactement le type de question que cette page veut faire émerger.",
  noteT:"Attention à la vue « second tour »",
  note:"Le marché « qui accède au second tour » est peu liquide : environ {{vq}} échangés, contre {{vw}} sur le marché du vainqueur. Ses prix totalisent près de {{sum}} alors que deux finalistes devraient faire 200 % : les petits candidats y paraissent plus probables qu'ils ne le sont.",
- h2d:"L'évolution des sondages de premier tour",subD:"Moyenne mensuelle des intentions de vote au premier tour, tous scénarios confondus. Survolez ou touchez un nom pour le mettre en avant.",
+ hTrend:"Historique des sondages",subD:"Moyenne mensuelle des intentions de vote au premier tour, tous scénarios confondus. Survolez ou touchez un nom pour le mettre en avant.",
  chartAria:"Graphique des moyennes mensuelles des sondages de premier tour depuis septembre 2025",
  h2f:"Marchés et sondages dans le temps",
  subF:"Choisissez un candidat : les <span class=\"lp\">● sondages</span> (chances de victoire tirées des enquêtes par la simulation décrite dans la Méthode) et les <span class=\"lm\">◆ marchés</span> (chances de victoire, moyenne hebdomadaire des prix) sont deux probabilités du même événement, tracées sur la même échelle. La zone colorée est l'écart entre les deux courbes. Survolez ou touchez un repère numéroté pour lire la note.",
- noteF:"Chaque semaine, la simulation (incertitude moyenne, mêmes paramètres que plus haut) est appliquée aux sondages de premier et de second tour des 30 jours précédents. Le trait des sondages s'interrompt quand aucune enquête n'a paru sur cette période. Les marchés sont des moyennes hebdomadaires des prix quotidiens. Ce graphique ne dépend pas des réglages du comparateur, dont les chances reposent sur les 60 derniers jours d'enquêtes.",
+ noteF:"Chaque semaine, la simulation (incertitude moyenne, mêmes paramètres que dans la Méthode) est appliquée aux sondages de premier et de second tour des 30 jours précédents. Le trait des sondages s'interrompt quand aucune enquête n'a paru sur cette période. Les marchés sont des moyennes hebdomadaires des prix quotidiens. Ce graphique ne dépend pas des réglages du comparateur, dont les chances reposent sur les 60 derniers jours d'enquêtes.",
  tfAll:"Tout",dvExport:"Exporter (PNG / Presse)",dvCand:"Candidat",dvPeriod:"Période",evList:"Événements repérés sur le graphique",
  dvHint:"Survolez ou touchez un repère pour lire la note.",
  dvLast:(m,mw,p,pw)=>`Derniers relevés : <span class="lm">marché ${m}</span> (semaine du ${mw}), <span class="lp">sondages ${p}</span> (semaine du ${pw}).`,
@@ -375,7 +406,7 @@ fr:{
  foot:"L'Écart est un prototype indépendant, à visée de recherche et de débat. Ce n'est pas une prévision, il n'est affilié à aucun institut ni plateforme, et ne constitue pas une incitation à parier."
 },
 en:{
- ctx:"French presidential election 2027",h1:"Do markets see what the polls miss?",
+ ctx:"French presidential election 2027",navTime:"Over time",navNow:"Today",navMethod:"Method",menu:"Menu",h1:"Do markets see what the polls miss?",
  dek:"Polls and prediction markets are both trying to tell us who becomes president of France in 2027. They don't always agree. This page shows where, and by how much.",
  updated:"Updated {{upd}}",
  meta:"Prototype. Markets snapshot: {{snap}}. Polls: {{n}} first-round polls fielded {{from}} to {{to}}.",
@@ -396,11 +427,11 @@ en:{
  read2:"Markets also keep a few names alive that polls barely register. David Lisnard polls under 3% yet trades as a real outsider, and Jordan Bardella keeps some value even though pollsters stopped testing him once Le Pen declared. Information, hedging or thin trading: that is exactly the kind of question this page is built to surface.",
  noteT:"Handle the runoff view with care",
  note:"The \"who advances to the runoff\" market is thin: about {{vq}} traded, against {{vw}} on the winner market. Its prices add up to roughly {{sum}} when two finalists should make 200%, so small candidates look more likely than they are.",
- h2d:"How first-round polls have moved",subD:"Monthly average of first-round voting intentions across all tested scenarios. Hover or tap a name to highlight it.",
+ hTrend:"Poll history",subD:"Monthly average of first-round voting intentions across all tested scenarios. Hover or tap a name to highlight it.",
  chartAria:"Line chart of monthly first-round polling averages since September 2025",
  h2f:"Markets and polls over time",
  subF:"Choose a candidate: <span class=\"lp\">● polls</span> (chance of winning, derived from surveys by the simulation described in Method) and <span class=\"lm\">◆ markets</span> (chance of winning, weekly average of prices) are two probabilities of the same event, plotted on the same scale. The shaded area is the gap between the two lines. Hover or tap a numbered marker to read its note.",
- noteF:"Each week, the simulation (medium uncertainty, same parameters as above) is run on the first-round and runoff polls of the previous 30 days. The poll line breaks when no survey was published in that period. Markets are weekly averages of daily prices. This chart does not depend on the comparison settings, whose chances rest on the last 60 days of polls.",
+ noteF:"Each week, the simulation (medium uncertainty, same parameters as in Method) is run on the first-round and runoff polls of the previous 30 days. The poll line breaks when no survey was published in that period. Markets are weekly averages of daily prices. This chart does not depend on the comparison settings, whose chances rest on the last 60 days of polls.",
  tfAll:"All",dvExport:"Export (PNG / Press)",dvCand:"Candidate",dvPeriod:"Period",evList:"Events marked on the chart",
  dvHint:"Hover or tap a marker to read the note.",
  dvLast:(m,mw,p,pw)=>`Latest: <span class="lm">market ${m}</span> (week of ${mw}), <span class="lp">polls ${p}</span> (week of ${pw}).`,
@@ -625,7 +656,7 @@ function dvReadout(idx){
 
 /** Marker and chip highlight + note panel: hovered event first, else the pinned one. No redraw, so keyboard focus survives. */
 function dvSync(){
-  const i=DV.hov!=null?DV.hov:DV.pin, e=i!=null?EVENTS[i]:null;
+  const i=DV.hov!=null?DV.hov:DV.pin!=null?DV.pin:EVENTS.length-1, e=i>=0?EVENTS[i]:null;
   document.querySelectorAll("#dvChart .evm").forEach(gm=>{const on=+gm.dataset.e===i; gm.classList.toggle("on",on); gm.setAttribute("aria-pressed",String(+gm.dataset.e===DV.pin))});
   document.querySelectorAll("#dvEvents button").forEach(b=>{const k=+b.dataset.e; b.classList.toggle("on",k===i); b.setAttribute("aria-pressed",String(k===DV.pin))});
   document.getElementById("dvNote").innerHTML=e?`<strong>${xml(e[lang])}</strong><span class="d">${dvDate(e.date)}</span><p>${xml(dvNote(e))}</p>`:`<span style="color:var(--muted)">${t("dvHint")}</span>`;
@@ -736,6 +767,13 @@ document.querySelectorAll("[data-lang]").forEach(b=>b.addEventListener("click",(
 document.querySelectorAll("[data-q]").forEach(b=>b.addEventListener("click",()=>{track("q-"+b.dataset.q);state.q=b.dataset.q;document.querySelectorAll("[data-q]").forEach(x=>x.setAttribute("aria-pressed",x===b));renderBoard()}));
 document.querySelectorAll("[data-u]").forEach(b=>b.addEventListener("click",()=>{track("u-"+b.dataset.u);state.u=b.dataset.u;document.querySelectorAll("[data-u]").forEach(x=>x.setAttribute("aria-pressed",x===b));renderBoard()}));
 document.getElementById("more").addEventListener("click",()=>{state.all=!state.all;renderBoard()});
+const bar=document.querySelector(".bar-top"), menuBtn=document.getElementById("menuBtn");
+const setMenu=open=>{ bar.classList.toggle("open",open); menuBtn.setAttribute("aria-expanded",String(open)) };
+menuBtn.addEventListener("click",e=>{ e.stopPropagation(); setMenu(!bar.classList.contains("open")) });
+document.querySelectorAll("#nav a").forEach(a=>a.addEventListener("click",()=>setMenu(false)));
+document.addEventListener("click",e=>{ if(!bar.contains(e.target)) setMenu(false) });
+document.addEventListener("keydown",e=>{ if(e.key==="Escape"&&bar.classList.contains("open")){ setMenu(false); menuBtn.focus() } });
+window.matchMedia("(min-width:641px)").addEventListener("change",e=>{ if(e.matches) setMenu(false) });
 renderAll(true);
 
 })();
