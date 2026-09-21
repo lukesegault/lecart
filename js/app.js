@@ -1,13 +1,14 @@
 (async()=>{
 // data.json and the event list change once a day: the version in <meta name="data-version"> (rewritten by build_data.py) lets browsers cache them.
 const VER=(document.querySelector('meta[name="data-version"]')||{}).content, get=u=>fetch(VER?u+"?v="+VER:u).then(r=>{ if(!r.ok) throw new Error(u); return r.json() });
-let DATA,T;
-try{ const [d,fr,en]=await Promise.all([get("data.json"),get("i18n/fr.json"),get("i18n/en.json")]); DATA=d; T={fr,en}; }
+let lang=(()=>{try{const s=localStorage.getItem("lecart-lang");if(s==="fr"||s==="en")return s}catch(e){} return (navigator.language||"fr").toLowerCase().startsWith("fr")?"fr":"en"})();
+let DATA; const T={};   // T holds only the languages loaded so far
+const loadLang=async l=>{ if(!T[l]) T[l]=await get("i18n/"+l+".json") };
+try{ [DATA]=await Promise.all([get("data.json"),loadLang(lang)]); }
 catch(e){ document.getElementById("board").innerHTML="<p style=\"padding:16px\">Data could not be loaded. / Les données n'ont pas pu être chargées.</p>"; return; }
 const MARKET=DATA.markets.candidates;
 let EVENTS=[]; try{ EVENTS=await get("data/events.json"); EVENTS.sort((a,b)=>a.date<b.date?-1:1); }catch(e){}
 
-let lang=(()=>{try{const s=localStorage.getItem("lecart-lang");if(s==="fr"||s==="en")return s}catch(e){} return (navigator.language||"fr").toLowerCase().startsWith("fr")?"fr":"en"})();
 const state={q:"qual",u:"mid",all:false};
 const t=k=>T[lang][k];
 const tf=(k,o)=>t(k).replace(/\{(\w+)\}/g,(m,x)=>x in o?o[x]:m);   // strings with {name} slots
@@ -305,7 +306,7 @@ const track=name=>{ try{ if(window.lecartOptOut.get()) return; window.goatcounte
 const optEl=document.getElementById("optOut"), optMsg=document.getElementById("optMsg");
 const renderOpt=()=>{ optEl.textContent=t(window.lecartOptOut&&window.lecartOptOut.get()?"optIn":"optOut") };
 optEl.addEventListener("click",e=>{ e.preventDefault(); const O=window.lecartOptOut; if(!O) return; const ok=O.set(!O.get()); optMsg.textContent=ok?"":" "+t("optFail"); renderOpt() });
-document.querySelectorAll("[data-lang]").forEach(b=>b.addEventListener("click",()=>{track("lang-"+b.dataset.lang);lang=b.dataset.lang;try{localStorage.setItem("lecart-lang",lang)}catch(e){} renderAll(false)}));
+document.querySelectorAll("[data-lang]").forEach(b=>b.addEventListener("click",()=>{track("lang-"+b.dataset.lang); loadLang(b.dataset.lang).then(()=>{ lang=b.dataset.lang; try{localStorage.setItem("lecart-lang",lang)}catch(e){} renderAll(false) },()=>{}) }));
 document.querySelectorAll("[data-q]").forEach(b=>b.addEventListener("click",()=>{track("q-"+b.dataset.q);state.q=b.dataset.q;document.querySelectorAll("[data-q]").forEach(x=>x.setAttribute("aria-pressed",x===b));renderBoard()}));
 document.querySelectorAll("[data-u]").forEach(b=>b.addEventListener("click",()=>{track("u-"+b.dataset.u);state.u=b.dataset.u;document.querySelectorAll("[data-u]").forEach(x=>x.setAttribute("aria-pressed",x===b));renderBoard()}));
 document.getElementById("more").addEventListener("click",()=>{state.all=!state.all;renderBoard()});
