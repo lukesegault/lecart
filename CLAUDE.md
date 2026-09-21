@@ -11,6 +11,7 @@ Owner: Vikander. Audience: French journalists, policy people, curious readers.
 - `data.json`: snapshot data (polls since mid-July 2026, runoff pairs, monthly trend, manual market snapshot of 20 Sept 2026).
 - `scripts/build_data.py`: daily refresh script. Poll part is tested logic. **The Polymarket part is untested**:
   verify the Gamma API endpoint, response shape and candidate naming against https://docs.polymarket.com first.
+- `scripts/backfill_history.py`: one-off (already run, 21 Sept 2026) daily "win" history of FAMILY candidates since the market opened (14 Nov 2025) into `data/market_history.csv`; `qual` is empty before 21 Sept 2026. Polymarket is blocked from France, so run it on a GitHub runner.
 - `.github/workflows/update-data.yml`: runs the script daily and commits changes.
 - SEO layer: `build_data.py` rewrites the FR text, headline figures and meta/OG tags in `index.html` (between the STATIC and META markers) plus `og-image.png`, so edit FR copy only in `T.fr`, and keep its Python `simulate()` in sync with the JS one.
 
