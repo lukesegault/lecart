@@ -13,6 +13,7 @@ Owner: Vikander. Audience: French journalists, policy people, curious readers.
   verify the Gamma API endpoint, response shape and candidate naming against https://docs.polymarket.com first.
 - `scripts/backfill_history.py`: one-off (already run, 21 Sept 2026) daily "win" history of FAMILY candidates since the market opened (14 Nov 2025) into `data/market_history.csv`; `qual` is empty before 21 Sept 2026. Polymarket is blocked from France, so run it on a GitHub runner.
 - Section "Marchés et sondages dans le temps" (`multi()` in index.html): weekly polls vs markets for Le Pen, Philippe and Mélenchon from `data.json` `weekly` (built by `build_data.py`), event markers from `data/events.json` (date, fr, en); its poll figures must also go under the future blackout switch.
+- Analytics: GoatCounter (cookie-free, vikander.goatcounter.com), script at the end of index.html outside the STATIC/META markers; `track()` sends FR/EN and Win/Runoff toggle clicks as events (`lang-fr`, `lang-en`, `q-win`, `q-qual`).
 - `.github/workflows/update-data.yml`: runs the script daily and commits changes.
 - SEO layer: `build_data.py` rewrites the FR text, headline figures and meta/OG tags in `index.html` (between the STATIC and META markers) plus `og-image.png`, so edit FR copy only in `T.fr`, and keep its Python `simulate()` in sync with the JS one.
 
