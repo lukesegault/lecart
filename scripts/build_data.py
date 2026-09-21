@@ -24,7 +24,10 @@ SITE_URL = "https://lukesegault.github.io/lecart/"
 INDEX = ROOT / "index.html"
 OG_IMAGE = ROOT / "og-image.png"
 SIM_RUNS = 20000
-SIM_MID = {"base": 1.5, "k": 0.2, "run": 6}   # "mid" level of LEVELS in index.html
+# polling-error levels of the page's "Poll uncertainty" control: sd of a first-round score = base + k * score, sd of the runoff share = run
+LEVELS = {"low": {"base": 1, "k": 0.12, "run": 3.5}, "mid": {"base": 1.5, "k": 0.2, "run": 6}, "high": {"base": 2, "k": 0.3, "run": 9}}
+SIM_MID = LEVELS["mid"]
+TABLE_CANDIDATES = ["Marine Le Pen", "Édouard Philippe", "Jean-Luc Mélenchon"]   # columns of the poll table on the page
 NB = "\u00a0"
 FR_MONTHS = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre"]
 
@@ -98,7 +101,7 @@ def monday(iso):
 def weekly_series(history, today=None):
     """Weekly (Monday-start) series per WEEKLY_CANDIDATES, from the first poll (or market day, if earlier) to the last market day.
     market: mean of the daily win prices of the week (market_history.csv).
-    poll: poll-implied win probability, the same Monte Carlo as the page (simulate(), medium uncertainty, seed 2027) run on the
+    poll: poll-implied win probability, the same Monte Carlo as the rest of the page (simulate(), medium uncertainty, seed 2027) run on the
     first-round polls that ended in the WEEKLY_WINDOW_DAYS days up to the end of the week, with the runoff polls of that same window;
     None when no poll ended in that window (or the candidate is in none of them)."""
     today = today or datetime.date.today()
@@ -156,8 +159,8 @@ def market_prices(slug):
     return out, {"volume": round(volume), "sum": round(sum(out.values()), 1)}
 
 # ---- Static layer (crawlers, link previews) --------------------------------------------------
-# simulate() below is a line-by-line port of simulate() in index.html (same PRNG, same draw order),
-# so the headline figures match what the page shows. Keep the two in sync.
+# simulate() is the only implementation of the poll-to-probability Monte Carlo: build_data.py runs it for every view
+# (see page_views()) and stores the results in data.json; the page just displays them.
 
 def _i32(x):
     x &= 0xFFFFFFFF
@@ -204,13 +207,27 @@ def simulate(polls, pairs, level=SIM_MID, runs=SIM_RUNS):
         win[k[0] if share + gauss() * level["run"] > 50 else k[1]] += 1
     return {n: {"qual": 100 * qual[n] / seen[n], "win": 100 * win[n] / seen[n]} for n in seen}
 
+def page_views(polls, pairs):
+    """Everything the page needs from the poll simulation, so the page runs no Monte Carlo of its own:
+    sim[uncertainty][candidate] = {qual, win} (%), and avg[candidate] = [mean first-round score, number of polls]."""
+    sim = {lvl: {c: {k: round(v, 3) for k, v in r.items()} for c, r in simulate(polls, pairs, LEVELS[lvl]).items()} for lvl in LEVELS}
+    tot, cnt = defaultdict(float), defaultdict(int)
+    for p in polls:
+        for c, v in p["v"].items(): tot[c] += v; cnt[c] += 1
+    return sim, {c: [tot[c] / cnt[c], cnt[c]] for c in tot}
+
+def slim_polls(polls):
+    """The fields the page's poll table shows."""
+    return [{"inst": p["inst"], "for": p["for"], "start": p["start"], "end": p["end"], "n": p["n"],
+             "v": {c: p["v"][c] for c in TABLE_CANDIDATES if c in p["v"]}} for p in polls]
+
 def surname(n):
     return {"Marine Le Pen": "Le Pen", "Jean-Luc Mélenchon": "Mélenchon", "Dominique de Villepin": "de Villepin",
             "Nicolas Dupont-Aignan": "Dupont-Aignan"}.get(n) or n.split(" ")[-1]
 
 def headline(data):
     """Largest win gap between the poll simulation and the markets (same rule as renderSpot())."""
-    sim = simulate(data["polls"], data["pairs"])
+    sim = data["sim"]["mid"]
     rows = [{"c": m["c"], "market": m["win"], "poll": sim[m["c"]]["win"] if m["c"] in sim else None}
             for m in data["markets"]["candidates"]]
     rows.sort(key=lambda r: max(r["market"], r["poll"] or 0), reverse=True)
@@ -387,7 +404,8 @@ def main():
     except Exception as e:   # same rule as the markets: keep the previous series rather than breaking the page
         print("Weekly series failed, keeping previous:", e)
         weekly = previous.get("weekly")
-    data = {"updated": datetime.date.today().isoformat(), "polls": polls, "pairs": pairs, "trend": trend, "weekly": weekly, "markets": markets}
+    sim, avg = page_views(polls, pairs)
+    data = {"updated": datetime.date.today().isoformat(), "polls": slim_polls(polls), "avg": avg, "sim": sim, "trend": trend, "weekly": weekly, "markets": markets}
     data_path.write_text(json.dumps(data, ensure_ascii=False, indent=1), encoding="utf-8")
     print(f"{len(polls)} polls, {len(markets['candidates'])} market candidates, {write_polls_average(history)} weekly poll averages")
     write_static(data)

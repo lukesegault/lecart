@@ -380,8 +380,6 @@ catch(e){ document.getElementById("board").innerHTML="<p style=\"padding:16px\">
 const MARKET=DATA.markets.candidates;
 let EVENTS=[]; try{ EVENTS=await (await fetch("data/events.json",{cache:"no-store"})).json(); EVENTS.sort((a,b)=>a.date<b.date?-1:1); }catch(e){}
 
-const LEVELS={low:{base:1,k:.12,run:3.5},mid:{base:1.5,k:.2,run:6},high:{base:2,k:.3,run:9}};
-
 const T={
 fr:{
  ctx:"Présidentielle 2027",navTime:"Dans le temps",navNow:"Aujourd'hui",navMethod:"Méthode",menu:"Menu",h1:"Les marchés voient-ils ce que les sondages ratent ?",
@@ -506,26 +504,8 @@ let lang=(()=>{try{const s=localStorage.getItem("lecart-lang");if(s==="fr"||s===
 const state={q:"qual",u:"mid",all:false};
 const t=k=>T[lang][k];
 
-function rng(seed){return function(){seed|=0;seed=seed+0x6D2B79F5|0;let x=Math.imul(seed^seed>>>15,1|seed);x=x+Math.imul(x^x>>>7,61|x)^x;return((x^x>>>14)>>>0)/4294967296}}
-function simulate(level){
-  const L=LEVELS[level], r=rng(2027), N=20000, polls=DATA.polls, pairs=DATA.pairs, runs={},qual={},win={};
-  let spare=null;
-  const gauss=()=>{ if(spare!==null){const s=spare;spare=null;return s} let u=0; while(!u)u=r(); const v=r(), m=Math.sqrt(-2*Math.log(u)); spare=m*Math.sin(2*Math.PI*v); return m*Math.cos(2*Math.PI*v)};
-  for(let i=0;i<N;i++){
-    const p=polls[Math.floor(r()*polls.length)].v, names=Object.keys(p);
-    const s=names.map(n=>Math.max(0,p[n]+gauss()*(L.base+L.k*p[n])));
-    let a=-1,b=-1; s.forEach((x,j)=>{ if(a<0||x>s[a]){b=a;a=j} else if(b<0||x>s[b]) b=j });
-    names.forEach(n=>runs[n]=(runs[n]||0)+1);
-    const A=names[a],B=names[b]; qual[A]=(qual[A]||0)+1; qual[B]=(qual[B]||0)+1;
-    const k=[A,B].sort(), key=k[0]+"|"+k[1];
-    const share=pairs[key]?pairs[key][0]:100*s[names.indexOf(k[0])]/(s[a]+s[b]);
-    const w=share+gauss()*L.run>50?k[0]:k[1]; win[w]=(win[w]||0)+1;
-  }
-  const out={}; for(const n in runs) out[n]={qual:100*(qual[n]||0)/runs[n],win:100*(win[n]||0)/runs[n]}; return out;
-}
-const cache={}; const sim=l=>cache[l]||(cache[l]=simulate(l));
-const avg={},cnt={};
-DATA.polls.forEach(p=>{for(const n in p.v){avg[n]=(avg[n]||0)+p.v[n];cnt[n]=(cnt[n]||0)+1}}); for(const n in avg) avg[n]/=cnt[n];
+// Poll-derived numbers (win/qual per candidate and uncertainty level, average score) are computed by scripts/build_data.py.
+const sim=l=>DATA.sim[l];
 
 const nb="\u00a0";
 // Dates and figures of the page text come from data.json. Keep in step with fr_figures() in scripts/build_data.py.
@@ -550,7 +530,7 @@ const withArticle=n=>{ if(lang!=="fr") return surname(n); const s=surname(n); re
 
 function rows(q=state.q,u=state.u){
   const S=sim(u);
-  return MARKET.map(m=>{const s=S[m.c]; return {c:m.c,f:m.f,market:m[q],poll:s?s[q]:null,avg:avg[m.c],n:cnt[m.c]}})
+  return MARKET.map(m=>{const s=S[m.c], a=DATA.avg[m.c]; return {c:m.c,f:m.f,market:m[q],poll:s?s[q]:null,avg:a?a[0]:null,n:a?a[1]:0}})
    .sort((x,y)=>Math.max(y.market,y.poll||0)-Math.max(x.market,x.poll||0));
 }
 function applyStatic(){
