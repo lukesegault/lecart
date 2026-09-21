@@ -4,6 +4,24 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>L'Écart · Marchés vs sondages, présidentielle 2027</title>
+<!--META-START-->
+<meta name="description" content="Le plus grand écart, chances de victoire : Marine Le Pen, 85 % dans les sondages contre 38 % sur les marchés. Les marchés voient-ils ce que les sondages ratent ?">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="L'Écart">
+<meta property="og:locale" content="fr_FR">
+<meta property="og:url" content="https://lukesegault.github.io/lecart/">
+<meta property="og:title" content="L'Écart · Marchés vs sondages, présidentielle 2027">
+<meta property="og:description" content="Le plus grand écart, chances de victoire : Marine Le Pen, 85 % dans les sondages contre 38 % sur les marchés. Les marchés voient-ils ce que les sondages ratent ?">
+<meta property="og:image" content="https://lukesegault.github.io/lecart/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Marine Le Pen, 85 % dans les sondages contre 38 % sur les marchés (21 septembre 2026)">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="L'Écart · Marchés vs sondages, présidentielle 2027">
+<meta name="twitter:description" content="Le plus grand écart, chances de victoire : Marine Le Pen, 85 % dans les sondages contre 38 % sur les marchés. Les marchés voient-ils ce que les sondages ratent ?">
+<meta name="twitter:image" content="https://lukesegault.github.io/lecart/og-image.png">
+<meta name="twitter:image:alt" content="Marine Le Pen, 85 % dans les sondages contre 38 % sur les marchés (21 septembre 2026)">
+<!--META-END-->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700;800;900&family=Spectral:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
@@ -141,8 +159,9 @@ footer a,.method a{color:inherit}
 </style>
 </head>
 <body>
+<!--STATIC-START-->
 <div class="bar-top"><div class="wrap">
-  <div class="brand"><span class="mark" aria-hidden="true"><i></i><i></i></span>L'Écart<span class="sep">/</span><span class="ctx" data-i="ctx"></span></div>
+  <div class="brand"><span class="mark" aria-hidden="true"><i></i><i></i></span>L'Écart<span class="sep">/</span><span class="ctx" data-i="ctx">Présidentielle 2027</span></div>
   <div class="seg sm" role="group" aria-label="Langue / Language">
     <button type="button" data-lang="fr" aria-pressed="true">FR</button>
     <button type="button" data-lang="en" aria-pressed="false">EN</button>
@@ -152,38 +171,38 @@ footer a,.method a{color:inherit}
 <div class="wrap">
 <header class="hero">
   <div>
-    <h1 data-i="h1"></h1>
-    <p class="dek" data-i="dek"></p>
-    <p class="meta" data-i="meta"></p>
+    <h1 data-i="h1">Les marchés voient-ils ce que les sondages ratent ?</h1>
+    <p class="dek" data-i="dek">Sondages et marchés prédictifs tentent tous deux de dire qui sera président de la République en 2027. Ils ne sont pas toujours d'accord. Cette page montre où, et de combien.</p>
+    <p class="meta" data-i="meta">Prototype. Marchés : relevé du 20 sept. 2026. Sondages : 50 enquêtes de premier tour réalisées du 24 juillet au 10 septembre 2026.</p>
   </div>
   <div class="spot" aria-live="polite">
-    <p class="k" data-i="spotK"></p>
-    <p class="who" id="spotWho"></p>
+    <p class="k" data-i="spotK">Le plus grand écart, chances de victoire</p>
+    <p class="who" id="spotWho">Marine Le Pen</p>
     <div class="scale">
       <div class="line"></div>
       <div class="gapfill" id="spotFill" style="left:50%;width:0"></div>
-      <div class="pin m" id="spotM" style="left:50%"><b></b><span data-i="markets"></span><i></i></div>
-      <div class="pin p" id="spotP" style="left:50%"><b></b><span data-i="polls"></span><i></i></div>
+      <div class="pin m" id="spotM" style="left:50%"><b>38 %</b><span data-i="markets">marchés</span><i></i></div>
+      <div class="pin p" id="spotP" style="left:50%"><b>85 %</b><span data-i="polls">sondages</span><i></i></div>
     </div>
     <div class="ends"><span>0</span><span>50</span><span>100</span></div>
-    <p class="cap" id="spotCap"></p>
+    <p class="cap" id="spotCap">Un modèle fondé sur les seuls sondages donne Le Pen largement favorite. Les parieurs, eux, restent bien plus prudents.</p>
   </div>
 </header>
 
 <section id="compare" aria-labelledby="h-compare">
-  <h2 id="h-compare" data-i="h2a"></h2>
-  <p class="sub" data-i="subA"></p>
+  <h2 id="h-compare" data-i="h2a">Deux lectures de la même course</h2>
+  <p class="sub" data-i="subA">Chaque ligne montre les chances d'un candidat selon les <span class="lp">● sondages</span>, converties en probabilité par simulation, et selon les <span class="lm">◆ marchés</span>, lues dans les prix de Polymarket. La barre matérialise l'écart.</p>
   <div class="controls">
-    <div><span class="ctl-label" id="q-label" data-i="chanceTo"></span>
+    <div><span class="ctl-label" id="q-label" data-i="chanceTo">Chances de</span>
       <div class="seg" role="group" aria-labelledby="q-label">
-        <button type="button" data-q="qual" aria-pressed="true" data-i="qual"></button>
-        <button type="button" data-q="win" aria-pressed="false" data-i="win"></button>
+        <button type="button" data-q="qual" aria-pressed="true" data-i="qual">Accéder au second tour</button>
+        <button type="button" data-q="win" aria-pressed="false" data-i="win">Gagner</button>
       </div></div>
-    <div><span class="ctl-label" id="u-label" data-i="unc"></span>
+    <div><span class="ctl-label" id="u-label" data-i="unc">Incertitude des sondages</span>
       <div class="seg" role="group" aria-labelledby="u-label">
-        <button type="button" data-u="low" aria-pressed="false" data-i="low"></button>
-        <button type="button" data-u="mid" aria-pressed="true" data-i="mid"></button>
-        <button type="button" data-u="high" aria-pressed="false" data-i="high"></button>
+        <button type="button" data-u="low" aria-pressed="false" data-i="low">Faible</button>
+        <button type="button" data-u="mid" aria-pressed="true" data-i="mid">Moyenne</button>
+        <button type="button" data-u="high" aria-pressed="false" data-i="high">Forte</button>
       </div></div>
   </div>
   <div class="board" id="board" aria-live="polite"></div>
@@ -192,38 +211,39 @@ footer a,.method a{color:inherit}
 </section>
 
 <section aria-labelledby="h-gaps">
-  <h2 id="h-gaps" data-i="h2b"></h2>
-  <p class="sub" data-i="subB"></p>
+  <h2 id="h-gaps" data-i="h2b">Là où ils divergent le plus</h2>
+  <p class="sub" data-i="subB">Les trois plus grands écarts dans la vue actuelle. Ils changent avec les réglages ci-dessus.</p>
   <div class="gaps" id="gaps"></div>
 </section>
 
 <section aria-labelledby="h-read">
-  <h2 id="h-read" data-i="h2c"></h2>
+  <h2 id="h-read" data-i="h2c">Comment lire ces écarts</h2>
   <div class="two">
-    <div class="readout"><p data-i="read1"></p><p data-i="read2"></p></div>
-    <div class="note"><strong data-i="noteT"></strong><span data-i="note"></span></div>
+    <div class="readout"><p data-i="read1">Le désaccord majeur porte sur Marine Le Pen. Les sondages la placent loin devant au premier tour et en tête de tous les duels de second tour testés : un modèle fondé uniquement sur eux en fait une très large favorite. Les marchés sont nettement plus prudents. Ils intègrent peut-être un rassemblement tardif contre elle au second tour, la fragilité des sondages à cette distance du scrutin, ou des risques juridiques et politiques que les sondages ne mesurent pas.</p><p data-i="read2">Les marchés maintiennent aussi en vie des noms que les sondages remarquent à peine. David Lisnard est sous les 3 % mais cote comme un vrai outsider, et Jordan Bardella garde une valeur alors que les instituts ont cessé de le tester depuis la déclaration de Marine Le Pen. Information, couverture de risque ou simple manque de liquidité : c'est exactement le type de question que cette page veut faire émerger.</p></div>
+    <div class="note"><strong data-i="noteT">Attention à la vue « second tour »</strong><span data-i="note">Le marché « qui accède au second tour » est peu liquide : environ 188 000 $ échangés, contre 136 millions sur le marché du vainqueur. Ses prix totalisent près de 290 % alors que deux finalistes devraient faire 200 % : les petits candidats y paraissent plus probables qu'ils ne le sont.</span></div>
   </div>
 </section>
 
 <section aria-labelledby="h-trend">
-  <h2 id="h-trend" data-i="h2d"></h2>
-  <p class="sub" data-i="subD"></p>
+  <h2 id="h-trend" data-i="h2d">L'évolution des sondages de premier tour</h2>
+  <p class="sub" data-i="subD">Moyenne mensuelle des intentions de vote au premier tour, tous scénarios confondus. Survolez ou touchez un nom pour le mettre en avant.</p>
   <div class="chart-wrap"><svg id="trend" viewBox="0 0 900 390" role="img"></svg></div>
 </section>
 
 <section aria-labelledby="h-method">
-  <h2 id="h-method" data-i="h2e"></h2>
+  <h2 id="h-method" data-i="h2e">Méthode</h2>
   <div class="method">
-    <p data-i="m1"></p><p data-i="m2"></p><p data-i="m3"></p><p data-i="m4"></p>
-    <details><summary data-i="pollsIncl"></summary>
-      <div class="table-wrap"><table id="polltable"><thead><tr><th data-i="thInst"></th><th data-i="thFor"></th><th data-i="thField"></th><th data-i="thN"></th><th>Le Pen</th><th>Philippe</th><th>Mélenchon</th></tr></thead><tbody></tbody></table></div>
+    <p data-i="m1"><strong>Des sondages aux probabilités.</strong> Chaque simulation tire au hasard un sondage récent de premier tour, ajoute une erreur de sondage qui croît avec le score du candidat, et retient les deux premiers. Le vainqueur du second tour est tiré à partir de la moyenne des sondages de duel pour cette paire, plus une erreur. Les paires jamais testées sont départagées selon le rapport de force au premier tour. 20 000 simulations par vue. Les chances issues des sondages supposent que le candidat se présente.</p><p data-i="m2"><strong>Incertitude.</strong> À sept mois du scrutin, les sondages peuvent se tromper lourdement : cinq mois avant le vote de 2022, Jean-Luc Mélenchon était sous-estimé de plus de dix points. Le niveau « moyen » ajoute environ 1,5 point plus 20 % du score à l'erreur de premier tour, et 6 points à celle du second tour. Changez le réglage pour mesurer la sensibilité de la lecture sondagière.</p><p data-i="m3"><strong>Marchés.</strong> Probabilités implicites tirées du dernier prix échangé sur deux marchés Polymarket : le vainqueur, et les qualifiés pour le second tour. Les prix sont présentés comme de simples données. Polymarket n'est pas autorisé en France ; cette page ne renvoie pas vers la plateforme et n'incite pas à parier.</p><p data-i="m4"><strong>Sources.</strong> Sondages compilés par le dépôt ouvert <a href="https://github.com/MieuxVoter/presidentielle2027">MieuxVoter/presidentielle2027</a> (licence MIT), à partir d'enquêtes publiées sous le contrôle de la Commission des sondages. Chaque sondage reste la propriété de son institut et de son commanditaire.</p>
+    <details><summary data-i="pollsIncl">Sondages retenus (50)</summary>
+      <div class="table-wrap"><table id="polltable"><thead><tr><th data-i="thInst">Institut</th><th data-i="thFor">Commanditaire</th><th data-i="thField">Terrain</th><th data-i="thN">Échantillon</th><th>Le Pen</th><th>Philippe</th><th>Mélenchon</th></tr></thead><tbody></tbody></table></div>
     </details>
   </div>
 </section>
 
-<footer data-i="foot"></footer>
+<footer data-i="foot">L'Écart est un prototype indépendant, à visée de recherche et de débat. Ce n'est pas une prévision, il n'est affilié à aucun institut ni plateforme, et ne constitue pas une incitation à parier.</footer>
 </div>
 
+<!--STATIC-END-->
 <script>
 (async()=>{
 let DATA;

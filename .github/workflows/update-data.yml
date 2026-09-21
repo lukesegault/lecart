@@ -13,11 +13,13 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+      - run: pip install matplotlib
       - run: python scripts/build_data.py
       - name: Commit if data changed
+        if: always()   # still ship data.json if the static step fails; the failed run stays red
         run: |
           git config user.name "lecart-bot"
           git config user.email "lecart-bot@users.noreply.github.com"
-          git add data.json data/
+          git add data.json data/ index.html og-image.png
           git diff --cached --quiet || git commit -m "Daily data update $(date -u +%F)"
           git push

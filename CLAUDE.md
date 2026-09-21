@@ -12,6 +12,7 @@ Owner: Vikander. Audience: French journalists, policy people, curious readers.
 - `scripts/build_data.py`: daily refresh script. Poll part is tested logic. **The Polymarket part is untested**:
   verify the Gamma API endpoint, response shape and candidate naming against https://docs.polymarket.com first.
 - `.github/workflows/update-data.yml`: runs the script daily and commits changes.
+- SEO layer: `build_data.py` rewrites the FR text, headline figures and meta/OG tags in `index.html` (between the STATIC and META markers) plus `og-image.png`, so edit FR copy only in `T.fr`, and keep its Python `simulate()` in sync with the JS one.
 
 ## First tasks
 1. Create a GitHub repository `lecart`, push these files, enable GitHub Pages (deploy from main branch, root).
