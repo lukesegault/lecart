@@ -134,6 +134,15 @@ h2{font-size:clamp(24px,3vw,30px);letter-spacing:-.025em;margin:0 0 6px;font-wei
 .chart-wrap{background:var(--surface);border-radius:18px;padding:16px 10px 8px;overflow-x:auto}
 .chart-wrap svg{display:block;min-width:640px;width:100%;height:auto}
 .chart-wrap .lbl{cursor:pointer}
+/* small multiples */
+.multi{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:14px}
+.mp{margin:0;background:var(--surface);border-radius:18px;padding:14px 14px 8px;border-top:4px solid var(--c,var(--ink))}
+.mp h3{margin:0;font-size:17px}
+.mp .nums{font-variant-numeric:tabular-nums;font-size:13.5px;color:var(--muted);margin:2px 0 6px}
+.mp svg{display:block;width:100%;height:auto}
+.note-f{margin:14px 0 0;font-size:14px}
+.events{list-style:none;margin:12px 0 0;padding:0;display:grid;gap:6px;font-size:14px;color:var(--muted)}
+.events b{display:inline-grid;place-items:center;width:20px;height:20px;border-radius:50%;background:var(--surface);border:1px solid var(--faint);color:var(--ink);font-size:11px;margin-right:4px}
 /* method */
 .method{font-family:var(--serif);font-size:16.5px;line-height:1.65;max-width:42em}
 .method p{margin:0 0 12px}
@@ -230,6 +239,14 @@ footer a,.method a{color:inherit}
   <div class="chart-wrap"><svg id="trend" viewBox="0 0 900 390" role="img"></svg></div>
 </section>
 
+<section id="multiSection" aria-labelledby="h-multi">
+  <h2 id="h-multi" data-i="h2f">Marchés et sondages dans le temps</h2>
+  <p class="sub" data-i="subF">Pour chacun des trois principaux candidats : les <span class="lp">● sondages</span> (score au premier tour, moyenne hebdomadaire des enquêtes) et les <span class="lm">◆ marchés</span> (chances de victoire, moyenne hebdomadaire des prix). Deux mesures différentes, tracées sur la même échelle. L'axe des sondages est à gauche, celui des marchés à droite. Les repères numérotés signalent des événements.</p>
+  <div class="multi" id="multi"></div>
+  <p class="sub note-f" data-i="noteF">Un point marque une semaine avec au moins un sondage. Le trait des sondages s'interrompt quand plus de cinq semaines séparent deux enquêtes. Les marchés sont des moyennes hebdomadaires des prix quotidiens.</p>
+  <ol class="events" id="events"></ol>
+</section>
+
 <section aria-labelledby="h-method">
   <h2 id="h-method" data-i="h2e">Méthode</h2>
   <div class="method">
@@ -250,6 +267,7 @@ let DATA;
 try{ DATA=await (await fetch("data.json",{cache:"no-store"})).json(); }
 catch(e){ document.getElementById("board").innerHTML="<p style=\"padding:16px\">Data could not be loaded. / Les données n'ont pas pu être chargées.</p>"; return; }
 const MARKET=DATA.markets.candidates;
+let EVENTS=[]; try{ EVENTS=await (await fetch("data/events.json",{cache:"no-store"})).json(); }catch(e){}
 
 const LEVELS={low:{base:1,k:.12,run:3.5},mid:{base:1.5,k:.2,run:6},high:{base:2,k:.3,run:9}};
 
@@ -277,6 +295,11 @@ fr:{
  note:"Le marché « qui accède au second tour » est peu liquide : environ 188 000 $ échangés, contre 136 millions sur le marché du vainqueur. Ses prix totalisent près de 290 % alors que deux finalistes devraient faire 200 % : les petits candidats y paraissent plus probables qu'ils ne le sont.",
  h2d:"L'évolution des sondages de premier tour",subD:"Moyenne mensuelle des intentions de vote au premier tour, tous scénarios confondus. Survolez ou touchez un nom pour le mettre en avant.",
  chartAria:"Graphique des moyennes mensuelles des sondages de premier tour depuis septembre 2025",
+ h2f:"Marchés et sondages dans le temps",
+ subF:"Pour chacun des trois principaux candidats : les <span class=\"lp\">● sondages</span> (score au premier tour, moyenne hebdomadaire des enquêtes) et les <span class=\"lm\">◆ marchés</span> (chances de victoire, moyenne hebdomadaire des prix). Deux mesures différentes, tracées sur la même échelle. L'axe des sondages est à gauche, celui des marchés à droite. Les repères numérotés signalent des événements.",
+ noteF:"Un point marque une semaine avec au moins un sondage. Le trait des sondages s'interrompt quand plus de cinq semaines séparent deux enquêtes. Les marchés sont des moyennes hebdomadaires des prix quotidiens.",
+ axP:"Sondages : % au 1er tour",axM:"Marchés : % de victoire",evList:"Événements repérés sur les graphiques",
+ multiAria:(n,p,m)=>`${n} : sondages ${p}, marchés ${m}, moyennes hebdomadaires depuis novembre 2025`,
  ev1:"Le Pen se déclare,",ev2:"Bardella n'est plus testé",
  months:["janv.","févr.","mars","avr.","mai","juin","juil.","août","sept.","oct.","nov.","déc."],
  h2e:"Méthode",
@@ -310,6 +333,11 @@ en:{
  note:"The \"who advances to the runoff\" market is thin: about $188,000 traded, against $136 million on the winner market. Its prices add up to roughly 290% when two finalists should make 200%, so small candidates look more likely than they are.",
  h2d:"How first-round polls have moved",subD:"Monthly average of first-round voting intentions across all tested scenarios. Hover or tap a name to highlight it.",
  chartAria:"Line chart of monthly first-round polling averages since September 2025",
+ h2f:"Markets and polls over time",
+ subF:"For each of the three leading candidates: <span class=\"lp\">● polls</span> (first-round score, weekly average of surveys) and <span class=\"lm\">◆ markets</span> (chance of winning, weekly average of prices). Two different measures on the same scale. The polls axis is on the left, the markets axis on the right. Numbered markers flag events.",
+ noteF:"A dot marks a week with at least one poll. The poll line breaks when more than five weeks separate two surveys. Markets are weekly averages of daily prices.",
+ axP:"Polls: % first round",axM:"Markets: % to win",evList:"Events marked on the charts",
+ multiAria:(n,p,m)=>`${n}: polls ${p}, markets ${m}, weekly averages since November 2025`,
  ev1:"Le Pen declares,",ev2:"Bardella no longer tested",
  months:["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"],
  h2e:"Method",
@@ -405,24 +433,29 @@ function renderSpot(first){
   const go=()=>{ spotP.style.left=r.poll+"%"; spotM.style.left=r.market+"%"; spotFill.style.left=lo+"%"; spotFill.style.width=(hi-lo)+"%"; };
   first ? requestAnimationFrame(()=>setTimeout(go,250)) : go();
 }
+const monthLab=(m,i)=>{const [yy,mm]=m.split("-"); return t("months")[+mm-1]+((mm==="01"||i===0)?" "+yy.slice(2):"")};
+// Path through the non-null points of s; two points more than `gap` indices apart are not joined.
+function pathOf(s,x,y,gap=1){
+  let d="",prev=-1,last=null;
+  s.forEach((v,i)=>{ if(v==null) return; d+=(prev>=0&&i-prev<=gap?"L":"M")+x(i).toFixed(1)+" "+y(v).toFixed(1)+" "; prev=i; last=i });
+  return {d,last};
+}
 function trend(){
   const svg=document.getElementById("trend"), TR=DATA.trend, W=900,H=390,ml=44,mr=160,mt=24,mb=40;
   svg.setAttribute("aria-label",t("chartAria"));
   const fam={"Marine Le Pen":"var(--far-right)","Jordan Bardella":"var(--faint)","Édouard Philippe":"var(--centre)","Jean-Luc Mélenchon":"var(--far-left)","Raphaël Glucksmann":"var(--left)","Gabriel Attal":"var(--right)","Bruno Retailleau":"var(--green)"};
   const dash={"Jordan Bardella":"5 4"};
   const months=TR.months, x=i=>ml+i*(W-ml-mr)/(months.length-1), y=v=>mt+(1-v/40)*(H-mt-mb);
-  const lab=(m,i)=>{const [yy,mm]=m.split("-"); return t("months")[+mm-1]+((mm==="01"||i===0)?" "+yy.slice(2):"")};
   let g="";
   [0,10,20,30,40].forEach(v=>{g+=`<line x1="${ml}" x2="${W-mr}" y1="${y(v)}" y2="${y(v)}" stroke="var(--rule)"/><text x="${ml-10}" y="${y(v)+4}" text-anchor="end" font-size="12" fill="var(--muted)">${v}${lang==="fr"?" %":"%"}</text>`});
-  months.forEach((m,i)=>{g+=`<text x="${x(i)}" y="${H-14}" text-anchor="middle" font-size="12" fill="var(--muted)">${lab(m,i)}</text>`});
+  months.forEach((m,i)=>{g+=`<text x="${x(i)}" y="${H-14}" text-anchor="middle" font-size="12" fill="var(--muted)">${monthLab(m,i)}</text>`});
   const iJul=months.indexOf("2026-07");
   if(iJul>=0){ g+=`<rect x="${x(iJul)}" y="${mt}" width="${x(months.length-1)-x(iJul)}" height="${H-mt-mb}" fill="var(--soft)"/><line x1="${x(iJul)}" x2="${x(iJul)}" y1="${mt}" y2="${H-mb}" stroke="var(--faint)" stroke-dasharray="3 4"/><text x="${x(iJul)+8}" y="${H-mb-24}" font-size="12" fill="var(--muted)">${t("ev1")}</text><text x="${x(iJul)+8}" y="${H-mb-9}" font-size="12" fill="var(--muted)">${t("ev2")}</text>`;
     // redraw grid lines over band
     [10,20,30,40].forEach(v=>{g+=`<line x1="${x(iJul)}" x2="${W-mr}" y1="${y(v)}" y2="${y(v)}" stroke="var(--rule)"/>`}); }
   const ends=[];
   for(const c in TR.series){
-    const s=TR.series[c]; let d="",pen=false,last=null;
-    s.forEach((v,i)=>{ if(v==null){pen=false;return} d+=(pen?"L":"M")+x(i).toFixed(1)+" "+y(v).toFixed(1)+" ";pen=true;last=i});
+    const s=TR.series[c], {d,last}=pathOf(s,x,y);
     g+=`<g class="ser" data-c="${c}" style="transition:opacity .2s"><path d="${d}" fill="none" stroke="${fam[c]}" stroke-width="2.75" ${dash[c]?`stroke-dasharray="${dash[c]}"`:""} stroke-linejoin="round" stroke-linecap="round"/>`;
     s.forEach((v,i)=>{if(v!=null)g+=`<circle cx="${x(i)}" cy="${y(v)}" r="${i===last?4:2.6}" fill="${fam[c]}" stroke="var(--surface)" stroke-width="1.5"/>`});
     g+="</g>"; ends.push({c,yy:y(s[last]),xx:x(last),col:fam[c],v:s[last]});
@@ -434,13 +467,45 @@ function trend(){
   svg.querySelectorAll(".lbl").forEach(el=>{el.addEventListener("mouseenter",()=>set(el.dataset.c));el.addEventListener("click",e=>{e.stopPropagation();set(el.dataset.c)})});
   svg.addEventListener("mouseleave",()=>set(null)); svg.addEventListener("click",()=>set(null));
 }
+function multi(){
+  const sec=document.getElementById("multiSection"), WK=DATA.weekly;
+  if(!WK){ sec.hidden=true; return } sec.hidden=false;
+  const esc=v=>String(v).replace(/&/g,"&amp;").replace(/</g,"&lt;");
+  const weeks=WK.weeks, ts=d=>Date.parse(d+"T00:00:00Z"), t0=ts(weeks[0]), t1=ts(weeks[weeks.length-1]);
+  const W=320,H=232,ml=24,mr=26,mt=38,mb=26;
+  const ymax=Math.max(40,Math.ceil(Math.max(...Object.values(WK.series).flatMap(s=>[...s.poll,...s.market]).filter(v=>v!=null))/10)*10);
+  const px=tt=>ml+(tt-t0)/(t1-t0)*(W-ml-mr), x=i=>px(ts(weeks[i])), y=v=>mt+(1-v/ymax)*(H-mt-mb);
+  const evs=EVENTS.filter(e=>ts(e.date)>=t0&&ts(e.date)<=t1).sort((a,b)=>ts(a.date)-ts(b.date));
+  // frame shared by the three panels: grid, both y-axes (same scale), month ticks, event markers
+  let g=`<text x="0" y="12" font-size="11" font-weight="700" fill="var(--poll)">${t("axP")}</text><text x="${W}" y="12" text-anchor="end" font-size="11" font-weight="700" fill="var(--market)">${t("axM")}</text>`;
+  for(let v=0;v<=ymax;v+=10) g+=`<line x1="${ml}" x2="${W-mr}" y1="${y(v)}" y2="${y(v)}" stroke="var(--rule)"/><text x="${ml-5}" y="${y(v)+4}" text-anchor="end" font-size="11" fill="var(--poll)">${v}</text><text x="${W-mr+5}" y="${y(v)+4}" font-size="11" fill="var(--market)">${v}</text>`;
+  const d0=new Date(t0);
+  for(let k=1;;k++){
+    const dt=new Date(Date.UTC(d0.getUTCFullYear(),d0.getUTCMonth()+k,1)); if(+dt>t1) break;
+    const xx=px(+dt), mo=dt.getUTCMonth()+1;
+    g+=`<line x1="${xx}" x2="${xx}" y1="${H-mb}" y2="${H-mb+4}" stroke="var(--faint)"/>`;
+    if(mo%2===1) g+=`<text x="${xx}" y="${H-8}" text-anchor="middle" font-size="11" fill="var(--muted)">${monthLab(dt.getUTCFullYear()+"-"+String(mo).padStart(2,"0"),1)}</text>`;
+  }
+  evs.forEach((e,i)=>{ const xx=px(ts(e.date));
+    g+=`<line x1="${xx}" x2="${xx}" y1="${mt-5}" y2="${H-mb}" stroke="var(--faint)" stroke-dasharray="3 4"/><circle cx="${xx}" cy="${mt-12}" r="7" fill="var(--surface)" stroke="var(--faint)"/><text x="${xx}" y="${mt-8.5}" text-anchor="middle" font-size="10" font-weight="700" fill="var(--ink)">${i+1}</text>`});
+  document.getElementById("multi").innerHTML=Object.entries(WK.series).map(([c,s])=>{
+    const P=pathOf(s.poll,x,y,5), M=pathOf(s.market,x,y), f=(MARKET.find(m=>m.c===c)||{}).f||"far-right";
+    let h=g+`<path d="${M.d}" fill="none" stroke="var(--market)" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/><path d="${P.d}" fill="none" stroke="var(--poll)" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>`;
+    if(M.last!=null){ const cx=x(M.last), cy=y(s.market[M.last]); h+=`<rect x="${cx-4.5}" y="${cy-4.5}" width="9" height="9" rx="1.5" transform="rotate(45 ${cx} ${cy})" fill="var(--market)" stroke="var(--surface)" stroke-width="1.5"/>`; }
+    s.poll.forEach((v,i)=>{ if(v!=null) h+=`<circle cx="${x(i)}" cy="${y(v)}" r="${i===P.last?4.5:2.8}" fill="var(--poll)" stroke="var(--surface)" stroke-width="1.5"/>`});
+    const pl=P.last==null?null:s.poll[P.last], ml_=M.last==null?null:s.market[M.last];
+    return `<figure class="mp" style="--c:var(--${f})"><figcaption><h3>${c}</h3><div class="nums"><span class="lp">${t("polls")} ${pl==null?"–":pct(pl)}</span>, <span class="lm">${t("markets")} ${ml_==null?"–":pct(ml_)}</span></div></figcaption><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${t("multiAria")(c,pl==null?"–":pct(pl),ml_==null?"–":pct(ml_))}">${h}</svg></figure>`}).join("");
+  const dfmt=d=>{const [yy,mm,dd]=d.split("-"); return (+dd)+" "+t("months")[+mm-1]+" "+yy};
+  const ol=document.getElementById("events"); ol.hidden=!evs.length; ol.setAttribute("aria-label",t("evList"));
+  ol.innerHTML=evs.map((e,i)=>`<li><b>${i+1}</b> ${dfmt(e.date)} · ${esc(e[lang]||e.fr)}</li>`).join("");
+}
 function table(){
   const d=s=>{const [y,m,dd]=s.split("-");return dd+"/"+m};
   document.querySelector("#polltable tbody").innerHTML=DATA.polls.slice().reverse().map(p=>{
     const f=v=>v==null?"–":(lang==="fr"?String(v).replace(".",","):v);
     return `<tr><td>${p.inst}</td><td>${p.for}</td><td>${d(p.start)} ${t("to")} ${d(p.end)}/${p.end.slice(0,4)}</td><td>${p.n.toLocaleString(lang==="fr"?"fr-FR":"en-GB")}</td><td>${f(p.v["Marine Le Pen"])}</td><td>${f(p.v["Édouard Philippe"])}</td><td>${f(p.v["Jean-Luc Mélenchon"])}</td></tr>`}).join("");
 }
-function renderAll(first){ applyStatic(); renderSpot(first); renderBoard(); trend(); table(); }
+function renderAll(first){ applyStatic(); renderSpot(first); renderBoard(); trend(); multi(); table(); }
 
 document.querySelectorAll("[data-lang]").forEach(b=>b.addEventListener("click",()=>{lang=b.dataset.lang;try{localStorage.setItem("lecart-lang",lang)}catch(e){} renderAll(false)}));
 document.querySelectorAll("[data-q]").forEach(b=>b.addEventListener("click",()=>{state.q=b.dataset.q;document.querySelectorAll("[data-q]").forEach(x=>x.setAttribute("aria-pressed",x===b));renderBoard()}));

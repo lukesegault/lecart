@@ -36,6 +36,8 @@ FAMILY = {  # political family per candidate, used for colours on the page
  "Marine Tondelier":"green","Jean-Luc Mélenchon":"far-left","Fabien Roussel":"far-left",
 }
 TREND_CANDIDATES = ["Marine Le Pen","Jordan Bardella","Édouard Philippe","Jean-Luc Mélenchon","Raphaël Glucksmann","Gabriel Attal","Bruno Retailleau"]
+WEEKLY_CANDIDATES = ["Marine Le Pen","Édouard Philippe","Jean-Luc Mélenchon"]   # polls vs markets small multiples
+HISTORY = ROOT / "data" / "market_history.csv"
 
 def get(url):
     req = urllib.request.Request(url, headers={"User-Agent": "lecart-data-bot"})
@@ -71,7 +73,31 @@ def load_polls():
                 monthly[r["fin_enquete"][:7]][r["candidat"]].append(float(r["intentions"]))
     months = sorted(monthly)
     trend = {"months": months, "series": {c: [round(mean(monthly[m][c]), 1) if monthly[m][c] else None for m in months] for c in TREND_CANDIDATES}}
-    return polls, pairs, trend
+    obs = [(rs[0]["fin_enquete"], {r["candidat"]: float(r["intentions"]) for r in rs if r["candidat"] in WEEKLY_CANDIDATES})
+           for rs in first.values() if rs[0]["fin_enquete"] >= TREND_START]
+    return polls, pairs, trend, obs
+
+def monday(iso):
+    d = datetime.date.fromisoformat(iso)
+    return d - datetime.timedelta(days=d.weekday())
+
+def weekly_series(obs):
+    """Weekly (Monday-start) series per WEEKLY_CANDIDATES, from the first market day to the last.
+    market: mean of the daily prices of the week (market_history.csv). poll: mean first-round score over every
+    poll scenario ending that week, None when no poll ended that week (polls are sparse: the page decides what to bridge)."""
+    market, poll = defaultdict(lambda: defaultdict(list)), defaultdict(lambda: defaultdict(list))
+    with HISTORY.open(newline="", encoding="utf-8") as fh:
+        for r in csv.DictReader(fh):
+            if r["candidate"] in WEEKLY_CANDIDATES and r["win"]:
+                market[r["candidate"]][monday(r["date"])].append(float(r["win"]))
+    for end, v in obs:
+        for c, x in v.items(): poll[c][monday(end)].append(x)
+    first, last = (f([w for c in market.values() for w in c]) for f in (min, max))
+    weeks = [first + datetime.timedelta(weeks=i) for i in range((last - first).days // 7 + 1)]
+    avg = lambda xs: round(mean(xs), 1) if xs else None
+    return {"weeks": [w.isoformat() for w in weeks],
+            "series": {c: {"poll": [avg(poll[c].get(w)) for w in weeks], "market": [avg(market[c].get(w)) for w in weeks]}
+                       for c in WEEKLY_CANDIDATES}}
 
 def market_prices(slug):
     events = json.loads(get(GAMMA.format(slug=slug)))
@@ -271,9 +297,9 @@ def write_static(data):
     if failed: raise SystemExit("static step failed: " + ", ".join(failed))
 
 def main():
-    polls, pairs, trend = load_polls()
+    polls, pairs, trend, obs = load_polls()
     data_path = ROOT / "data.json"
-    previous = json.loads(data_path.read_text()) if data_path.exists() else {}
+    previous = json.loads(data_path.read_text(encoding="utf-8")) if data_path.exists() else {}
     try:
         win, qual = market_prices(WIN_SLUG), market_prices(QUAL_SLUG)
         names = [n for n in win if n in FAMILY]
@@ -283,18 +309,23 @@ def main():
             raise ValueError("no market name matched FAMILY")
         candidates = [{"c": n, "f": FAMILY[n], "win": win.get(n, 0), "qual": qual.get(n, 0)} for n in names]
         markets = {"snapshot": datetime.date.today().isoformat(), "source": "Polymarket", "candidates": candidates}
-        hist = ROOT / "data" / "market_history.csv"
+        hist = HISTORY
         hist.parent.mkdir(exist_ok=True)
         new = not hist.exists()
-        with hist.open("a", newline="") as fh:
+        with hist.open("a", newline="", encoding="utf-8") as fh:
             w = csv.writer(fh)
             if new: w.writerow(["date", "candidate", "win", "qual"])
             for c in candidates: w.writerow([markets["snapshot"], c["c"], c["win"], c["qual"]])
     except Exception as e:   # keep yesterday's market data rather than breaking the page
         print("Market fetch failed, keeping previous snapshot:", e)
         markets = previous.get("markets")
-    data = {"updated": datetime.date.today().isoformat(), "polls": polls, "pairs": pairs, "trend": trend, "markets": markets}
-    data_path.write_text(json.dumps(data, ensure_ascii=False, indent=1))
+    try:
+        weekly = weekly_series(obs)
+    except Exception as e:   # same rule as the markets: keep the previous series rather than breaking the page
+        print("Weekly series failed, keeping previous:", e)
+        weekly = previous.get("weekly")
+    data = {"updated": datetime.date.today().isoformat(), "polls": polls, "pairs": pairs, "trend": trend, "weekly": weekly, "markets": markets}
+    data_path.write_text(json.dumps(data, ensure_ascii=False, indent=1), encoding="utf-8")
     print(f"{len(polls)} polls, {len(markets['candidates'])} market candidates")
     write_static(data)
 
