@@ -7,6 +7,7 @@
  "h1": "Les marchés voient-ils ce que les sondages ratent ?",
  "dek": "Sondages et marchés prédictifs tentent tous deux de dire qui sera président de la République en 2027. Ils ne sont pas toujours d'accord. Cette page montre où, et de combien.",
  "updated": "Mis à jour le {{upd}}",
+ "stale": "Ces données datent de plus de deux jours et peuvent ne pas être à jour.",
  "meta": "Prototype. Marchés : relevé du {{snap}}. Sondages : {{n}} enquêtes de premier tour réalisées du {{from}} au {{to}}.",
  "spotK": "Le plus grand écart, chances de victoire",
  "polls": "sondages",

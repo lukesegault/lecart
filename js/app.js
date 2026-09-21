@@ -291,7 +291,14 @@ function table(){
     const f=v=>v==null?"–":(lang==="fr"?String(v).replace(".",","):v);
     return `<tr><td>${p.inst}</td><td>${p.for}</td><td>${d(p.start)} ${t("to")} ${d(p.end)}/${p.end.slice(0,4)}</td><td>${p.n.toLocaleString(lang==="fr"?"fr-FR":"en-GB")}</td><td>${f(p.v["Marine Le Pen"])}</td><td>${f(p.v["Édouard Philippe"])}</td><td>${f(p.v["Jean-Luc Mélenchon"])}</td></tr>`}).join("");
 }
-function renderAll(first){ applyStatic(); renderSpot(first); renderBoard(); trend(); renderDv(); table(); renderOpt(); }
+// A discreet notice when the daily refresh has not run for more than two days.
+function renderStale(){
+  let el=document.getElementById("stale");
+  if(!((Date.now()-Date.parse(DATA.updated+"T00:00:00Z"))/864e5>2)){ if(el) el.remove(); return }
+  if(!el){ el=document.createElement("p"); el.id="stale"; el.className="meta stale"; el.setAttribute("role","status"); document.querySelector(".stamp").after(el) }
+  el.textContent=t("stale");
+}
+function renderAll(first){ applyStatic(); renderSpot(first); renderBoard(); trend(); renderDv(); table(); renderOpt(); renderStale(); }
 
 // Aggregated GoatCounter event (cookie-free). No-op after opt-out, or if count.js has not loaded yet or is blocked.
 const track=name=>{ try{ if(window.lecartOptOut.get()) return; window.goatcounter.count({path:name,title:name,event:true}) }catch(e){} };

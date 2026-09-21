@@ -7,6 +7,7 @@
  "h1": "Do markets see what the polls miss?",
  "dek": "Polls and prediction markets are both trying to tell us who becomes president of France in 2027. They don't always agree. This page shows where, and by how much.",
  "updated": "Updated {{upd}}",
+ "stale": "This data is more than two days old and may be out of date.",
  "meta": "Prototype. Markets snapshot: {{snap}}. Polls: {{n}} first-round polls fielded {{from}} to {{to}}.",
  "spotK": "Largest gap, chance of winning",
  "polls": "polls",

@@ -2,14 +2,18 @@
 
 1. Downloads the open poll compilation (MieuxVoter/presidentielle2027, MIT licence).
 2. Fetches current Polymarket prices for the French 2027 markets (public API, no key).
-3. Writes data.json for the page and appends today's prices to data/market_history.csv.
+3. Runs the poll-to-probability simulation for every view of the page and writes data.json, plus the CSV downloads
+   (data/market_history.csv gets today's prices, data/polls_average.csv).
 4. Writes the static French text, meta/Open Graph tags and og-image.png so crawlers and link
    previews see content without running JS (index.html, between the STATIC and META markers).
 
-NOTE: the Polymarket part was written without live access to the API and must be
-verified against https://docs.polymarket.com before relying on it.
+All-or-nothing: everything is built in memory and in a temporary folder, checked by validate(), and only then moved over
+the real files. Any failure (network, parsing, validation) ends the run with a non-zero exit code and leaves yesterday's
+files untouched. Polymarket is blocked from some countries: use --reuse-markets there (keeps the last market snapshot).
+
+Run `python scripts/build_data.py`; the tests are in tests/.
 """
-import csv, io, json, datetime, math, pathlib, re, urllib.request
+import argparse, csv, io, json, datetime, math, os, pathlib, re, shutil, sys, tempfile, time, urllib.error, urllib.request
 from collections import defaultdict
 from statistics import mean
 
@@ -44,10 +48,22 @@ WEEKLY_WINDOW_DAYS = 30        # polls feeding each weekly poll-implied win prob
 HISTORY = ROOT / "data" / "market_history.csv"
 POLLS_AVERAGE = ROOT / "data" / "polls_average.csv"
 
-def get(url):
-    req = urllib.request.Request(url, headers={"User-Agent": "lecart-data-bot"})
-    with urllib.request.urlopen(req, timeout=60) as r:
-        return r.read().decode("utf-8")
+def get(url, tries=4, pause=2.0):
+    """GET with retries and exponential backoff (2 s, 4 s, 8 s) on network errors, timeouts, 429 and 5xx."""
+    for attempt in range(1, tries + 1):
+        try:
+            req = urllib.request.Request(url, headers={"User-Agent": "lecart-data-bot"})
+            with urllib.request.urlopen(req, timeout=60) as r:
+                return r.read().decode("utf-8")
+        except urllib.error.HTTPError as e:
+            if e.code != 429 and e.code < 500: raise
+            err = e
+        except (urllib.error.URLError, TimeoutError, ConnectionError) as e:
+            err = e
+        if attempt == tries: raise err
+        wait = pause * 2 ** (attempt - 1)
+        print(f"GET {url} failed ({err!r}), retry {attempt}/{tries - 1} in {wait:.0f}s", file=sys.stderr)
+        time.sleep(wait)
 
 def pair_records(second):
     """(end, "A|B", share of A in the A-vs-B runoff, %) for every complete two-candidate runoff poll."""
@@ -65,8 +81,11 @@ def pairs_of(records):
     return {k: [round(mean(v), 1), len(v)] for k, v in by.items()}
 
 def load_polls():
-    rows = list(csv.DictReader(io.StringIO(get(POLLS_URL))))
-    today = datetime.date.today()
+    return parse_polls(list(csv.DictReader(io.StringIO(get(POLLS_URL)))))
+
+def parse_polls(rows, today=None):
+    """Poll rows of the MieuxVoter CSV -> (polls of the last FIRST_ROUND_WINDOW_DAYS, runoff pairs, monthly trend, history for the weekly series)."""
+    today = today or datetime.date.today()
     cutoff = (today - datetime.timedelta(days=FIRST_ROUND_WINDOW_DAYS)).isoformat()
     first, second = defaultdict(list), defaultdict(list)
     for r in rows:
@@ -98,18 +117,17 @@ def monday(iso):
     d = datetime.date.fromisoformat(iso)
     return d - datetime.timedelta(days=d.weekday())
 
-def weekly_series(history, today=None):
+def weekly_series(history, market_rows, today=None):
     """Weekly (Monday-start) series per WEEKLY_CANDIDATES, from the first poll (or market day, if earlier) to the last market day.
-    market: mean of the daily win prices of the week (market_history.csv).
+    market: mean of the daily win prices of the week (market_rows: the rows of market_history.csv, today's included).
     poll: poll-implied win probability, the same Monte Carlo as the rest of the page (simulate(), medium uncertainty, seed 2027) run on the
     first-round polls that ended in the WEEKLY_WINDOW_DAYS days up to the end of the week, with the runoff polls of that same window;
     None when no poll ended in that window (or the candidate is in none of them)."""
     today = today or datetime.date.today()
     market = defaultdict(lambda: defaultdict(list))
-    with HISTORY.open(newline="", encoding="utf-8") as fh:
-        for r in csv.DictReader(fh):
-            if r["candidate"] in WEEKLY_CANDIDATES and r["win"]:
-                market[r["candidate"]][monday(r["date"])].append(float(r["win"]))
+    for r in market_rows:
+        if r["candidate"] in WEEKLY_CANDIDATES and r["win"]:
+            market[r["candidate"]][monday(r["date"])].append(float(r["win"]))
     mondays = [w for c in market.values() for w in c]
     first = min(mondays + [monday(history["first"][0]["end"])])
     last = max(mondays)
@@ -129,20 +147,34 @@ def weekly_series(history, today=None):
     return {"weeks": [w.isoformat() for w in weeks], "windowDays": WEEKLY_WINDOW_DAYS, "uncertainty": "mid", "runs": SIM_RUNS,
             "series": {c: {"poll": poll[c], "market": [avg(market[c].get(w)) for w in weeks]} for c in WEEKLY_CANDIDATES}}
 
-def write_polls_average(history):
-    """data/polls_average.csv: weekly (Monday) mean first-round score per candidate over every scenario of the polls that ended that week."""
+def polls_average_rows(history):
+    """data/polls_average.csv rows: weekly (Monday) mean first-round score per candidate over every scenario of the polls that ended that week."""
     by = defaultdict(list)
     for p in history["first"]:
         for c, v in p["v"].items(): by[(monday(p["end"]), c)].append(v)
-    with POLLS_AVERAGE.open("w", newline="", encoding="utf-8") as fh:
-        w = csv.writer(fh, lineterminator="\n")
-        w.writerow(["week", "candidate", "average", "scenarios"])
-        for (wk, c), v in sorted(by.items()): w.writerow([wk.isoformat(), c, round(mean(v), 1), len(v)])
-    return len(by)
+    return [[wk.isoformat(), c, round(mean(v), 1), len(v)] for (wk, c), v in sorted(by.items())]
+
+def read_history_rows():
+    """Rows of data/market_history.csv as dicts of strings (date, candidate, win, qual)."""
+    if not HISTORY.exists(): return []
+    with HISTORY.open(newline="", encoding="utf-8") as fh: return list(csv.DictReader(fh))
+
+def csv_text(header, rows, lineterminator="\n"):
+    buf = io.StringIO(newline="")
+    w = csv.writer(buf, lineterminator=lineterminator)
+    w.writerow(header); w.writerows(rows)
+    return buf.getvalue()
+
+def history_with_today(rows, snapshot, candidates):
+    """The history rows with the snapshot's prices in place of any earlier rows of that day (a second run the same day does not duplicate)."""
+    kept = [r for r in rows if r["date"] != snapshot]
+    return kept + [{"date": snapshot, "candidate": c["c"], "win": str(c["win"]), "qual": str(c["qual"])} for c in candidates]
 
 def market_prices(slug):
     """Yes prices (%) per candidate, plus the event's traded volume ($) and the sum of all its Yes prices (%)."""
-    events = json.loads(get(GAMMA.format(slug=slug)))
+    return parse_event(json.loads(get(GAMMA.format(slug=slug))), slug)
+
+def parse_event(events, slug=""):
     if not events:
         raise ValueError(f"no event returned for slug {slug}")
     out = {}
@@ -161,6 +193,25 @@ def market_prices(slug):
 # ---- Static layer (crawlers, link previews) --------------------------------------------------
 # simulate() is the only implementation of the poll-to-probability Monte Carlo: build_data.py runs it for every view
 # (see page_views()) and stores the results in data.json; the page just displays them.
+
+def build_candidates(win, qual):
+    """The page's market candidates: every priced name we have a political family for. A missing runoff price counts as 0."""
+    return [{"c": n, "f": FAMILY[n], "win": win[n], "qual": qual.get(n, 0)} for n in win if n in FAMILY]
+
+def validate(data, previous, win_sum):
+    """Reasons not to publish `data` (empty list: fine). previous is yesterday's data.json (or {}), win_sum the sum of all winner prices (%)."""
+    bad = []
+    for c in data["markets"]["candidates"]:
+        for k in ("win", "qual"):
+            if not 0 <= c[k] <= 100: bad.append(f"price out of range: {c['c']} {k} = {c[k]}")
+    if not 85 <= win_sum <= 115: bad.append(f"winner prices add up to {win_sum:.1f}%, outside 85-115%")
+    if previous.get("markets"):
+        gone = sorted({c["c"] for c in previous["markets"]["candidates"]} - {c["c"] for c in data["markets"]["candidates"]})
+        if gone: bad.append("candidates missing from the markets: " + ", ".join(gone))
+    before, now = len(previous.get("polls", [])), len(data["polls"])
+    if before and now < 0.8 * before: bad.append(f"poll count fell from {before} to {now} (more than 20%)")
+    if not data["polls"]: bad.append("no poll in the window")
+    return bad
 
 def _i32(x):
     x &= 0xFFFFFFFF
@@ -312,16 +363,17 @@ def between(page, start, end, transform):
     if len(pat.findall(page)) != 1: raise ValueError(f"need exactly one {start} ... {end} pair in index.html")
     return pat.sub(lambda m: m.group(1) + transform(m.group(2)) + m.group(3), page)
 
-def write_index(hl):
+def render_index(hl):
+    """index.html with the static French layer and the meta tags refreshed."""
     raw = INDEX.read_bytes().decode("utf-8")
     eol = "\r\n" if "\r\n" in raw else "\n"   # keep the file's own line endings (CRLF checkout on Windows)
     page = raw.replace("\r\n", "\n")
     fr = {k: fill_figures(v, hl["figs"]) for k, v in french_strings().items() if isinstance(v, str)}
     page = between(page, "<!--STATIC-START-->", "<!--STATIC-END-->", lambda region: static_html(region, fr, hl))
     page = between(page, "<!--META-START-->", "<!--META-END-->", lambda _: "\n" + meta_html(page, fr, hl) + "\n")
-    INDEX.write_bytes(page.replace("\n", eol).encode("utf-8"))
+    return page.replace("\n", eol)
 
-def write_og_image(hl):
+def write_og_image(hl, path):
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
@@ -354,58 +406,64 @@ def write_og_image(hl):
         ax.text(px(v), 522, str(v), fontsize=17, color=FAINT, ha="center", va="center")
     ax.plot([80, 1120], [566, 566], color=RULE, lw=2)
     ax.text(80, 596, "Données du " + fr_date(hl["updated"]), fontsize=20, color=MUTED, va="center")
-    fig.savefig(OG_IMAGE, dpi=100, facecolor=BG, metadata={"Software": None})
+    fig.savefig(path, format="png", dpi=100, facecolor=BG, metadata={"Software": None})
     plt.close(fig)
 
-def write_static(data):
-    """Runs after data.json is written. A failure is reported at the end so the data refresh still ships."""
+def build_outputs(data, history_rows, history, tmp):
+    """Everything main() publishes, written into the temporary folder `tmp`: {final path: temporary path}."""
     hl = headline(data)
     hl["figs"] = fr_figures(data)
     print(f"Headline: {hl['name']}, polls {hl['poll']:.1f}%, markets {hl['market']:.1f}%")
-    failed = []
-    for step in (write_og_image, write_index):
-        try:
-            step(hl)
-        except Exception as e:
-            print(f"{step.__name__} failed: {e!r}")
-            failed.append(step.__name__)
-    if failed: raise SystemExit("static step failed: " + ", ".join(failed))
+    out = {}
+    def stage(final, text=None, writer=None):
+        t = pathlib.Path(tmp) / str(len(out))
+        if writer: writer(t)
+        else: t.write_bytes(text.encode("utf-8") if isinstance(text, str) else text)
+        out[final] = t
+    stage(ROOT / "data.json", json.dumps(data, ensure_ascii=False, separators=(",", ":")))
+    stage(HISTORY, csv_text(["date", "candidate", "win", "qual"], [[r["date"], r["candidate"], r["win"], r["qual"]] for r in history_rows], "\r\n"))
+    stage(POLLS_AVERAGE, csv_text(["week", "candidate", "average", "scenarios"], polls_average_rows(history)))
+    stage(INDEX, render_index(hl))
+    stage(OG_IMAGE, writer=lambda t: write_og_image(hl, t))
+    return out
 
-def main():
-    polls, pairs, trend, history = load_polls()
+def run(reuse_markets=False):
+    today = datetime.date.today().isoformat()
     data_path = ROOT / "data.json"
     previous = json.loads(data_path.read_text(encoding="utf-8")) if data_path.exists() else {}
-    try:
+    polls, pairs, trend, history = load_polls()
+    history_rows = read_history_rows()
+    if reuse_markets:
+        if not previous.get("markets"): raise SystemExit("--reuse-markets needs an existing data.json with markets")
+        markets, win_sum = previous["markets"], previous["markets"].get("winSum", 100)
+        print("Reusing the market snapshot of", markets["snapshot"])
+    else:
         (win, win_stats), (qual, qual_stats) = market_prices(WIN_SLUG), market_prices(QUAL_SLUG)
-        names = [n for n in win if n in FAMILY]
         print("Unmatched market names (not in FAMILY):", [n for n in win if n not in FAMILY])
         print("FAMILY names with no market:", [n for n in FAMILY if n not in win])
-        if not names:
-            raise ValueError("no market name matched FAMILY")
-        candidates = [{"c": n, "f": FAMILY[n], "win": win.get(n, 0), "qual": qual.get(n, 0)} for n in names]
+        candidates = build_candidates(win, qual)
+        if not candidates: raise ValueError("no market name matched FAMILY")
         # traded volume ($) of both markets and the total of the "reach the runoff" prices (%), for the liquidity note
-        markets = {"snapshot": datetime.date.today().isoformat(), "source": "Polymarket", "candidates": candidates,
-                   "volume": {"win": win_stats["volume"], "qual": qual_stats["volume"]}, "qualSum": qual_stats["sum"]}
-        hist = HISTORY
-        hist.parent.mkdir(exist_ok=True)
-        new = not hist.exists()
-        with hist.open("a", newline="", encoding="utf-8") as fh:
-            w = csv.writer(fh)
-            if new: w.writerow(["date", "candidate", "win", "qual"])
-            for c in candidates: w.writerow([markets["snapshot"], c["c"], c["win"], c["qual"]])
-    except Exception as e:   # keep yesterday's market data rather than breaking the page
-        print("Market fetch failed, keeping previous snapshot:", e)
-        markets = previous.get("markets")
-    try:
-        weekly = weekly_series(history)
-    except Exception as e:   # same rule as the markets: keep the previous series rather than breaking the page
-        print("Weekly series failed, keeping previous:", e)
-        weekly = previous.get("weekly")
+        markets = {"snapshot": today, "source": "Polymarket", "candidates": candidates,
+                   "volume": {"win": win_stats["volume"], "qual": qual_stats["volume"]}, "qualSum": qual_stats["sum"], "winSum": win_stats["sum"]}
+        win_sum = win_stats["sum"]
+        history_rows = history_with_today(history_rows, today, candidates)
+    weekly = weekly_series(history, history_rows)
     sim, avg = page_views(polls, pairs)
-    data = {"updated": datetime.date.today().isoformat(), "polls": slim_polls(polls), "avg": avg, "sim": sim, "trend": trend, "weekly": weekly, "markets": markets}
-    data_path.write_text(json.dumps(data, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
-    print(f"{len(polls)} polls, {len(markets['candidates'])} market candidates, {write_polls_average(history)} weekly poll averages")
-    write_static(data)
+    data = {"updated": today, "polls": slim_polls(polls), "avg": avg, "sim": sim, "trend": trend, "weekly": weekly, "markets": markets}
+    problems = validate(data, previous, win_sum)
+    if problems:
+        print("VALIDATION FAILED, nothing was written:", *problems, sep="\n  - ", file=sys.stderr)
+        raise SystemExit(1)
+    with tempfile.TemporaryDirectory(dir=ROOT) as tmp:
+        staged = build_outputs(data, history_rows, history, tmp)
+        for final, t in staged.items(): os.replace(t, final)
+    print(f"OK: {len(polls)} polls, {len(markets['candidates'])} market candidates, {len(staged)} files written")
+
+def main(argv=None):
+    ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
+    ap.add_argument("--reuse-markets", action="store_true", help="skip Polymarket and keep the last market snapshot (for machines where it is blocked)")
+    run(ap.parse_args(argv).reuse_markets)
 
 if __name__ == "__main__":
     main()
