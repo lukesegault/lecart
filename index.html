@@ -186,6 +186,15 @@ summary{cursor:pointer;font-weight:600;font-family:var(--sans)}
 table{border-collapse:collapse;font-size:13px;width:100%;min-width:580px;font-family:var(--sans)}
 th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--rule);font-variant-numeric:tabular-nums}
 th{color:var(--muted);font-weight:500;position:sticky;top:0;background:var(--surface)}
+.about{font-family:var(--serif);font-size:16.5px;line-height:1.65;max-width:42em}
+.about p{margin:0 0 12px}
+.about a{color:var(--poll)}
+.about h3{font:800 17px var(--sans);letter-spacing:-.01em;margin:22px 0 6px}
+.about .only{font-family:var(--sans);font-weight:600;font-size:15px;line-height:1.5;padding:12px 14px;background:var(--surface);border-left:4px solid var(--warn);border-radius:12px}
+.about .dl{margin:0 0 8px;padding-left:1.2em}
+.about .dl li{margin:0 0 4px}
+.about .fine{font-size:14px;color:var(--muted)}
+.about .cite{font-family:var(--sans);font-size:14.5px;line-height:1.55;padding:12px 14px;background:var(--soft);border-radius:12px;user-select:all;overflow-wrap:anywhere}
 .hist{margin-top:34px}
 .hist h3{font-size:clamp(20px,2.4vw,24px);letter-spacing:-.02em;margin:0 0 6px;font-weight:800}
 footer{padding:26px 0 48px;color:var(--muted);font-size:13.5px;border-top:1px solid var(--rule);margin-top:34px}
@@ -338,9 +347,26 @@ footer p{margin:0}
   </div>
 </section>
 
+<section id="about" aria-labelledby="h-about">
+  <h2 id="h-about" data-i="h2about">À propos</h2>
+  <div class="about">
+    <p data-i="aboutP1">L'Écart est un projet de recherche académique, conçu et développé par Luke Segault. Il compare, pour la présidentielle de 2027, les chances de victoire lues dans les prix des marchés prédictifs et celles que l'on peut tirer des sondages, pour voir où elles divergent et pourquoi.</p>
+    <p class="only" data-i="aboutOnly">À des fins de recherche académique uniquement. Ce site n'est pas une prévision, ne constitue pas un conseil et n'incite pas à parier.</p>
+    <p data-i="aboutContact">Une question, une correction ou une demande de données ? <a href="https://github.com/lukesegault/lecart/issues">Contactez l'auteur via GitHub</a>.</p>
+    <h3 data-i="dlT">Télécharger les données (CSV)</h3>
+    <ul class="dl">
+      <li><a href="data/market_history.csv" download data-i="dlMarket">Prix quotidiens du marché, depuis son ouverture (market_history.csv)</a></li>
+      <li><a href="data/polls_average.csv" download data-i="dlPolls">Moyennes hebdomadaires des sondages de premier tour (polls_average.csv)</a></li>
+    </ul>
+    <p class="fine" data-i="dlNote">Sondages : compilation MieuxVoter/presidentielle2027 (licence MIT). Prix : relevés publics, présentés comme de simples données.</p>
+    <h3 data-i="citeT">Citer cette page</h3>
+    <p class="cite" data-i="cite">Segault, L. (2026). L'Écart : marchés et sondages, présidentielle 2027. https://lukesegault.github.io/lecart/ (mis à jour le 21 septembre 2026).</p>
+  </div>
+</section>
+
 <footer>
   <p data-i="foot">L'Écart est un prototype indépendant, à visée de recherche et de débat. Ce n'est pas une prévision, il n'est affilié à aucun institut ni plateforme, et ne constitue pas une incitation à parier.</p>
-  <p class="flinks"><a href="mentions-legales.html" data-i="lnkLegal">Mentions légales</a> · <a href="confidentialite.html" data-i="lnkPriv">Confidentialité</a> · <a href="#" id="optOut" data-i="optOut">Ne pas être compté</a><span id="optMsg" role="status"></span></p>
+  <p class="flinks"><a href="mentions-legales.html" data-i="lnkLegal">Mentions légales</a> · <a href="confidentialite.html" data-i="lnkPriv">Confidentialité</a> · <a href="changelog.html" data-i="lnkChange">Journal des modifications</a> · <a href="#" id="optOut" data-i="optOut">Ne pas être compté</a><span id="optMsg" role="status"></span></p>
 </footer>
 </div>
 
@@ -402,6 +428,17 @@ fr:{
  m3:"<strong>Marchés.</strong> Probabilités implicites tirées du dernier prix échangé sur deux marchés Polymarket : le vainqueur, et les qualifiés pour le second tour. Les prix sont présentés comme de simples données. Polymarket n'est pas autorisé en France ; cette page ne renvoie pas vers la plateforme et n'incite pas à parier.",
  m4:"<strong>Sources.</strong> Sondages compilés par le dépôt ouvert <a href=\"https://github.com/MieuxVoter/presidentielle2027\">MieuxVoter/presidentielle2027</a> (licence MIT), à partir d'enquêtes publiées sous le contrôle de la Commission des sondages. Chaque sondage reste la propriété de son institut et de son commanditaire.",
  pollsIncl:"Sondages retenus ({{n}})",thInst:"Institut",thFor:"Commanditaire",thField:"Terrain",thN:"Échantillon",to:"au",
+ h2about:"À propos",
+ aboutP1:"L'Écart est un projet de recherche académique, conçu et développé par Luke Segault. Il compare, pour la présidentielle de 2027, les chances de victoire lues dans les prix des marchés prédictifs et celles que l'on peut tirer des sondages, pour voir où elles divergent et pourquoi.",
+ aboutOnly:"À des fins de recherche académique uniquement. Ce site n'est pas une prévision, ne constitue pas un conseil et n'incite pas à parier.",
+ aboutContact:"Une question, une correction ou une demande de données ? <a href=\"https://github.com/lukesegault/lecart/issues\">Contactez l'auteur via GitHub</a>.",
+ dlT:"Télécharger les données (CSV)",
+ dlMarket:"Prix quotidiens du marché, depuis son ouverture (market_history.csv)",
+ dlPolls:"Moyennes hebdomadaires des sondages de premier tour (polls_average.csv)",
+ dlNote:"Sondages : compilation MieuxVoter/presidentielle2027 (licence MIT). Prix : relevés publics, présentés comme de simples données.",
+ citeT:"Citer cette page",
+ cite:"Segault, L. ({{year}}). L'Écart : marchés et sondages, présidentielle 2027. https://lukesegault.github.io/lecart/ (mis à jour le {{upd}}).",
+ lnkChange:"Journal des modifications",
  lnkLegal:"Mentions légales",lnkPriv:"Confidentialité",optOut:"Ne pas être compté",optIn:"Vous n'êtes pas compté : réactiver le comptage",optFail:"Choix non enregistré : le stockage de votre navigateur est bloqué.",
  foot:"L'Écart est un prototype indépendant, à visée de recherche et de débat. Ce n'est pas une prévision, il n'est affilié à aucun institut ni plateforme, et ne constitue pas une incitation à parier."
 },
@@ -450,6 +487,17 @@ en:{
  m3:"<strong>Markets.</strong> Implied probabilities from the last traded price on two Polymarket markets: the overall winner, and who advances to the second round. Prices are shown as data only. Polymarket is not authorised in France; this page does not link to it or encourage trading.",
  m4:"<strong>Sources.</strong> Polls compiled by the open <a href=\"https://github.com/MieuxVoter/presidentielle2027\">MieuxVoter/presidentielle2027</a> repository (MIT licence), from polls published under the supervision of the Commission des sondages. Each poll remains the property of its institute and sponsor.",
  pollsIncl:"Polls included ({{n}})",thInst:"Institute",thFor:"Sponsor",thField:"Fieldwork",thN:"Sample",to:"to",
+ h2about:"About",
+ aboutP1:"L'Écart is an academic research project, designed and built by Luke Segault. For the 2027 French presidential election, it compares the chances of winning read from prediction-market prices with those that can be derived from polls, to see where they diverge and why.",
+ aboutOnly:"For academic research only. This site is not a forecast, is not advice, and is not an invitation to bet.",
+ aboutContact:"A question, a correction or a data request? <a href=\"https://github.com/lukesegault/lecart/issues\">Contact the author via GitHub</a>.",
+ dlT:"Download the data (CSV)",
+ dlMarket:"Daily market prices, since it opened (market_history.csv)",
+ dlPolls:"Weekly averages of first-round polls (polls_average.csv)",
+ dlNote:"Polls: MieuxVoter/presidentielle2027 compilation (MIT licence). Prices: public snapshots, shown as data only.",
+ citeT:"How to cite",
+ cite:"Segault, L. ({{year}}). L'Écart: markets vs polls, French presidential election 2027. https://lukesegault.github.io/lecart/ (updated {{upd}}).",
+ lnkChange:"Changelog",
  lnkLegal:"Legal notice",lnkPriv:"Privacy",optOut:"Opt out of analytics",optIn:"You are opted out: turn analytics back on",optFail:"Choice not saved: your browser storage is blocked.",
  foot:"L'Écart is an independent prototype for research and discussion. It is not a forecast, is not affiliated with any pollster or platform, and is not an invitation to bet."
 }};
@@ -490,7 +538,7 @@ const money=v=>{
 function figures(){
   const ends=DATA.polls.map(p=>p.end).sort(), lo=ends[0], hi=ends[ends.length-1], mk=DATA.markets;
   const from=lo.slice(0,4)===hi.slice(0,4)?longDate(lo).replace(/ \d{4}$/,""):longDate(lo);
-  return {upd:longDate(DATA.updated),snap:longDate(mk.snapshot),n:DATA.polls.length,from,to:longDate(hi),
+  return {upd:longDate(DATA.updated),year:DATA.updated.slice(0,4),snap:longDate(mk.snapshot),n:DATA.polls.length,from,to:longDate(hi),
     vq:mk.volume?money(mk.volume.qual):"–",vw:mk.volume?money(mk.volume.win):"–",
     sum:mk.qualSum==null?"–":Math.round(mk.qualSum/10)*10+(lang==="fr"?nb+"%":"%")};
 }

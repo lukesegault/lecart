@@ -39,6 +39,7 @@ TREND_CANDIDATES = ["Marine Le Pen","Jordan Bardella","Édouard Philippe","Jean-
 WEEKLY_CANDIDATES = ["Marine Le Pen","Édouard Philippe","Jean-Luc Mélenchon"]   # polls vs markets chart
 WEEKLY_WINDOW_DAYS = 30        # polls feeding each weekly poll-implied win probability
 HISTORY = ROOT / "data" / "market_history.csv"
+POLLS_AVERAGE = ROOT / "data" / "polls_average.csv"
 
 def get(url):
     req = urllib.request.Request(url, headers={"User-Agent": "lecart-data-bot"})
@@ -124,6 +125,17 @@ def weekly_series(history, today=None):
     avg = lambda xs: round(mean(xs), 1) if xs else None
     return {"weeks": [w.isoformat() for w in weeks], "windowDays": WEEKLY_WINDOW_DAYS, "uncertainty": "mid", "runs": SIM_RUNS,
             "series": {c: {"poll": poll[c], "market": [avg(market[c].get(w)) for w in weeks]} for c in WEEKLY_CANDIDATES}}
+
+def write_polls_average(history):
+    """data/polls_average.csv: weekly (Monday) mean first-round score per candidate over every scenario of the polls that ended that week."""
+    by = defaultdict(list)
+    for p in history["first"]:
+        for c, v in p["v"].items(): by[(monday(p["end"]), c)].append(v)
+    with POLLS_AVERAGE.open("w", newline="", encoding="utf-8") as fh:
+        w = csv.writer(fh, lineterminator="\n")
+        w.writerow(["week", "candidate", "average", "scenarios"])
+        for (wk, c), v in sorted(by.items()): w.writerow([wk.isoformat(), c, round(mean(v), 1), len(v)])
+    return len(by)
 
 def market_prices(slug):
     """Yes prices (%) per candidate, plus the event's traded volume ($) and the sum of all its Yes prices (%)."""
@@ -229,7 +241,7 @@ def fr_figures(data):
             "from": f"{'1er' if lo.day == 1 else lo.day} {FR_MONTHS[lo.month - 1]}" + (f" {lo.year}" if lo.year != hi.year else ""),
             "to": fr_date(hi.isoformat()),
             "vq": fr_money(mk["volume"]["qual"]), "vw": fr_money(mk["volume"]["win"]),
-            "sum": f"{round(mk['qualSum'] / 10) * 10}{NB}%"}
+            "sum": f"{round(mk['qualSum'] / 10) * 10}{NB}%", "year": data["updated"][:4]}
 
 def fill_figures(text, figs):
     return re.sub(r"\{\{(\w+)\}\}", lambda m: figs[m.group(1)], text)
@@ -377,7 +389,7 @@ def main():
         weekly = previous.get("weekly")
     data = {"updated": datetime.date.today().isoformat(), "polls": polls, "pairs": pairs, "trend": trend, "weekly": weekly, "markets": markets}
     data_path.write_text(json.dumps(data, ensure_ascii=False, indent=1), encoding="utf-8")
-    print(f"{len(polls)} polls, {len(markets['candidates'])} market candidates")
+    print(f"{len(polls)} polls, {len(markets['candidates'])} market candidates, {write_polls_average(history)} weekly poll averages")
     write_static(data)
 
 if __name__ == "__main__":
