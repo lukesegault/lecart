@@ -36,13 +36,29 @@ FAMILY = {  # political family per candidate, used for colours on the page
  "Marine Tondelier":"green","Jean-Luc Mélenchon":"far-left","Fabien Roussel":"far-left",
 }
 TREND_CANDIDATES = ["Marine Le Pen","Jordan Bardella","Édouard Philippe","Jean-Luc Mélenchon","Raphaël Glucksmann","Gabriel Attal","Bruno Retailleau"]
-WEEKLY_CANDIDATES = ["Marine Le Pen","Édouard Philippe","Jean-Luc Mélenchon"]   # polls vs markets small multiples
+WEEKLY_CANDIDATES = ["Marine Le Pen","Édouard Philippe","Jean-Luc Mélenchon"]   # polls vs markets chart
+WEEKLY_WINDOW_DAYS = 30        # polls feeding each weekly poll-implied win probability
 HISTORY = ROOT / "data" / "market_history.csv"
 
 def get(url):
     req = urllib.request.Request(url, headers={"User-Agent": "lecart-data-bot"})
     with urllib.request.urlopen(req, timeout=60) as r:
         return r.read().decode("utf-8")
+
+def pair_records(second):
+    """(end, "A|B", share of A in the A-vs-B runoff, %) for every complete two-candidate runoff poll."""
+    out = []
+    for pid, rs in second.items():
+        if len(rs) != 2: continue
+        a, b = sorted(rs, key=lambda r: r["candidat"])
+        va, vb = float(a["intentions"]), float(b["intentions"])
+        out.append({"id": pid, "end": a["fin_enquete"], "key": a["candidat"] + "|" + b["candidat"], "share": 100 * va / (va + vb)})
+    return out
+
+def pairs_of(records):
+    by = defaultdict(list)
+    for r in records: by[r["key"]].append(r["share"])
+    return {k: [round(mean(v), 1), len(v)] for k, v in by.items()}
 
 def load_polls():
     rows = list(csv.DictReader(io.StringIO(get(POLLS_URL))))
@@ -59,13 +75,8 @@ def load_polls():
                       "end": f["fin_enquete"], "n": int(float(f["echantillon"] or 0)),
                       "v": {r["candidat"]: float(r["intentions"]) for r in rs}})
     polls.sort(key=lambda p: p["end"])
-    pairs = defaultdict(list)
-    for pid, rs in second.items():
-        if len(rs) != 2 or rs[0]["fin_enquete"] < cutoff: continue
-        a, b = sorted(rs, key=lambda r: r["candidat"])
-        va, vb = float(a["intentions"]), float(b["intentions"])
-        pairs[a["candidat"] + "|" + b["candidat"]].append(100 * va / (va + vb))
-    pairs = {k: [round(mean(v), 1), len(v)] for k, v in pairs.items()}
+    runoffs = pair_records(second)
+    pairs = pairs_of([r for r in runoffs if r["end"] >= cutoff])
     monthly = defaultdict(lambda: defaultdict(list))
     for pid, rs in first.items():
         for r in rs:
@@ -73,33 +84,49 @@ def load_polls():
                 monthly[r["fin_enquete"][:7]][r["candidat"]].append(float(r["intentions"]))
     months = sorted(monthly)
     trend = {"months": months, "series": {c: [round(mean(monthly[m][c]), 1) if monthly[m][c] else None for m in months] for c in TREND_CANDIDATES}}
-    obs = [(rs[0]["fin_enquete"], {r["candidat"]: float(r["intentions"]) for r in rs if r["candidat"] in WEEKLY_CANDIDATES})
-           for rs in first.values() if rs[0]["fin_enquete"] >= TREND_START]
-    return polls, pairs, trend, obs
+    # every poll since TREND_START, with all its candidates: the input of the weekly poll-implied win probability
+    history = {"first": sorted(({"id": pid, "end": rs[0]["fin_enquete"], "v": {r["candidat"]: float(r["intentions"]) for r in rs}}
+                                for pid, rs in first.items() if rs[0]["fin_enquete"] >= TREND_START), key=lambda p: p["end"]),
+               "runoff": [r for r in runoffs if r["end"] >= TREND_START]}
+    return polls, pairs, trend, history
 
 def monday(iso):
     d = datetime.date.fromisoformat(iso)
     return d - datetime.timedelta(days=d.weekday())
 
-def weekly_series(obs):
-    """Weekly (Monday-start) series per WEEKLY_CANDIDATES, from the first market day to the last.
-    market: mean of the daily prices of the week (market_history.csv). poll: mean first-round score over every
-    poll scenario ending that week, None when no poll ended that week (polls are sparse: the page decides what to bridge)."""
-    market, poll = defaultdict(lambda: defaultdict(list)), defaultdict(lambda: defaultdict(list))
+def weekly_series(history, today=None):
+    """Weekly (Monday-start) series per WEEKLY_CANDIDATES, from the first poll (or market day, if earlier) to the last market day.
+    market: mean of the daily win prices of the week (market_history.csv).
+    poll: poll-implied win probability, the same Monte Carlo as the page (simulate(), medium uncertainty, seed 2027) run on the
+    first-round polls that ended in the WEEKLY_WINDOW_DAYS days up to the end of the week, with the runoff polls of that same window;
+    None when no poll ended in that window (or the candidate is in none of them)."""
+    today = today or datetime.date.today()
+    market = defaultdict(lambda: defaultdict(list))
     with HISTORY.open(newline="", encoding="utf-8") as fh:
         for r in csv.DictReader(fh):
             if r["candidate"] in WEEKLY_CANDIDATES and r["win"]:
                 market[r["candidate"]][monday(r["date"])].append(float(r["win"]))
-    for end, v in obs:
-        for c, x in v.items(): poll[c][monday(end)].append(x)
-    first, last = (f([w for c in market.values() for w in c]) for f in (min, max))
+    mondays = [w for c in market.values() for w in c]
+    first = min(mondays + [monday(history["first"][0]["end"])])
+    last = max(mondays)
     weeks = [first + datetime.timedelta(weeks=i) for i in range((last - first).days // 7 + 1)]
+    cache, poll = {}, {c: [] for c in WEEKLY_CANDIDATES}
+    for w in weeks:
+        ref = min(w + datetime.timedelta(days=6), today)
+        lo, hi = (ref - datetime.timedelta(days=WEEKLY_WINDOW_DAYS)).isoformat(), ref.isoformat()
+        fp = [p for p in history["first"] if lo < p["end"] <= hi]
+        rp = [r for r in history["runoff"] if lo < r["end"] <= hi]
+        key = (tuple(p["id"] for p in fp), tuple(r["id"] for r in rp))
+        if fp and key not in cache: cache[key] = simulate(fp, pairs_of(rp))
+        sim = cache.get(key, {}) if fp else {}
+        for c in WEEKLY_CANDIDATES:
+            poll[c].append(round(sim[c]["win"], 1) if c in sim else None)
     avg = lambda xs: round(mean(xs), 1) if xs else None
-    return {"weeks": [w.isoformat() for w in weeks],
-            "series": {c: {"poll": [avg(poll[c].get(w)) for w in weeks], "market": [avg(market[c].get(w)) for w in weeks]}
-                       for c in WEEKLY_CANDIDATES}}
+    return {"weeks": [w.isoformat() for w in weeks], "windowDays": WEEKLY_WINDOW_DAYS, "uncertainty": "mid", "runs": SIM_RUNS,
+            "series": {c: {"poll": poll[c], "market": [avg(market[c].get(w)) for w in weeks]} for c in WEEKLY_CANDIDATES}}
 
 def market_prices(slug):
+    """Yes prices (%) per candidate, plus the event's traded volume ($) and the sum of all its Yes prices (%)."""
     events = json.loads(get(GAMMA.format(slug=slug)))
     if not events:
         raise ValueError(f"no event returned for slug {slug}")
@@ -112,8 +139,9 @@ def market_prices(slug):
             out[name] = round(100 * float(prices[0]), 1)   # price of "Yes"
     if not out:
         raise ValueError(f"no usable markets for slug {slug}")
-    print(f"{slug}: {len(out)} markets:", ", ".join(f"{k}={v}" for k, v in out.items()))
-    return out
+    volume = float(events[0].get("volume") or 0) or sum(float(m.get("volumeNum") or 0) for m in events[0]["markets"])
+    print(f"{slug}: {len(out)} markets, volume ${volume:,.0f}, prices add up to {sum(out.values()):.0f}%:", ", ".join(f"{k}={v}" for k, v in out.items()))
+    return out, {"volume": round(volume), "sum": round(sum(out.values()), 1)}
 
 # ---- Static layer (crawlers, link previews) --------------------------------------------------
 # simulate() below is a line-by-line port of simulate() in index.html (same PRNG, same draw order),
@@ -186,6 +214,26 @@ def fr_date(iso):
     d = datetime.date.fromisoformat(iso)
     return f"{'1er' if d.day == 1 else d.day} {FR_MONTHS[d.month - 1]} {d.year}"
 
+def fr_money(v):
+    if v >= 1e6:
+        m = round(v / 1e6, 1 if v < 1e7 else 0)
+        return (f"{m:g}".replace(".", ",") + NB + ("million" if m < 2 else "millions") + NB + "de" + NB + "$")
+    return f"{round(v / 1000) * 1000:,}".replace(",", NB) + NB + "$"
+
+def fr_figures(data):
+    """Values of the {{placeholders}} in the French strings of index.html; figures() in index.html does the same in both languages."""
+    ends = [p["end"] for p in data["polls"]]
+    lo, hi = datetime.date.fromisoformat(min(ends)), datetime.date.fromisoformat(max(ends))
+    mk = data["markets"]
+    return {"upd": fr_date(data["updated"]), "snap": fr_date(mk["snapshot"]), "n": str(len(data["polls"])),
+            "from": f"{'1er' if lo.day == 1 else lo.day} {FR_MONTHS[lo.month - 1]}" + (f" {lo.year}" if lo.year != hi.year else ""),
+            "to": fr_date(hi.isoformat()),
+            "vq": fr_money(mk["volume"]["qual"]), "vw": fr_money(mk["volume"]["win"]),
+            "sum": f"{round(mk['qualSum'] / 10) * 10}{NB}%"}
+
+def fill_figures(text, figs):
+    return re.sub(r"\{\{(\w+)\}\}", lambda m: figs[m.group(1)], text)
+
 def french_strings(page):
     """FR entries of the T object in index.html: plain strings, plus spotCap (a template literal)."""
     body = re.search(r"const T=\{\s*fr:\{(.*?)\},\s*en:\{", page, re.S).group(1)
@@ -242,7 +290,7 @@ def write_index(hl):
     raw = INDEX.read_bytes().decode("utf-8")
     eol = "\r\n" if "\r\n" in raw else "\n"   # keep the file's own line endings (CRLF checkout on Windows)
     page = raw.replace("\r\n", "\n")
-    fr = french_strings(page)
+    fr = {k: fill_figures(v, hl["figs"]) for k, v in french_strings(page).items()}
     page = between(page, "<!--STATIC-START-->", "<!--STATIC-END-->", lambda region: static_html(region, fr, hl))
     page = between(page, "<!--META-START-->", "<!--META-END-->", lambda _: "\n" + meta_html(page, fr, hl) + "\n")
     INDEX.write_bytes(page.replace("\n", eol).encode("utf-8"))
@@ -286,6 +334,7 @@ def write_og_image(hl):
 def write_static(data):
     """Runs after data.json is written. A failure is reported at the end so the data refresh still ships."""
     hl = headline(data)
+    hl["figs"] = fr_figures(data)
     print(f"Headline: {hl['name']}, polls {hl['poll']:.1f}%, markets {hl['market']:.1f}%")
     failed = []
     for step in (write_og_image, write_index):
@@ -297,18 +346,20 @@ def write_static(data):
     if failed: raise SystemExit("static step failed: " + ", ".join(failed))
 
 def main():
-    polls, pairs, trend, obs = load_polls()
+    polls, pairs, trend, history = load_polls()
     data_path = ROOT / "data.json"
     previous = json.loads(data_path.read_text(encoding="utf-8")) if data_path.exists() else {}
     try:
-        win, qual = market_prices(WIN_SLUG), market_prices(QUAL_SLUG)
+        (win, win_stats), (qual, qual_stats) = market_prices(WIN_SLUG), market_prices(QUAL_SLUG)
         names = [n for n in win if n in FAMILY]
         print("Unmatched market names (not in FAMILY):", [n for n in win if n not in FAMILY])
         print("FAMILY names with no market:", [n for n in FAMILY if n not in win])
         if not names:
             raise ValueError("no market name matched FAMILY")
         candidates = [{"c": n, "f": FAMILY[n], "win": win.get(n, 0), "qual": qual.get(n, 0)} for n in names]
-        markets = {"snapshot": datetime.date.today().isoformat(), "source": "Polymarket", "candidates": candidates}
+        # traded volume ($) of both markets and the total of the "reach the runoff" prices (%), for the liquidity note
+        markets = {"snapshot": datetime.date.today().isoformat(), "source": "Polymarket", "candidates": candidates,
+                   "volume": {"win": win_stats["volume"], "qual": qual_stats["volume"]}, "qualSum": qual_stats["sum"]}
         hist = HISTORY
         hist.parent.mkdir(exist_ok=True)
         new = not hist.exists()
@@ -320,7 +371,7 @@ def main():
         print("Market fetch failed, keeping previous snapshot:", e)
         markets = previous.get("markets")
     try:
-        weekly = weekly_series(obs)
+        weekly = weekly_series(history)
     except Exception as e:   # same rule as the markets: keep the previous series rather than breaking the page
         print("Weekly series failed, keeping previous:", e)
         weekly = previous.get("weekly")

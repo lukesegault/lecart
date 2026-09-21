@@ -12,9 +12,10 @@ Owner: Vikander. Audience: French journalists, policy people, curious readers.
 - `scripts/build_data.py`: daily refresh script. Poll part is tested logic. **The Polymarket part is untested**:
   verify the Gamma API endpoint, response shape and candidate naming against https://docs.polymarket.com first.
 - `scripts/backfill_history.py`: one-off (already run, 21 Sept 2026) daily "win" history of FAMILY candidates since the market opened (14 Nov 2025) into `data/market_history.csv`; `qual` is empty before 21 Sept 2026. Polymarket is blocked from France, so run it on a GitHub runner.
-- Section "Marchés et sondages dans le temps" (`renderDv()` in index.html): one chart per candidate (pills, 1M/3M/6M/Tout, shaded écart, hover readout, PNG export built as one SVG with embedded fonts) from `data.json` `weekly`, numbered event markers from `data/events.json` (date, fr, en, noteFr, noteEn); the Win/Runoff and uncertainty toggles drive its "today" line (only win-market history exists, so Runoff mode still plots win odds); its poll figures must also go under the future blackout switch.
+- Section "Marchés et sondages dans le temps" (`renderDv()` in index.html): one chart per candidate (pills, 1M/3M/6M/Tout, shaded écart, hover readout, PNG export built as one SVG with embedded fonts) from `data.json` `weekly`, numbered event markers from `data/events.json` (date, fr, en, noteFr, noteEn). Both lines are win probabilities: market = weekly mean of daily prices; poll = `simulate()` (medium uncertainty, seed 2027) run by `weekly_series()` on the polls of the 30 days up to each week's end, first-round and runoff. The chart ignores the Win/Runoff and uncertainty toggles; the gap badge is market minus poll in the latest week with both. Its poll figures must also go under the future blackout switch.
 - Analytics (CNIL consent exemption, no banner): GoatCounter (vikander.goatcounter.com, EU) loaded by `analytics.js`, skipped when `localStorage["lecart-optout"]` is set (footer link and confidentialite.html); events `lang-*`, `q-*`, `u-*` via `track()`; no other third party (fonts self-hosted in `fonts/`); legal pages `confidentialite.html`/`mentions-legales.html` state 25-month retention, so keep GoatCounter's data retention setting at 760 days or less.
 - `.github/workflows/update-data.yml`: runs the script daily and commits changes.
+- Dates and figures in the page text (`updated`, `meta`, `note`, `pollsIncl`) are `{{placeholders}}` in `T`, filled from data.json by `figures()` in index.html and `fr_figures()` in build_data.py: keep both in step. `markets.volume`/`qualSum` come from the Polymarket fetch (seeded by hand on 21 Sept 2026 until the first successful run).
 - SEO layer: `build_data.py` rewrites the FR text, headline figures and meta/OG tags in `index.html` (between the STATIC and META markers) plus `og-image.png`, so edit FR copy only in `T.fr`, and keep its Python `simulate()` in sync with the JS one.
 
 ## First tasks
@@ -23,7 +24,6 @@ Owner: Vikander. Audience: French journalists, policy people, curious readers.
 3. Enable the workflow and trigger it once manually (workflow_dispatch) to confirm it commits.
 
 ## Next features (ask the owner before starting each)
-- Show the "updated" date from data.json in the page header (FR and EN).
 - Custom domain.
 
 ## Constraints (important)

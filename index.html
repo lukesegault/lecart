@@ -66,6 +66,8 @@ button:focus-visible,summary:focus-visible,a:focus-visible{outline:2px solid var
 h1{font-size:clamp(40px,5.6vw,70px);line-height:.96;letter-spacing:-.035em;text-wrap:balance;font-weight:900;margin:0}
 .dek{font-family:var(--serif);font-size:clamp(18px,2vw,21px);line-height:1.5;margin:18px 0 0;max-width:30em}
 .meta{color:var(--muted);font-size:13.5px;margin-top:14px}
+.stamp{color:var(--ink);font-weight:600}
+.stamp+.meta{margin-top:4px}
 .spot{background:#161922;color:#ECEEF3;--poll:#95A3FF;--market:#44CDB9;--bg:#ECEEF3;border:1px solid var(--rule);border-radius:18px;padding:22px 24px 20px;position:relative;overflow:hidden}
 .spot .k{font-size:13.5px;opacity:.72;margin:0}
 .spot .who{font-size:26px;font-weight:800;letter-spacing:-.02em;margin:2px 0 18px}
@@ -147,8 +149,6 @@ h2{font-size:clamp(24px,3vw,30px);letter-spacing:-.025em;margin:0 0 6px;font-wei
 .dv-export{display:inline-flex;align-items:center;gap:6px;color:var(--ink)}
 .dv-export:disabled{opacity:.6;cursor:wait}
 .dv-msg{font-size:13px;color:var(--warn)}
-.dv-model{margin:12px 0 0;font-size:14px;line-height:1.5;color:var(--muted)}
-.dv-qnote{margin:6px 0 0;font-size:13px;color:var(--warn)}
 .dv-chart{margin-top:8px}
 .dv-chart svg{display:block;width:100%;height:auto;touch-action:pan-y}
 .dv-chart .evm{cursor:pointer;outline:none}
@@ -212,7 +212,8 @@ footer p{margin:0}
   <div>
     <h1 data-i="h1">Les marchés voient-ils ce que les sondages ratent ?</h1>
     <p class="dek" data-i="dek">Sondages et marchés prédictifs tentent tous deux de dire qui sera président de la République en 2027. Ils ne sont pas toujours d'accord. Cette page montre où, et de combien.</p>
-    <p class="meta" data-i="meta">Prototype. Marchés : relevé du 20 sept. 2026. Sondages : 50 enquêtes de premier tour réalisées du 24 juillet au 10 septembre 2026.</p>
+    <p class="meta stamp" data-i="updated">Mis à jour le 21 septembre 2026</p>
+    <p class="meta" data-i="meta">Prototype. Marchés : relevé du 21 septembre 2026. Sondages : 50 enquêtes de premier tour réalisées du 24 juillet au 10 septembre 2026.</p>
   </div>
   <div class="spot" aria-live="polite">
     <p class="k" data-i="spotK">Le plus grand écart, chances de victoire</p>
@@ -259,7 +260,7 @@ footer p{margin:0}
   <h2 id="h-read" data-i="h2c">Comment lire ces écarts</h2>
   <div class="two">
     <div class="readout"><p data-i="read1">Le désaccord majeur porte sur Marine Le Pen. Les sondages la placent loin devant au premier tour et en tête de tous les duels de second tour testés : un modèle fondé uniquement sur eux en fait une très large favorite. Les marchés sont nettement plus prudents. Ils intègrent peut-être un rassemblement tardif contre elle au second tour, la fragilité des sondages à cette distance du scrutin, ou des risques juridiques et politiques que les sondages ne mesurent pas.</p><p data-i="read2">Les marchés maintiennent aussi en vie des noms que les sondages remarquent à peine. David Lisnard est sous les 3 % mais cote comme un vrai outsider, et Jordan Bardella garde une valeur alors que les instituts ont cessé de le tester depuis la déclaration de Marine Le Pen. Information, couverture de risque ou simple manque de liquidité : c'est exactement le type de question que cette page veut faire émerger.</p></div>
-    <div class="note"><strong data-i="noteT">Attention à la vue « second tour »</strong><span data-i="note">Le marché « qui accède au second tour » est peu liquide : environ 188 000 $ échangés, contre 136 millions sur le marché du vainqueur. Ses prix totalisent près de 290 % alors que deux finalistes devraient faire 200 % : les petits candidats y paraissent plus probables qu'ils ne le sont.</span></div>
+    <div class="note"><strong data-i="noteT">Attention à la vue « second tour »</strong><span data-i="note">Le marché « qui accède au second tour » est peu liquide : environ 188 000 $ échangés, contre 136 millions de $ sur le marché du vainqueur. Ses prix totalisent près de 290 % alors que deux finalistes devraient faire 200 % : les petits candidats y paraissent plus probables qu'ils ne le sont.</span></div>
   </div>
 </section>
 
@@ -271,7 +272,7 @@ footer p{margin:0}
 
 <section id="multiSection" aria-labelledby="h-multi">
   <h2 id="h-multi" data-i="h2f">Marchés et sondages dans le temps</h2>
-  <p class="sub" data-i="subF">Choisissez un candidat : les <span class="lp">● sondages</span> (score au premier tour, moyenne hebdomadaire des enquêtes) et les <span class="lm">◆ marchés</span> (chances de victoire, moyenne hebdomadaire des prix) sont tracés sur la même échelle. La zone colorée est l'écart entre les deux courbes. Survolez ou touchez un repère numéroté pour lire la note.</p>
+  <p class="sub" data-i="subF">Choisissez un candidat : les <span class="lp">● sondages</span> (chances de victoire tirées des enquêtes par la simulation décrite dans la Méthode) et les <span class="lm">◆ marchés</span> (chances de victoire, moyenne hebdomadaire des prix) sont deux probabilités du même événement, tracées sur la même échelle. La zone colorée est l'écart entre les deux courbes. Survolez ou touchez un repère numéroté pour lire la note.</p>
   <div class="dv">
     <div class="dv-head">
       <div class="dv-title"><h3 id="dvName"></h3><span class="dv-pill" id="dvPill"></span></div>
@@ -287,15 +288,13 @@ footer p{margin:0}
     </div>
     <span class="dv-msg" id="dvExpMsg" role="alert"></span>
     <div class="pills" id="dvPills" role="group"></div>
-    <p class="dv-model" id="dvModel"></p>
-    <p class="dv-qnote" id="dvQnote" hidden></p>
     <div class="dv-chart" id="dvChart" role="group"></div>
     <p class="dv-readout" id="dvReadout" aria-live="polite"></p>
     <ul class="dv-legend" id="dvLegend"></ul>
     <ul class="dv-evl" id="dvEvents"></ul>
     <div class="dv-note" id="dvNote" aria-live="polite"></div>
   </div>
-  <p class="sub note-f" data-i="noteF">Un point marque une semaine avec au moins un sondage. Le trait des sondages s'interrompt quand plus de cinq semaines séparent deux enquêtes. Les marchés sont des moyennes hebdomadaires des prix quotidiens.</p>
+  <p class="sub note-f" data-i="noteF">Chaque semaine, la simulation (incertitude moyenne, mêmes paramètres que plus haut) est appliquée aux sondages de premier et de second tour des 30 jours précédents. Le trait des sondages s'interrompt quand aucune enquête n'a paru sur cette période. Les marchés sont des moyennes hebdomadaires des prix quotidiens. Ce graphique ne dépend pas des réglages du comparateur, dont les chances reposent sur les 60 derniers jours d'enquêtes.</p>
 </section>
 
 <section aria-labelledby="h-method">
@@ -330,7 +329,8 @@ const T={
 fr:{
  ctx:"Présidentielle 2027",h1:"Les marchés voient-ils ce que les sondages ratent ?",
  dek:"Sondages et marchés prédictifs tentent tous deux de dire qui sera président de la République en 2027. Ils ne sont pas toujours d'accord. Cette page montre où, et de combien.",
- meta:"Prototype. Marchés : relevé du 20 sept. 2026. Sondages : 50 enquêtes de premier tour réalisées du 24 juillet au 10 septembre 2026.",
+ updated:"Mis à jour le {{upd}}",
+ meta:"Prototype. Marchés : relevé du {{snap}}. Sondages : {{n}} enquêtes de premier tour réalisées du {{from}} au {{to}}.",
  spotK:"Le plus grand écart, chances de victoire",polls:"sondages",markets:"marchés",
  spotCap:(n,p,m)=>`Un modèle fondé sur les seuls sondages donne ${n} largement favorite. Les parieurs, eux, restent bien plus prudents.`,
  h2a:"Deux lectures de la même course",
@@ -347,38 +347,38 @@ fr:{
  read1:"Le désaccord majeur porte sur Marine Le Pen. Les sondages la placent loin devant au premier tour et en tête de tous les duels de second tour testés : un modèle fondé uniquement sur eux en fait une très large favorite. Les marchés sont nettement plus prudents. Ils intègrent peut-être un rassemblement tardif contre elle au second tour, la fragilité des sondages à cette distance du scrutin, ou des risques juridiques et politiques que les sondages ne mesurent pas.",
  read2:"Les marchés maintiennent aussi en vie des noms que les sondages remarquent à peine. David Lisnard est sous les 3 % mais cote comme un vrai outsider, et Jordan Bardella garde une valeur alors que les instituts ont cessé de le tester depuis la déclaration de Marine Le Pen. Information, couverture de risque ou simple manque de liquidité : c'est exactement le type de question que cette page veut faire émerger.",
  noteT:"Attention à la vue « second tour »",
- note:"Le marché « qui accède au second tour » est peu liquide : environ 188 000 $ échangés, contre 136 millions sur le marché du vainqueur. Ses prix totalisent près de 290 % alors que deux finalistes devraient faire 200 % : les petits candidats y paraissent plus probables qu'ils ne le sont.",
+ note:"Le marché « qui accède au second tour » est peu liquide : environ {{vq}} échangés, contre {{vw}} sur le marché du vainqueur. Ses prix totalisent près de {{sum}} alors que deux finalistes devraient faire 200 % : les petits candidats y paraissent plus probables qu'ils ne le sont.",
  h2d:"L'évolution des sondages de premier tour",subD:"Moyenne mensuelle des intentions de vote au premier tour, tous scénarios confondus. Survolez ou touchez un nom pour le mettre en avant.",
  chartAria:"Graphique des moyennes mensuelles des sondages de premier tour depuis septembre 2025",
  h2f:"Marchés et sondages dans le temps",
- subF:"Choisissez un candidat : les <span class=\"lp\">● sondages</span> (score au premier tour, moyenne hebdomadaire des enquêtes) et les <span class=\"lm\">◆ marchés</span> (chances de victoire, moyenne hebdomadaire des prix) sont tracés sur la même échelle. La zone colorée est l'écart entre les deux courbes. Survolez ou touchez un repère numéroté pour lire la note.",
- noteF:"Un point marque une semaine avec au moins un sondage. Le trait des sondages s'interrompt quand plus de cinq semaines séparent deux enquêtes. Les marchés sont des moyennes hebdomadaires des prix quotidiens.",
+ subF:"Choisissez un candidat : les <span class=\"lp\">● sondages</span> (chances de victoire tirées des enquêtes par la simulation décrite dans la Méthode) et les <span class=\"lm\">◆ marchés</span> (chances de victoire, moyenne hebdomadaire des prix) sont deux probabilités du même événement, tracées sur la même échelle. La zone colorée est l'écart entre les deux courbes. Survolez ou touchez un repère numéroté pour lire la note.",
+ noteF:"Chaque semaine, la simulation (incertitude moyenne, mêmes paramètres que plus haut) est appliquée aux sondages de premier et de second tour des 30 jours précédents. Le trait des sondages s'interrompt quand aucune enquête n'a paru sur cette période. Les marchés sont des moyennes hebdomadaires des prix quotidiens. Ce graphique ne dépend pas des réglages du comparateur, dont les chances reposent sur les 60 derniers jours d'enquêtes.",
  tfAll:"Tout",dvExport:"Exporter (PNG / Presse)",dvCand:"Candidat",dvPeriod:"Période",evList:"Événements repérés sur le graphique",
- dvToday:(v,u,p,m)=>`Aujourd'hui, chances ${v} : <span class="lp">sondages (modèle, incertitude ${u}) ${p}</span>, <span class="lm">marchés ${m}</span>.`,
- dvNoQual:"L'historique du marché « second tour » est trop court pour être tracé : la courbe montre les chances de victoire.",
  dvHint:"Survolez ou touchez un repère pour lire la note.",
  dvLast:(m,mw,p,pw)=>`Derniers relevés : <span class="lm">marché ${m}</span> (semaine du ${mw}), <span class="lp">sondages ${p}</span> (semaine du ${pw}).`,
  dvAt:(w,m,p,g)=>`Semaine du ${w} : <span class="lm">marché ${m}</span>, <span class="lp">sondages ${p}</span>, écart ${g}.`,
- dvLegM:"Marché : chances de victoire",dvLegP:"Sondages : score au premier tour",dvLegG:"Écart entre les deux",
- dvCap:"Score des sondages au premier tour et chances de victoire implicites du marché, moyennes hebdomadaires.",
+ dvLegM:"Marché : chances de victoire",dvLegP:"Sondages : chances de victoire (modèle)",dvLegG:"Écart entre les deux",
+ dvCap:"Chances de victoire implicites des sondages (simulation) et du marché, semaine par semaine.",
  dvSrc:"Sources : sondages MieuxVoter/presidentielle2027 ; prix du marché Polymarket, présentés comme données.",
  dvAsOf:"Données au",dvNoPoll:"aucun sondage",dvExpFail:"L'export a échoué. Réessayez.",dvEv:"Repères",
  dvAria:n=>`Courbes des sondages et du marché pour ${n}, avec l'écart entre les deux`,
  ev1:"Le Pen se déclare,",ev2:"Bardella n'est plus testé",
  months:["janv.","févr.","mars","avr.","mai","juin","juil.","août","sept.","oct.","nov.","déc."],
+ monthsL:["janvier","février","mars","avril","mai","juin","juillet","août","septembre","octobre","novembre","décembre"],
  h2e:"Méthode",
  m1:"<strong>Des sondages aux probabilités.</strong> Chaque simulation tire au hasard un sondage récent de premier tour, ajoute une erreur de sondage qui croît avec le score du candidat, et retient les deux premiers. Le vainqueur du second tour est tiré à partir de la moyenne des sondages de duel pour cette paire, plus une erreur. Les paires jamais testées sont départagées selon le rapport de force au premier tour. 20 000 simulations par vue. Les chances issues des sondages supposent que le candidat se présente.",
  m2:"<strong>Incertitude.</strong> À sept mois du scrutin, les sondages peuvent se tromper lourdement : cinq mois avant le vote de 2022, Jean-Luc Mélenchon était sous-estimé de plus de dix points. Le niveau « moyen » ajoute environ 1,5 point plus 20 % du score à l'erreur de premier tour, et 6 points à celle du second tour. Changez le réglage pour mesurer la sensibilité de la lecture sondagière.",
  m3:"<strong>Marchés.</strong> Probabilités implicites tirées du dernier prix échangé sur deux marchés Polymarket : le vainqueur, et les qualifiés pour le second tour. Les prix sont présentés comme de simples données. Polymarket n'est pas autorisé en France ; cette page ne renvoie pas vers la plateforme et n'incite pas à parier.",
  m4:"<strong>Sources.</strong> Sondages compilés par le dépôt ouvert <a href=\"https://github.com/MieuxVoter/presidentielle2027\">MieuxVoter/presidentielle2027</a> (licence MIT), à partir d'enquêtes publiées sous le contrôle de la Commission des sondages. Chaque sondage reste la propriété de son institut et de son commanditaire.",
- pollsIncl:"Sondages retenus (50)",thInst:"Institut",thFor:"Commanditaire",thField:"Terrain",thN:"Échantillon",to:"au",
+ pollsIncl:"Sondages retenus ({{n}})",thInst:"Institut",thFor:"Commanditaire",thField:"Terrain",thN:"Échantillon",to:"au",
  lnkLegal:"Mentions légales",lnkPriv:"Confidentialité",optOut:"Ne pas être compté",optIn:"Vous n'êtes pas compté : réactiver le comptage",optFail:"Choix non enregistré : le stockage de votre navigateur est bloqué.",
  foot:"L'Écart est un prototype indépendant, à visée de recherche et de débat. Ce n'est pas une prévision, il n'est affilié à aucun institut ni plateforme, et ne constitue pas une incitation à parier."
 },
 en:{
  ctx:"French presidential election 2027",h1:"Do markets see what the polls miss?",
  dek:"Polls and prediction markets are both trying to tell us who becomes president of France in 2027. They don't always agree. This page shows where, and by how much.",
- meta:"Prototype. Markets snapshot: 20 Sept 2026. Polls: 50 first-round polls fielded 24 July to 10 Sept 2026.",
+ updated:"Updated {{upd}}",
+ meta:"Prototype. Markets snapshot: {{snap}}. Polls: {{n}} first-round polls fielded {{from}} to {{to}}.",
  spotK:"Largest gap, chance of winning",polls:"polls",markets:"markets",
  spotCap:(n,p,m)=>`A model built on polls alone makes ${n} a clear favourite. Traders are far more cautious.`,
  h2a:"Two readings of the same race",
@@ -395,31 +395,30 @@ en:{
  read1:"The biggest disagreement is about Marine Le Pen. Polls put her far ahead in the first round and ahead in every runoff pairing tested, so a model built only on polls makes her a heavy favourite. Traders are much more cautious. They may be pricing in a late consolidation against her in the runoff, the fragility of polls this far out, or legal and political risks that polls cannot capture.",
  read2:"Markets also keep a few names alive that polls barely register. David Lisnard polls under 3% yet trades as a real outsider, and Jordan Bardella keeps some value even though pollsters stopped testing him once Le Pen declared. Information, hedging or thin trading: that is exactly the kind of question this page is built to surface.",
  noteT:"Handle the runoff view with care",
- note:"The \"who advances to the runoff\" market is thin: about $188,000 traded, against $136 million on the winner market. Its prices add up to roughly 290% when two finalists should make 200%, so small candidates look more likely than they are.",
+ note:"The \"who advances to the runoff\" market is thin: about {{vq}} traded, against {{vw}} on the winner market. Its prices add up to roughly {{sum}} when two finalists should make 200%, so small candidates look more likely than they are.",
  h2d:"How first-round polls have moved",subD:"Monthly average of first-round voting intentions across all tested scenarios. Hover or tap a name to highlight it.",
  chartAria:"Line chart of monthly first-round polling averages since September 2025",
  h2f:"Markets and polls over time",
- subF:"Choose a candidate: <span class=\"lp\">● polls</span> (first-round score, weekly average of surveys) and <span class=\"lm\">◆ markets</span> (chance of winning, weekly average of prices) are plotted on the same scale. The shaded area is the gap between the two lines. Hover or tap a numbered marker to read its note.",
- noteF:"A dot marks a week with at least one poll. The poll line breaks when more than five weeks separate two surveys. Markets are weekly averages of daily prices.",
+ subF:"Choose a candidate: <span class=\"lp\">● polls</span> (chance of winning, derived from surveys by the simulation described in Method) and <span class=\"lm\">◆ markets</span> (chance of winning, weekly average of prices) are two probabilities of the same event, plotted on the same scale. The shaded area is the gap between the two lines. Hover or tap a numbered marker to read its note.",
+ noteF:"Each week, the simulation (medium uncertainty, same parameters as above) is run on the first-round and runoff polls of the previous 30 days. The poll line breaks when no survey was published in that period. Markets are weekly averages of daily prices. This chart does not depend on the comparison settings, whose chances rest on the last 60 days of polls.",
  tfAll:"All",dvExport:"Export (PNG / Press)",dvCand:"Candidate",dvPeriod:"Period",evList:"Events marked on the chart",
- dvToday:(v,u,p,m)=>`Today, chance of ${v}: <span class="lp">polls (model, ${u} uncertainty) ${p}</span>, <span class="lm">markets ${m}</span>.`,
- dvNoQual:"The \"reach the runoff\" market has too little history to plot: the line shows the chance of winning.",
  dvHint:"Hover or tap a marker to read the note.",
  dvLast:(m,mw,p,pw)=>`Latest: <span class="lm">market ${m}</span> (week of ${mw}), <span class="lp">polls ${p}</span> (week of ${pw}).`,
  dvAt:(w,m,p,g)=>`Week of ${w}: <span class="lm">market ${m}</span>, <span class="lp">polls ${p}</span>, gap ${g}.`,
- dvLegM:"Market: chance of winning",dvLegP:"Polls: first-round score",dvLegG:"Gap between the two",
- dvCap:"First-round poll score and market-implied chance of winning, weekly averages.",
+ dvLegM:"Market: chance of winning",dvLegP:"Polls: chance of winning (model)",dvLegG:"Gap between the two",
+ dvCap:"Poll-implied (simulation) and market-implied chance of winning, by week.",
  dvSrc:"Sources: polls from MieuxVoter/presidentielle2027; market prices from Polymarket, shown as data.",
  dvAsOf:"Data as of",dvNoPoll:"no poll",dvExpFail:"Export failed. Please try again.",dvEv:"Markers",
  dvAria:n=>`Polls and market lines for ${n}, with the gap between them`,
  ev1:"Le Pen declares,",ev2:"Bardella no longer tested",
  months:["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"],
+ monthsL:["January","February","March","April","May","June","July","August","September","October","November","December"],
  h2e:"Method",
  m1:"<strong>Polls to probabilities.</strong> Each simulation draws one recent first-round poll at random, adds polling error that grows with a candidate's score, and takes the top two. The runoff winner is then drawn from the average of head-to-head polls for that pair, plus error. Pairs never polled are decided by relative first-round strength. 20,000 simulations per view. Poll-based chances assume the candidate is on the ballot.",
  m2:"<strong>Uncertainty.</strong> Seven months out, French polls can miss badly: five months before the 2022 vote, Jean-Luc Mélenchon was underestimated by more than ten points. \"Medium\" adds roughly 1.5 points plus 20% of a candidate's score to first-round error, and 6 points to runoff error. Change the setting to see how sensitive the poll view is.",
  m3:"<strong>Markets.</strong> Implied probabilities from the last traded price on two Polymarket markets: the overall winner, and who advances to the second round. Prices are shown as data only. Polymarket is not authorised in France; this page does not link to it or encourage trading.",
  m4:"<strong>Sources.</strong> Polls compiled by the open <a href=\"https://github.com/MieuxVoter/presidentielle2027\">MieuxVoter/presidentielle2027</a> repository (MIT licence), from polls published under the supervision of the Commission des sondages. Each poll remains the property of its institute and sponsor.",
- pollsIncl:"Polls included (50)",thInst:"Institute",thFor:"Sponsor",thField:"Fieldwork",thN:"Sample",to:"to",
+ pollsIncl:"Polls included ({{n}})",thInst:"Institute",thFor:"Sponsor",thField:"Fieldwork",thN:"Sample",to:"to",
  lnkLegal:"Legal notice",lnkPriv:"Privacy",optOut:"Opt out of analytics",optIn:"You are opted out: turn analytics back on",optFail:"Choice not saved: your browser storage is blocked.",
  foot:"L'Écart is an independent prototype for research and discussion. It is not a forecast, is not affiliated with any pollster or platform, and is not an invitation to bet."
 }};
@@ -449,7 +448,22 @@ const cache={}; const sim=l=>cache[l]||(cache[l]=simulate(l));
 const avg={},cnt={};
 DATA.polls.forEach(p=>{for(const n in p.v){avg[n]=(avg[n]||0)+p.v[n];cnt[n]=(cnt[n]||0)+1}}); for(const n in avg) avg[n]/=cnt[n];
 
-const nb=" ";
+const nb="\u00a0";
+// Dates and figures of the page text come from data.json. Keep in step with fr_figures() in scripts/build_data.py.
+const longDate=iso=>{ const [y,m,d]=iso.split("-"); return (lang==="fr"&&+d===1?"1er":+d)+" "+t("monthsL")[+m-1]+" "+y };
+const money=v=>{
+  if(v>=1e6){ const m=Math.round(v/(v<1e7?1e5:1e6))/(v<1e7?10:1), s=lang==="fr"?String(m).replace(".",","):String(m);
+    return lang==="fr"?s+nb+(m<2?"million":"millions")+nb+"de"+nb+"$":"$"+s+" million"; }
+  const k=Math.round(v/1000)*1000; return lang==="fr"?String(k).replace(/\B(?=(\d{3})+$)/g,nb)+nb+"$":"$"+k.toLocaleString("en-GB");
+};
+function figures(){
+  const ends=DATA.polls.map(p=>p.end).sort(), lo=ends[0], hi=ends[ends.length-1], mk=DATA.markets;
+  const from=lo.slice(0,4)===hi.slice(0,4)?longDate(lo).replace(/ \d{4}$/,""):longDate(lo);
+  return {upd:longDate(DATA.updated),snap:longDate(mk.snapshot),n:DATA.polls.length,from,to:longDate(hi),
+    vq:mk.volume?money(mk.volume.qual):"–",vw:mk.volume?money(mk.volume.win):"–",
+    sum:mk.qualSum==null?"–":Math.round(mk.qualSum/10)*10+(lang==="fr"?nb+"%":"%")};
+}
+const fill=s=>{ const F=figures(); return s.replace(/\{\{(\w+)\}\}/g,(_,k)=>F[k]) };
 const pct=x=> x>0&&x<1 ? (lang==="fr"?"<1"+nb+"%":"<1%") : Math.round(x)+(lang==="fr"?nb+"%":"%");
 const pct1=x=> lang==="fr" ? x.toFixed(1).replace(".",",")+nb+"%" : x.toFixed(1)+"%";
 const surname=n=>({"Marine Le Pen":"Le Pen","Jean-Luc Mélenchon":"Mélenchon","Dominique de Villepin":"de Villepin","Nicolas Dupont-Aignan":"Dupont-Aignan"}[n]||n.split(" ").slice(-1)[0]);
@@ -463,7 +477,7 @@ function rows(q=state.q,u=state.u){
 function applyStatic(){
   document.documentElement.lang=lang;
   document.title = lang==="fr" ? "L'Écart · Marchés vs sondages, présidentielle 2027" : "L'Écart · Markets vs polls, French election 2027";
-  document.querySelectorAll("[data-i]").forEach(el=>{const v=t(el.dataset.i); if(typeof v==="string") el.innerHTML=v});
+  document.querySelectorAll("[data-i]").forEach(el=>{const v=t(el.dataset.i); if(typeof v==="string") el.innerHTML=fill(v)});
   document.querySelectorAll("[data-lang]").forEach(b=>b.setAttribute("aria-pressed",b.dataset.lang===lang));
   document.getElementById("families").innerHTML=Object.entries(t("fam")).map(([k,v])=>`<span><i style="background:var(--${k})"></i>${v}</span>`).join("");
 }
@@ -575,17 +589,17 @@ function dvChart(o){
   if(days<=45) weeks.forEach((w,i)=>{const [,mm,dd]=w.split("-"); g+=tick(x(i),(+dd)+" "+t("months")[+mm-1])});
   else{ const d0=new Date(t0); for(let k=1;;k++){ const dt=new Date(Date.UTC(d0.getUTCFullYear(),d0.getUTCMonth()+k,1)); if(+dt>t1) break; const mo=dt.getUTCMonth()+1;
     g+=tick(px(+dt),(days<=240||mo%2===1)?monthLab(dt.getUTCFullYear()+"-"+String(mo).padStart(2,"0"),1):""); } }
-  // the écart: for each run of poll points at most 5 weeks apart, the polygon between the poll line and the market line
-  const P=poll.map((v,i)=>v==null?null:i).filter(i=>i!=null);
-  for(let k=0;k<P.length;){ let e=k; while(e+1<P.length&&P[e+1]-P[e]<=5) e++;
+  // the écart: for each run of weeks where both lines exist (a single missing week is bridged), the polygon between the poll line and the market line
+  const P=poll.map((v,i)=>v==null||market[i]==null?null:i).filter(i=>i!=null);   // weeks where both lines exist
+  for(let k=0;k<P.length;){ let e=k; while(e+1<P.length&&P[e+1]-P[e]<=2) e++;
     if(e>k){ const fwd=[],back=[]; for(let j=k;j<=e;j++) fwd.push(x(P[j]).toFixed(1)+" "+y(poll[P[j]]).toFixed(1));
       for(let i=P[e];i>=P[k];i--) if(market[i]!=null) back.push(x(i).toFixed(1)+" "+y(market[i]).toFixed(1));
       if(back.length) g+=`<path d="M${fwd.join(" L")} L${back.join(" L")} Z" fill="${col.fill}" stroke="none"/>`; }
     k=e+1; }
-  const M=pathOf(market,x,y,2), Pp=pathOf(poll,x,y,5);   // one missing market week is bridged, like the shaded area
+  const M=pathOf(market,x,y,2), Pp=pathOf(poll,x,y,1);   // one missing market week is bridged; the poll line breaks wherever no poll fell in the 30 days before a week
   g+=`<path d="${M.d}" fill="none" stroke="${col.market}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/><path d="${Pp.d}" fill="none" stroke="${col.poll}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>`;
   if(M.last!=null){ const cx=x(M.last), cy=y(market[M.last]); g+=`<rect x="${cx-4.5}" y="${cy-4.5}" width="9" height="9" rx="1.5" transform="rotate(45 ${cx} ${cy})" fill="${col.market}" stroke="${col.surface}" stroke-width="1.5"/>`; }
-  poll.forEach((v,i)=>{ if(v!=null) g+=`<circle cx="${x(i)}" cy="${y(v)}" r="${i===Pp.last?4.5:2.8}" fill="${col.poll}" stroke="${col.surface}" stroke-width="1.5"/>`});
+  poll.forEach((v,i)=>{ if(v!=null&&(i===Pp.last||poll[i-1]==null&&poll[i+1]==null)) g+=`<circle cx="${x(i)}" cy="${y(v)}" r="${i===Pp.last?4.5:2.8}" fill="${col.poll}" stroke="${col.surface}" stroke-width="1.5"/>`});
   if(o.interactive) g+=`<line id="dvGuide" y1="${mt}" y2="${H-mb}" stroke="${col.ink}" stroke-opacity=".35" visibility="hidden"/><g id="dvDots"></g>`;
   (o.events||[]).forEach((e,i)=>{ const tt=dvTs(e.date); if(tt<t0||tt>t1) return; const xx=px(tt), cy=mt-16;
     g+=`<line x1="${xx}" x2="${xx}" y1="${cy+9}" y2="${H-mb}" stroke="${col.faint}" stroke-dasharray="2 3"/>`+
@@ -595,7 +609,8 @@ function dvChart(o){
 
 function dvSummary(D){
   const im=dvLastIdx(D.market), ip=dvLastIdx(D.poll);
-  return {im,ip,m:im<0?null:D.market[im],p:ip<0?null:D.poll[ip],mw:im<0?"":D.weeks[im],pw:ip<0?"":D.weeks[ip]};
+  let ib=D.weeks.length-1; while(ib>=0&&(D.market[ib]==null||D.poll[ib]==null)) ib--;   // the gap compares the two lines in the same week
+  return {im,ip,m:im<0?null:D.market[im],p:ip<0?null:D.poll[ip],mw:im<0?"":D.weeks[im],pw:ip<0?"":D.weeks[ip],gap:ib<0?null:D.market[ib]-D.poll[ib]};
 }
 
 function dvReadout(idx){
@@ -641,7 +656,7 @@ function dvDrawChart(){
 function renderDv(){
   const sec=document.getElementById("multiSection"), D=dvData();
   if(!D){ sec.hidden=true; return } sec.hidden=false;
-  const S=dvSummary(D), gap=S.m!=null&&S.p!=null?S.m-S.p:null;
+  const S=dvSummary(D), gap=S.gap;
   document.getElementById("dvName").textContent=D.cand;
   const pill=document.getElementById("dvPill"); pill.hidden=gap==null; if(gap!=null){ pill.textContent=t("gapCol")+" "+dvSigned(gap); pill.classList.toggle("neg",gap<0) }
   const pills=document.getElementById("dvPills"); pills.setAttribute("aria-label",t("dvCand"));
@@ -649,10 +664,6 @@ function renderDv(){
   pills.querySelectorAll("button").forEach(b=>b.addEventListener("click",()=>{DV.cand=b.dataset.c;renderDv()}));
   const tf=document.getElementById("dvTf"); tf.setAttribute("aria-label",t("dvPeriod"));
   tf.querySelectorAll("button").forEach(b=>{ b.setAttribute("aria-pressed",String(b.dataset.tf===DV.tf)); b.onclick=()=>{DV.tf=b.dataset.tf;renderDv()}; });
-  // the toggles above the board drive this line: real poll simulation and real market price, for the chosen question and uncertainty
-  const r=rows().find(x=>x.c===D.cand), verb=state.q==="win"?t("verbW"):t("verbQ");
-  document.getElementById("dvModel").innerHTML=r?t("dvToday")(verb,t(state.u).toLowerCase(),r.poll==null?"–":pct(r.poll),pct(r.market)):"";
-  const qn=document.getElementById("dvQnote"); qn.hidden=state.q!=="qual"; qn.textContent=t("dvNoQual");
   document.getElementById("dvLegend").innerHTML=
     `<li><svg width="26" height="10" aria-hidden="true"><line x1="1" x2="25" y1="5" y2="5" stroke="var(--market)" stroke-width="2.5" stroke-linecap="round"/></svg>${t("dvLegM")}</li>`+
     `<li><svg width="26" height="10" aria-hidden="true"><line x1="1" x2="25" y1="5" y2="5" stroke="var(--poll)" stroke-width="2.5" stroke-linecap="round"/><circle cx="13" cy="5" r="3" fill="var(--poll)"/></svg>${t("dvLegP")}</li>`+
@@ -678,7 +689,7 @@ async function dvExport(){
   btn.disabled=true; msg.textContent="";
   try{
     let F=null; try{ F=await dvFonts() }catch(e){}
-    const W=1200,H=675,S=2,pad=48,cw=W-2*pad,ch=316,C=DV_LIGHT, Z=dvSummary(D), gap=Z.m!=null&&Z.p!=null?Z.m-Z.p:null;
+    const W=1200,H=675,S=2,pad=48,cw=W-2*pad,ch=316,C=DV_LIGHT, Z=dvSummary(D), gap=Z.gap;
     const face=F?`<style>@font-face{font-family:"Schibsted Grotesk";font-weight:400 900;src:url(data:font/woff2;base64,${F.sans}) format("woff2")}@font-face{font-family:"Spectral";font-weight:500;src:url(data:font/woff2;base64,${F.serif}) format("woff2")}</style>`:"";
     const chart=dvChart({W:cw-24,H:ch,weeks:D.weeks,poll:D.poll,market:D.market,events:EVENTS,col:C,interactive:false}).svg;
     const cardY=176, legY=cardY+ch+24+30, shown=EVENTS.map((e,i)=>({e,i})).filter(({e})=>{const tt=dvTs(e.date); return tt>=dvTs(D.weeks[0])&&tt<=dvTs(D.weeks[D.weeks.length-1])});
@@ -696,14 +707,14 @@ async function dvExport(){
       `<rect x="${pad}" y="${cardY}" width="${cw}" height="${ch+24}" rx="16" fill="${C.surface}" stroke="${C.rule}"/><g transform="translate(${pad+12} ${cardY+12})">${chart}</g>`+
       `${legend}${evs}`+
       `<line x1="${pad}" x2="${W-pad}" y1="${H-62}" y2="${H-62}" stroke="${C.rule}"/>`+
-      `<text x="${pad}" y="${H-38}" font-size="12.5" fill="${C.muted}">${xml(t("dvSrc"))} ${xml(t("dvAsOf"))} ${dvDate(D.weeks[D.weeks.length-1])}.</text>`+
+      `<text x="${pad}" y="${H-38}" font-size="12.5" fill="${C.muted}">${xml(t("dvSrc"))} ${xml(t("dvAsOf"))} ${dvDate(DATA.updated)}.</text>`+
       `<text x="${W-pad}" y="${H-38}" text-anchor="end" font-size="12.5" fill="${C.muted}">lukesegault.github.io/lecart</text></svg>`;
     const img=new Image(); img.src="data:image/svg+xml;charset=utf-8,"+encodeURIComponent(svg); await img.decode();
     await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));   // let the embedded fonts settle before drawing
     const cv=document.createElement("canvas"); cv.width=W*S; cv.height=H*S; cv.getContext("2d").drawImage(img,0,0,W*S,H*S);
     const blob=await new Promise(r=>cv.toBlob(r,"image/png")); if(!blob) throw new Error("toBlob");
     const a=document.createElement("a"), slug=surname(D.cand).normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase().replace(/[^a-z0-9]+/g,"-");
-    a.href=URL.createObjectURL(blob); a.download=`lecart-${slug}-${D.weeks[D.weeks.length-1]}.png`; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),4000);
+    a.href=URL.createObjectURL(blob); a.download=`lecart-${slug}-${DATA.updated}.png`; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),4000);
   }catch(e){ msg.textContent=t("dvExpFail") } finally{ btn.disabled=false }
 }
 document.getElementById("dvExport").addEventListener("click",dvExport);
@@ -722,8 +733,8 @@ const optEl=document.getElementById("optOut"), optMsg=document.getElementById("o
 const renderOpt=()=>{ optEl.textContent=t(window.lecartOptOut&&window.lecartOptOut.get()?"optIn":"optOut") };
 optEl.addEventListener("click",e=>{ e.preventDefault(); const O=window.lecartOptOut; if(!O) return; const ok=O.set(!O.get()); optMsg.textContent=ok?"":" "+t("optFail"); renderOpt() });
 document.querySelectorAll("[data-lang]").forEach(b=>b.addEventListener("click",()=>{track("lang-"+b.dataset.lang);lang=b.dataset.lang;try{localStorage.setItem("lecart-lang",lang)}catch(e){} renderAll(false)}));
-document.querySelectorAll("[data-q]").forEach(b=>b.addEventListener("click",()=>{track("q-"+b.dataset.q);state.q=b.dataset.q;document.querySelectorAll("[data-q]").forEach(x=>x.setAttribute("aria-pressed",x===b));renderBoard();renderDv()}));
-document.querySelectorAll("[data-u]").forEach(b=>b.addEventListener("click",()=>{track("u-"+b.dataset.u);state.u=b.dataset.u;document.querySelectorAll("[data-u]").forEach(x=>x.setAttribute("aria-pressed",x===b));renderBoard();renderDv()}));
+document.querySelectorAll("[data-q]").forEach(b=>b.addEventListener("click",()=>{track("q-"+b.dataset.q);state.q=b.dataset.q;document.querySelectorAll("[data-q]").forEach(x=>x.setAttribute("aria-pressed",x===b));renderBoard()}));
+document.querySelectorAll("[data-u]").forEach(b=>b.addEventListener("click",()=>{track("u-"+b.dataset.u);state.u=b.dataset.u;document.querySelectorAll("[data-u]").forEach(x=>x.setAttribute("aria-pressed",x===b));renderBoard()}));
 document.getElementById("more").addEventListener("click",()=>{state.all=!state.all;renderBoard()});
 renderAll(true);
 
