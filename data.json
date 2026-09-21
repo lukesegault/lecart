@@ -1,4 +1,5 @@
 {
+ "updated": "2026-09-21",
  "polls": [
   {
    "id": "20260722_0724_cl_A",
@@ -669,6 +670,67 @@
    }
   },
   {
+   "id": "20260908_0909_ow_A",
+   "inst": "OpinionWay",
+   "for": "Les Echos, Radio Classique",
+   "start": "2026-09-08",
+   "end": "2026-09-09",
+   "n": 1001,
+   "v": {
+    "Nathalie Arthaud": 0.5,
+    "Jean-Luc Mélenchon": 15.0,
+    "Fabien Roussel": 2.0,
+    "Marine Tondelier": 3.0,
+    "Raphaël Glucksmann": 9.0,
+    "Gabriel Attal": 8.0,
+    "Édouard Philippe": 15.0,
+    "Bruno Retailleau": 8.0,
+    "Nicolas Dupont-Aignan": 2.0,
+    "Marine Le Pen": 34.0,
+    "Éric Zemmour": 4.0
+   }
+  },
+  {
+   "id": "20260908_0909_ow_B",
+   "inst": "OpinionWay",
+   "for": "Les Echos, Radio Classique",
+   "start": "2026-09-08",
+   "end": "2026-09-09",
+   "n": 1001,
+   "v": {
+    "Nathalie Arthaud": 1.0,
+    "Jean-Luc Mélenchon": 15.0,
+    "Fabien Roussel": 2.0,
+    "Marine Tondelier": 4.0,
+    "Raphaël Glucksmann": 12.0,
+    "Gabriel Attal": 14.0,
+    "Bruno Retailleau": 12.0,
+    "Nicolas Dupont-Aignan": 2.0,
+    "Éric Zemmour": 4.0,
+    "Marine Le Pen": 34.0
+   }
+  },
+  {
+   "id": "20260908_0909_ow_C",
+   "inst": "OpinionWay",
+   "for": "Les Echos, Radio Classique",
+   "start": "2026-09-08",
+   "end": "2026-09-09",
+   "n": 1001,
+   "v": {
+    "Nathalie Arthaud": 1.0,
+    "Jean-Luc Mélenchon": 15.0,
+    "Fabien Roussel": 1.0,
+    "Marine Tondelier": 3.0,
+    "Raphaël Glucksmann": 10.0,
+    "Édouard Philippe": 19.0,
+    "Bruno Retailleau": 10.0,
+    "Nicolas Dupont-Aignan": 3.0,
+    "Éric Zemmour": 4.0,
+    "Marine Le Pen": 34.0
+   }
+  },
+  {
    "id": "20260903_0909_ip_A",
    "inst": "Ipsos BVA",
    "for": "CEVIPOF, Le Monde, Fondation Jean Jaurès, Institut Montaigne",
@@ -791,63 +853,71 @@
    }
   },
   {
-   "id": "20260908_0909_ow_A",
+   "id": "20260909_0910_ow_A",
    "inst": "OpinionWay",
-   "for": "Les Echos, Radio Classique",
-   "start": "2026-09-08",
-   "end": "2026-09-09",
+   "for": "CNews",
+   "start": "2026-09-09",
+   "end": "2026-09-10",
+   "n": 1001,
+   "v": {
+    "Nathalie Arthaud": 1.0,
+    "Jean-Luc Mélenchon": 16.0,
+    "Fabien Roussel": 3.0,
+    "Marine Tondelier": 3.0,
+    "François Hollande": 7.0,
+    "Karim Bouamrane": 1.0,
+    "Gabriel Attal": 8.0,
+    "Édouard Philippe": 16.0,
+    "Bruno Retailleau": 7.0,
+    "David Lisnard": 2.0,
+    "Nicolas Dupont-Aignan": 2.0,
+    "Éric Zemmour": 2.0,
+    "Marine Le Pen": 32.0
+   }
+  },
+  {
+   "id": "20260909_0910_ow_B",
+   "inst": "OpinionWay",
+   "for": "CNews",
+   "start": "2026-09-09",
+   "end": "2026-09-10",
+   "n": 1001,
+   "v": {
+    "Nathalie Arthaud": 1.0,
+    "Jean-Luc Mélenchon": 17.0,
+    "Fabien Roussel": 4.0,
+    "Marine Tondelier": 3.0,
+    "Ségolène Royal": 3.0,
+    "Karim Bouamrane": 1.0,
+    "Gabriel Attal": 8.0,
+    "Édouard Philippe": 16.0,
+    "Bruno Retailleau": 7.0,
+    "David Lisnard": 2.0,
+    "Nicolas Dupont-Aignan": 3.0,
+    "Éric Zemmour": 2.0,
+    "Marine Le Pen": 33.0
+   }
+  },
+  {
+   "id": "20260909_0910_ow_C",
+   "inst": "OpinionWay",
+   "for": "CNews",
+   "start": "2026-09-09",
+   "end": "2026-09-10",
    "n": 1001,
    "v": {
     "Nathalie Arthaud": 0.5,
-    "Jean-Luc Mélenchon": 15.0,
+    "Jean-Luc Mélenchon": 17.0,
     "Fabien Roussel": 2.0,
     "Marine Tondelier": 3.0,
     "Raphaël Glucksmann": 9.0,
-    "Gabriel Attal": 8.0,
+    "Karim Bouamrane": 0.5,
+    "Gabriel Attal": 7.0,
     "Édouard Philippe": 15.0,
-    "Bruno Retailleau": 8.0,
+    "Bruno Retailleau": 7.0,
+    "David Lisnard": 2.0,
     "Nicolas Dupont-Aignan": 2.0,
-    "Marine Le Pen": 34.0,
-    "Éric Zemmour": 4.0
-   }
-  },
-  {
-   "id": "20260908_0909_ow_B",
-   "inst": "OpinionWay",
-   "for": "Les Echos, Radio Classique",
-   "start": "2026-09-08",
-   "end": "2026-09-09",
-   "n": 1001,
-   "v": {
-    "Nathalie Arthaud": 1.0,
-    "Jean-Luc Mélenchon": 15.0,
-    "Fabien Roussel": 2.0,
-    "Marine Tondelier": 4.0,
-    "Raphaël Glucksmann": 12.0,
-    "Gabriel Attal": 14.0,
-    "Bruno Retailleau": 12.0,
-    "Nicolas Dupont-Aignan": 2.0,
-    "Éric Zemmour": 4.0,
-    "Marine Le Pen": 34.0
-   }
-  },
-  {
-   "id": "20260908_0909_ow_C",
-   "inst": "OpinionWay",
-   "for": "Les Echos, Radio Classique",
-   "start": "2026-09-08",
-   "end": "2026-09-09",
-   "n": 1001,
-   "v": {
-    "Nathalie Arthaud": 1.0,
-    "Jean-Luc Mélenchon": 15.0,
-    "Fabien Roussel": 1.0,
-    "Marine Tondelier": 3.0,
-    "Raphaël Glucksmann": 10.0,
-    "Édouard Philippe": 19.0,
-    "Bruno Retailleau": 10.0,
-    "Nicolas Dupont-Aignan": 3.0,
-    "Éric Zemmour": 4.0,
+    "Éric Zemmour": 2.0,
     "Marine Le Pen": 34.0
    }
   },
@@ -951,101 +1021,32 @@
     "Marine Le Pen": 36.0,
     "Éric Zemmour": 5.0
    }
-  },
-  {
-   "id": "20260909_0910_ow_A",
-   "inst": "OpinionWay",
-   "for": "CNews",
-   "start": "2026-09-09",
-   "end": "2026-09-10",
-   "n": 1001,
-   "v": {
-    "Nathalie Arthaud": 1.0,
-    "Jean-Luc Mélenchon": 16.0,
-    "Fabien Roussel": 3.0,
-    "Marine Tondelier": 3.0,
-    "François Hollande": 7.0,
-    "Karim Bouamrane": 1.0,
-    "Gabriel Attal": 8.0,
-    "Édouard Philippe": 16.0,
-    "Bruno Retailleau": 7.0,
-    "David Lisnard": 2.0,
-    "Nicolas Dupont-Aignan": 2.0,
-    "Éric Zemmour": 2.0,
-    "Marine Le Pen": 32.0
-   }
-  },
-  {
-   "id": "20260909_0910_ow_B",
-   "inst": "OpinionWay",
-   "for": "CNews",
-   "start": "2026-09-09",
-   "end": "2026-09-10",
-   "n": 1001,
-   "v": {
-    "Nathalie Arthaud": 1.0,
-    "Jean-Luc Mélenchon": 17.0,
-    "Fabien Roussel": 4.0,
-    "Marine Tondelier": 3.0,
-    "Ségolène Royal": 3.0,
-    "Karim Bouamrane": 1.0,
-    "Gabriel Attal": 8.0,
-    "Édouard Philippe": 16.0,
-    "Bruno Retailleau": 7.0,
-    "David Lisnard": 2.0,
-    "Nicolas Dupont-Aignan": 3.0,
-    "Éric Zemmour": 2.0,
-    "Marine Le Pen": 33.0
-   }
-  },
-  {
-   "id": "20260909_0910_ow_C",
-   "inst": "OpinionWay",
-   "for": "CNews",
-   "start": "2026-09-09",
-   "end": "2026-09-10",
-   "n": 1001,
-   "v": {
-    "Nathalie Arthaud": 0.5,
-    "Jean-Luc Mélenchon": 17.0,
-    "Fabien Roussel": 2.0,
-    "Marine Tondelier": 3.0,
-    "Raphaël Glucksmann": 9.0,
-    "Karim Bouamrane": 0.5,
-    "Gabriel Attal": 7.0,
-    "Édouard Philippe": 15.0,
-    "Bruno Retailleau": 7.0,
-    "David Lisnard": 2.0,
-    "Nicolas Dupont-Aignan": 2.0,
-    "Éric Zemmour": 2.0,
-    "Marine Le Pen": 34.0
-   }
   }
  ],
  "pairs": {
   "Jean-Luc Mélenchon|Marine Le Pen": [
-   33.0,
-   10
+   33.5,
+   7
   ],
   "Gabriel Attal|Marine Le Pen": [
-   44.5,
-   9
+   44.1,
+   6
   ],
   "Marine Le Pen|Édouard Philippe": [
-   53.0,
-   10
+   53.3,
+   7
   ],
   "Marine Le Pen|Raphaël Glucksmann": [
-   56.6,
-   4
-  ],
-  "Bruno Retailleau|Marine Le Pen": [
-   43.0,
+   56.0,
    3
   ],
   "François Hollande|Marine Le Pen": [
    46.0,
    1
+  ],
+  "Bruno Retailleau|Marine Le Pen": [
+   42.5,
+   2
   ]
  },
  "trend": {
@@ -1157,62 +1158,20 @@
   }
  },
  "markets": {
-  "snapshot": "2026-09-20",
-  "source": "Polymarket (manual snapshot)",
+  "snapshot": "2026-09-21",
+  "source": "Polymarket",
   "candidates": [
    {
     "c": "Marine Le Pen",
     "f": "far-right",
-    "win": 37.1,
-    "qual": 89
-   },
-   {
-    "c": "Édouard Philippe",
-    "f": "centre",
-    "win": 25,
-    "qual": 49
-   },
-   {
-    "c": "Jean-Luc Mélenchon",
-    "f": "far-left",
-    "win": 13,
-    "qual": 39
-   },
-   {
-    "c": "David Lisnard",
-    "f": "right",
-    "win": 5.1,
-    "qual": 11
-   },
-   {
-    "c": "François Hollande",
-    "f": "left",
-    "win": 5.4,
-    "qual": 7
-   },
-   {
-    "c": "Gabriel Attal",
-    "f": "centre",
-    "win": 2.3,
-    "qual": 6.7
+    "win": 37.5,
+    "qual": 89.0
    },
    {
     "c": "Jordan Bardella",
     "f": "far-right",
     "win": 1.6,
-    "qual": 9
-   },
-   {
-    "c": "Raphaël Glucksmann",
-    "f": "left",
-    "win": 1.6,
-    "qual": 7.4
-   },
-   {
-    "c": "Bruno Retailleau",
-    "f": "right",
-    "win": 1.5,
-    "qual": 3.7
+    "qual": 9.0
    },
    {
     "c": "Éric Zemmour",
@@ -1221,36 +1180,95 @@
     "qual": 4.8
    },
    {
-    "c": "Dominique de Villepin",
-    "f": "right",
-    "win": 1.2,
-    "qual": 6
+    "c": "Édouard Philippe",
+    "f": "centre",
+    "win": 23.5,
+    "qual": 49.0
    },
    {
-    "c": "Olivier Faure",
+    "c": "David Lisnard",
+    "f": "right",
+    "win": 6.2,
+    "qual": 10.8
+   },
+   {
+    "c": "Laurent Wauquiez",
+    "f": "right",
+    "win": 0.1,
+    "qual": 2.4
+   },
+   {
+    "c": "Gabriel Attal",
+    "f": "centre",
+    "win": 2.2,
+    "qual": 6.4
+   },
+   {
+    "c": "Bruno Retailleau",
+    "f": "right",
+    "win": 1.5,
+    "qual": 3.2
+   },
+   {
+    "c": "François Hollande",
     "f": "left",
-    "win": 0.3,
-    "qual": 6.7
+    "win": 5.8,
+    "qual": 7.0
+   },
+   {
+    "c": "Raphaël Glucksmann",
+    "f": "left",
+    "win": 1.6,
+    "qual": 6.9
+   },
+   {
+    "c": "Jean-Luc Mélenchon",
+    "f": "far-left",
+    "win": 12.5,
+    "qual": 39.0
    },
    {
     "c": "Marine Tondelier",
     "f": "green",
-    "win": 0.2,
-    "qual": 4.2
+    "win": 0.1,
+    "qual": 1.6
    },
    {
     "c": "Fabien Roussel",
     "f": "far-left",
     "win": 0.1,
-    "qual": 2.6
+    "qual": 2.1
+   },
+   {
+    "c": "Olivier Faure",
+    "f": "left",
+    "win": 0.4,
+    "qual": 5.9
+   },
+   {
+    "c": "Dominique de Villepin",
+    "f": "right",
+    "win": 0.9,
+    "qual": 5.0
    },
    {
     "c": "Nicolas Dupont-Aignan",
     "f": "far-right",
     "win": 0.1,
     "qual": 4.8
+   },
+   {
+    "c": "Sarah Knafo",
+    "f": "far-right",
+    "win": 1.0,
+    "qual": 3.3
+   },
+   {
+    "c": "Sébastien Lecornu",
+    "f": "centre",
+    "win": 0.9,
+    "qual": 4.9
    }
   ]
- },
- "updated": "2026-09-21"
+ }
 }
