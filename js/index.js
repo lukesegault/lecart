@@ -32,8 +32,8 @@
 
   function renderStatic() {
     document.title = Lecart.lang === "fr" ? "L'Écart · Marchés vs sondages, présidentielle 2027" : "L'Écart · Markets vs polls, French election 2027";
-    const hl = headline(), d = hl.market - hl.poll;
-    document.getElementById("siteH1").textContent = tf(d >= 0 ? "gapUp" : "gapDown", { s: Lecart.surname(hl.c), v: t("verbW"), d: Math.abs(Math.round(d)) });
+    const hl = headline();
+    document.getElementById("siteH1").textContent = tf("headline", { n: hl.c, m: Lecart.pct(hl.market), p: Lecart.pct(hl.poll), v: t("verbW") });
     const F = Lecart.figures(DATA);
     document.getElementById("siteSnap").textContent = Lecart.fill(t("spSnap"), F);
     document.getElementById("siteSources").textContent = Lecart.fill(t("spSources"), F);

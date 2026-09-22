@@ -300,10 +300,6 @@ def slim_polls(polls):
     return [{"inst": p["inst"], "for": p["for"], "start": p["start"], "end": p["end"], "n": p["n"],
              "v": {c: p["v"][c] for c in TABLE_CANDIDATES if c in p["v"]}} for p in polls]
 
-def surname(n):
-    return {"Marine Le Pen": "Le Pen", "Jean-Luc Mélenchon": "Mélenchon", "Dominique de Villepin": "de Villepin",
-            "Nicolas Dupont-Aignan": "Dupont-Aignan"}.get(n) or n.split(" ")[-1]
-
 def headline(data):
     """Largest win gap between the poll simulation and the markets (same rule as renderSpot())."""
     sim = data["sim"]["mid"]
@@ -355,11 +351,10 @@ def attr(s):
     return s.replace("&", "&amp;").replace('"', "&quot;").replace("<", "&lt;")
 
 def fr_headline_sentence(fr, hl):
-    """The same sentence js/index.js builds client-side (tf("gapUp"/"gapDown", {s,v,d})), for the static layer and the meta description."""
-    d = hl["market"] - hl["poll"]
-    tmpl = fr["gapUp"] if d >= 0 else fr["gapDown"]
-    sentence = tmpl.replace("{s}", surname(hl["name"])).replace("{v}", fr["verbW"]).replace("{d}", str(abs(round(d))))
-    if re.search(r"\{\w+\}", sentence): raise ValueError("gapUp/gapDown use placeholders other than {s}, {v}, {d}")
+    """The same sentence js/index.js builds client-side (tf("headline", {n,m,p,v})), for the static layer and the meta description."""
+    sentence = (fr["headline"].replace("{n}", hl["name"]).replace("{m}", fr_pct(hl["market"]))
+                .replace("{p}", fr_pct(hl["poll"])).replace("{v}", fr["verbW"]))
+    if re.search(r"\{\w+\}", sentence): raise ValueError("headline uses placeholders other than {n}, {m}, {p}, {v}")
     return sentence
 
 def toggle_blackout_markup(region, blackout):

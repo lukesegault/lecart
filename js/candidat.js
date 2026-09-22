@@ -116,8 +116,8 @@
       document.getElementById("cdNote").textContent = t("marketsOnly");
     } else {
       const ec = market - poll;
-      document.getElementById("cdH1").textContent = tf(ec >= 0 ? "cdH1Up" : "cdH1Down", { n: NAME, v: verb });
-      document.getElementById("cdNote").textContent = tf(ec >= 0 ? "gapUp" : "gapDown", { s: Lecart.surname(NAME), v: verb, d: Math.abs(Math.round(ec)) });
+      document.getElementById("cdH1").textContent = tf("headline", { n: NAME, m: Lecart.pct(market), p: Lecart.pct(poll), v: verb });
+      document.getElementById("cdNote").textContent = tf("gapNote", { v: verb, d: Math.abs(Math.round(ec)) });
     }
     document.getElementById("cdGapLabel").textContent = t(state.q === "qual" ? "qual" : "win");
     // whole points, matching the headline sentence and the over-time chart's gap badge

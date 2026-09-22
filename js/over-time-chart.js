@@ -13,8 +13,10 @@
   const dvLastIdx = a => { for (let i = a.length - 1; i >= 0; i--) if (a[i] != null) return i; return -1 };
   const pathOf = (s, x, y, gap) => { let d = "", prev = -1, last = null; s.forEach((v, i) => { if (v == null) return; d += (prev >= 0 && i - prev <= gap ? "L" : "M") + x(i).toFixed(1) + " " + y(v).toFixed(1) + " "; prev = i; last = i }); return { d, last } };
 
-  const PAGE_COL = { poll: "var(--ink)", market: "var(--mint)", fill: "var(--mint-tint)", rule: "var(--rule2)", muted: "var(--muted)", faint: "var(--faint)", ink: "var(--ink)", surface: "var(--surface)", orange: "var(--orange)" };
-  const LIGHT_COL = { poll: "#111418", market: "#0FA37F", fill: "#E6F7F1", rule: "#EDEFEE", muted: "#8C9491", faint: "#C8CFCC", ink: "#111418", surface: "#FFFFFF", orange: "#F26B1D" };
+  // "mono" is a font-family value, not a colour: the exported PNG is a standalone SVG with no access to the
+  // page's CSS custom properties, so it needs the literal face name instead of var(--mono).
+  const PAGE_COL = { poll: "var(--ink)", market: "var(--mint)", fill: "var(--mint-tint)", rule: "var(--rule2)", muted: "var(--muted)", faint: "var(--faint)", ink: "var(--ink)", surface: "var(--surface)", orange: "var(--orange)", mono: "var(--mono)" };
+  const LIGHT_COL = { poll: "#111418", market: "#0FA37F", fill: "#E6F7F1", rule: "#EDEFEE", muted: "#8C9491", faint: "#C8CFCC", ink: "#111418", surface: "#FFFFFF", orange: "#F26B1D", mono: "'IBM Plex Mono',ui-monospace,monospace" };
 
   function chartSvg(o) {
     const { W, H, weeks, poll, market, col, interactive } = o, ml = 42, mr = 14, mt = 30, mb = 26, n = weeks.length;
@@ -22,7 +24,8 @@
     const px = tt => ml + (tt - t0) / span * (W - ml - mr), x = i => px(dvTs(weeks[i]));
     const y = v => mt + (1 - v / 100) * (H - mt - mb);   // fixed 0-100: these are probabilities, not first-round scores
     let g = "";
-    [0, 25, 50, 75, 100].forEach(v => { g += `<line x1="${ml}" x2="${W - mr}" y1="${y(v)}" y2="${y(v)}" stroke="${col.rule}"/><text x="${ml - 8}" y="${y(v) + 4}" text-anchor="end" font-size="11" fill="${col.muted}">${v}</text>` });
+    // the % sign marks the top tick only (the axis is understood to be a percentage scale throughout)
+    [0, 25, 50, 75, 100].forEach(v => { g += `<line x1="${ml}" x2="${W - mr}" y1="${y(v)}" y2="${y(v)}" stroke="${col.rule}"/><text x="${ml - 8}" y="${y(v) + 4}" text-anchor="end" font-size="11" font-family="${col.mono}" fill="${col.muted}">${v}${v === 100 ? "%" : ""}</text>` });
     const tick = (xx, label) => `<line x1="${xx}" x2="${xx}" y1="${H - mb}" y2="${H - mb + 4}" stroke="${col.faint}"/>` + (label ? `<text x="${xx}" y="${H - 8}" text-anchor="middle" font-size="10.5" fill="${col.muted}">${label}</text>` : "");
     const monthLab = (m, i) => { const [yy, mm] = m.split("-"); return t("months")[+mm - 1] + ((mm === "01" || i === 0) ? " " + yy.slice(2) : "") };
     if (days <= 45) weeks.forEach((w, i) => { const [, mm, dd] = w.split("-"); g += tick(x(i), (+dd) + " " + t("months")[+mm - 1]) });
@@ -39,16 +42,18 @@
     g += `<path d="${M.d}" fill="none" stroke="${col.market}" stroke-width="2.25" stroke-linejoin="round" stroke-linecap="round"/><path d="${Pp.d}" fill="none" stroke="${col.poll}" stroke-width="1.75" stroke-linejoin="round" stroke-linecap="round"/>`;
     if (M.last != null) { const cx = x(M.last), cy = y(market[M.last]); g += `<rect x="${cx - 4}" y="${cy - 4}" width="8" height="8" fill="${col.market}" stroke="${col.surface}" stroke-width="1.5" transform="rotate(45 ${cx} ${cy})"/>`; }
     poll.forEach((v, i) => { if (v != null && (i === Pp.last || (poll[i - 1] == null && poll[i + 1] == null))) g += `<rect x="${(x(i) - 2.5).toFixed(1)}" y="${(y(v) - 2.5).toFixed(1)}" width="5" height="5" fill="${col.poll}" stroke="${col.surface}" stroke-width="1.5"/>`; });
-    // direct labels at each line's end (name + latest value), instead of making the reader match colour to a legend;
-    // anchored to hug the point (extending left) unless there is clear room to the right, so the text never overflows
+    // direct labels at each line's end (series name + latest value), instead of making the reader match colour to a
+    // legend; anchored to hug the point (extending left) unless there is clear room to the right, so the text never
+    // overflows. The value sits in its own tspan so it renders in the tabular-figures face, the name in the UI face.
     let ends = [];
-    if (M.last != null) ends.push({ x: x(M.last), y: y(market[M.last]), color: col.market, text: `${t("legMarket")} ${Lecart.pct(market[M.last])}` });
-    if (Pp.last != null) ends.push({ x: x(Pp.last), y: y(poll[Pp.last]), color: col.poll, text: `${t("legPolls")} ${Lecart.pct(poll[Pp.last])}` });
+    if (M.last != null) ends.push({ x: x(M.last), y: y(market[M.last]), color: col.market, name: t("legMarket"), value: Lecart.pct(market[M.last]) });
+    if (Pp.last != null) ends.push({ x: x(Pp.last), y: y(poll[Pp.last]), color: col.poll, name: t("legPolls"), value: Lecart.pct(poll[Pp.last]) });
     ends.sort((a, b) => a.y - b.y);
     for (let i = 1; i < ends.length; i++) if (ends[i].y - ends[i - 1].y < 13) ends[i].y = ends[i - 1].y + 13;
     ends.forEach(e => { const right = W - e.x > 90, tx = right ? e.x + 6 : e.x - 6;
       // a halo (stroke drawn under the fill) keeps the label legible where it crosses the other line or the shaded gap
-      g += `<text x="${tx.toFixed(1)}" y="${(e.y + 3.5).toFixed(1)}" text-anchor="${right ? "start" : "end"}" font-size="10.5" font-weight="700" fill="${e.color}" stroke="${col.surface}" stroke-width="3" stroke-linejoin="round" paint-order="stroke fill">${xml(e.text)}</text>`; });
+      g += `<text x="${tx.toFixed(1)}" y="${(e.y + 3.5).toFixed(1)}" text-anchor="${right ? "start" : "end"}" font-size="10.5" font-weight="700" fill="${e.color}" stroke="${col.surface}" stroke-width="3" stroke-linejoin="round" paint-order="stroke fill">` +
+        `<tspan>${xml(e.name)} </tspan><tspan font-family="${col.mono}">${xml(e.value)}</tspan></text>`; });
     if (interactive) g += `<line id="otGuide" y1="${mt}" y2="${H - mb}" stroke="${col.ink}" stroke-opacity=".35" visibility="hidden"/><g id="otDots"></g>`;
     (o.events || []).forEach((e, i) => { const tt = dvTs(e.date); if (tt < t0 || tt > t1) return; const xx = px(tt), cy = mt - 14;
       g += `<line x1="${xx}" x2="${xx}" y1="${cy + 8}" y2="${H - mb}" stroke="${col.orange}" stroke-dasharray="2 3" stroke-opacity=".6"/>` +
@@ -103,6 +108,7 @@
       const svg = box.querySelector("svg");
       const near = e => { const r = svg.getBoundingClientRect(), px = (e.clientX - r.left) / r.width * W; let b = 0; for (let i = 1; i < D.weeks.length; i++) if (Math.abs(C.geo.x(i) - px) < Math.abs(C.geo.x(b) - px)) b = i; return b };
       svg.addEventListener("pointermove", e => readout(near(e), D));
+      svg.addEventListener("pointerdown", e => readout(near(e), D));   // a tap alone (no drag) still moves the guide, on touch
       svg.addEventListener("pointerleave", e => { if (e.pointerType === "mouse") readout(null, D) });
       svg.querySelectorAll(".otm").forEach(gm => { const i = +gm.dataset.e;
         gm.addEventListener("pointerenter", e => { if (e.pointerType === "mouse") { state.hov = i; eventNote(D) } });
@@ -116,6 +122,8 @@
     function render() {
       const D = data();
       root.querySelector(".sp-chart-title").textContent = state.cand;
+      const src = root.querySelector(".sp-chart-source");
+      if (src) src.textContent = `${t("dvSrc")} ${t("dvAsOf")} ${dvDate(opts.DATA.updated)}.`;
       const pill = root.querySelector(".sp-chart-pill");
       if (D) { const gap = summary(D).gap; pill.hidden = gap == null; if (gap != null) { pill.textContent = t("gapCol") + " " + dvSigned(gap); pill.classList.toggle("neg", gap < 0) } }
       else pill.hidden = true;
@@ -142,7 +150,11 @@
   async function embedFonts() {
     if (FONTS) return FONTS;
     const b64 = async u => { const r = await fetch(u); if (!r.ok) throw new Error(u); const by = new Uint8Array(await r.arrayBuffer()); let s = ""; for (let i = 0; i < by.length; i += 0x8000) s += String.fromCharCode.apply(null, by.subarray(i, i + 0x8000)); return btoa(s) };
-    return FONTS = { sans: await b64("fonts/archivo-latin.woff2"), serif: await b64("fonts/instrument-serif-400-latin.woff2") };
+    const [head, sans, sansBold, mono, monoBold] = await Promise.all([
+      b64("fonts/bodoni-moda-500-latin.woff2"), b64("fonts/ibm-plex-sans-400-latin.woff2"), b64("fonts/ibm-plex-sans-700-latin.woff2"),
+      b64("fonts/ibm-plex-mono-400-latin.woff2"), b64("fonts/ibm-plex-mono-700-latin.woff2"),
+    ]);
+    return FONTS = { head, sans, sansBold, mono, monoBold };
   }
 
   Lecart.exportOverTimeChart = async function (elId, opts, btnId, msgId) {
@@ -155,21 +167,27 @@
       const cand = state.cand, tfKey = state.tf;
       let F = null; try { F = await embedFonts(); } catch (e) {}
       const W = 1200, H = 675, S = 2, pad = 48, cw = W - 2 * pad, ch = 300, C = LIGHT_COL;
-      const face = F ? `<style>@font-face{font-family:"Archivo";font-weight:400 900;src:url(data:font/woff2;base64,${F.sans}) format("woff2")}@font-face{font-family:"Instrument Serif";font-weight:400;src:url(data:font/woff2;base64,${F.serif}) format("woff2")}</style>` : "";
+      const face = F ? `<style>` +
+        `@font-face{font-family:"Bodoni Moda";font-weight:500;src:url(data:font/woff2;base64,${F.head}) format("woff2")}` +
+        `@font-face{font-family:"IBM Plex Sans";font-weight:400;src:url(data:font/woff2;base64,${F.sans}) format("woff2")}` +
+        `@font-face{font-family:"IBM Plex Sans";font-weight:700;src:url(data:font/woff2;base64,${F.sansBold}) format("woff2")}` +
+        `@font-face{font-family:"IBM Plex Mono";font-weight:400;src:url(data:font/woff2;base64,${F.mono}) format("woff2")}` +
+        `@font-face{font-family:"IBM Plex Mono";font-weight:700;src:url(data:font/woff2;base64,${F.monoBold}) format("woff2")}` +
+        `</style>` : "";
       const EVENTS = (opts.EVENTS || []);
       const s = WK.series[cand], cut = dvTs(WK.weeks[WK.weeks.length - 1]) - DAYS[tfKey] * 864e5, a = Math.max(0, WK.weeks.findIndex(w => dvTs(w) >= cut));
       const Dx = { weeks: WK.weeks.slice(a), poll: s.poll.slice(a), market: s.market.slice(a) };
       const chart = chartSvg({ W: cw - 24, H: ch, weeks: Dx.weeks, poll: Dx.poll, market: Dx.market, events: EVENTS, col: C, interactive: false, lang: Lecart.lang }).svg;
       const Z = summary(Dx), gap = Z.gap, cardY = 150, legY = cardY + ch + 24 + 28;
       let pillSvg = ""; if (gap != null) { const txt = xml(t("gapCol") + " " + dvSigned(gap)), w = txt.length * 9.6 + 30, neg = gap < 0;
-        pillSvg = `<rect x="${W - pad - w}" y="78" width="${w}" height="34" rx="0" fill="${neg ? "rgba(17,20,24,.08)" : C.fill}"/><text x="${W - pad - w / 2}" y="100" text-anchor="middle" font-size="17" font-weight="700" fill="${neg ? C.ink : "#0B7A5F"}">${txt}</text>`; }
+        pillSvg = `<rect x="${W - pad - w}" y="78" width="${w}" height="34" rx="0" fill="${neg ? "rgba(17,20,24,.08)" : C.fill}"/><text x="${W - pad - w / 2}" y="100" text-anchor="middle" font-family="${C.mono}" font-size="17" font-weight="700" fill="${neg ? C.ink : "#0B7A5F"}">${txt}</text>`; }
       const legend = `<rect x="${pad}" y="${legY - 12}" width="18" height="8" fill="${C.market}" transform="rotate(45 ${pad + 9} ${legY - 8})"/><text x="${pad + 26}" y="${legY}" font-size="13" fill="${C.muted}">${xml(t("dvLegM"))}</text>` +
         `<rect x="${pad + 260}" y="${legY - 13}" width="10" height="10" fill="${C.poll}"/><text x="${pad + 278}" y="${legY}" font-size="13" fill="${C.muted}">${xml(t("dvLegP"))}</text>` +
         `<rect x="${pad + 560}" y="${legY - 13}" width="22" height="11" fill="${C.fill}" stroke="${C.market}"/><text x="${pad + 590}" y="${legY}" font-size="13" fill="${C.muted}">${xml(t("dvLegG"))}</text>`;
-      const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" font-family="Archivo,Helvetica,Arial,sans-serif">${face}` +
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" font-family="'IBM Plex Sans',Helvetica,Arial,sans-serif">${face}` +
         `<rect width="${W}" height="${H}" fill="#FFFFFF"/>` +
-        `<circle cx="${pad + 6}" cy="${pad + 6}" r="5" fill="${C.poll}"/><rect x="${pad + 20}" y="${pad}" width="10" height="10" fill="${C.market}" transform="rotate(45 ${pad + 25} ${pad + 5})"/><text x="${pad + 40}" y="${pad + 10}" font-size="15" font-weight="800" letter-spacing="1" fill="${C.ink}">L'ÉCART</text>` +
-        `<text x="${pad}" y="112" font-family="'Instrument Serif',Georgia,serif" font-size="42" font-weight="400" fill="${C.ink}">${xml(cand)}</text>${pillSvg}` +
+        `<circle cx="${pad + 6}" cy="${pad + 6}" r="5" fill="${C.poll}"/><rect x="${pad + 20}" y="${pad}" width="10" height="10" fill="${C.market}" transform="rotate(45 ${pad + 25} ${pad + 5})"/><text x="${pad + 40}" y="${pad + 10}" font-size="15" font-weight="700" letter-spacing="1" fill="${C.ink}">L'ÉCART</text>` +
+        `<text x="${pad}" y="112" font-family="'Bodoni Moda',Georgia,serif" font-size="40" font-weight="500" fill="${C.ink}">${xml(cand)}</text>${pillSvg}` +
         `<text x="${pad}" y="134" font-size="14" fill="${C.muted}">${xml(t("dvCap"))}</text>` +
         `<g transform="translate(${pad + 12} ${cardY + 12})">${chart}</g>` +
         `${legend}` +
