@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://gc.zgo.at; style-src 'self'; style-src-attr 'unsafe-inline'; font-src 'self'; img-src 'self' data: https://vikander.goatcounter.com; connect-src 'self' https://vikander.goatcounter.com; object-src 'none'; base-uri 'self'; form-action 'none'">
+<title>L'Écart · Candidat / Candidate</title>
+<meta name="description" content="Un candidat, marché contre sondages. / One candidate, market against polls.">
+<link rel="preload" href="fonts/archivo-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="fonts/fonts.css">
+<link rel="stylesheet" href="css/pages.css">
+</head>
+<body>
+<div class="sp-bar" id="spBar"><div class="wrap sp-bar-inner">
+  <a class="sp-brand" href="index.html"><b>L'ÉCART</b><span data-i="spCtx">Marchés et sondages</span></a>
+  <nav class="sp-nav" id="spNav">
+    <a href="apercu.html" data-nav="apercu" data-i="spNavCompare">Comparer</a>
+    <a href="second-tour.html" data-nav="second-tour" data-i="spNavRunoff">Second tour</a>
+    <a href="index.html#method" data-i="navMethod">Méthode</a>
+  </nav>
+  <div class="sp-bar-r">
+    <button type="button" class="sp-menu-btn" id="spMenuBtn" aria-expanded="false" aria-controls="spNav"><span data-i="menu">Menu</span></button>
+    <span class="sp-lang" role="group" aria-label="Langue / Language"><button type="button" data-lang="fr" aria-pressed="true">FR</button><button type="button" data-lang="en" aria-pressed="false">EN</button></span>
+  </div>
+</div></div>
+
+<div class="wrap">
+<div class="sp-meta" style="margin-top:24px"><span id="cdSnap"></span><span id="cdSources"></span></div>
+
+<div class="sp-ctls">
+  <div class="sp-ctl-group">
+    <span class="sp-ctl-label" id="cd-q-label" data-i="chanceTo">Chances de</span>
+    <div class="sp-tabs" id="cdQ" role="group" aria-labelledby="cd-q-label">
+      <button type="button" data-q="qual" aria-pressed="true" data-i="qual">Accéder au second tour</button>
+      <button type="button" data-q="win" aria-pressed="false" data-i="win">Gagner</button>
+    </div>
+  </div>
+  <div class="sp-ctl-group">
+    <span class="sp-ctl-label" id="cd-u-label" data-i="unc">Incertitude des sondages</span>
+    <div class="sp-tabs" id="cdU" role="group" aria-labelledby="cd-u-label">
+      <button type="button" data-u="low" aria-pressed="false" data-i="low">Faible</button>
+      <button type="button" data-u="mid" aria-pressed="true" data-i="mid">Moyenne</button>
+      <button type="button" data-u="high" aria-pressed="false" data-i="high">Forte</button>
+    </div>
+  </div>
+</div>
+
+<div class="sp-cand">
+  <div class="sp-rail">
+    <h2 id="cdName"></h2>
+    <div class="fam" id="cdFamily"></div>
+    <div class="sp-metarow"><span data-i="cdMetaMktQual">Marché, qualification</span><b class="num" id="cdMktQual"></b></div>
+    <div class="sp-metarow"><span data-i="cdMetaPollQual">Sondages, qualification</span><b class="num" id="cdPolQual"></b></div>
+    <div class="sp-metarow"><span data-i="cdMetaMktWin">Marché, victoire</span><b class="num" id="cdMktWin"></b></div>
+    <div class="sp-metarow"><span data-i="cdMetaPollWin">Sondages, victoire</span><b class="num" id="cdPolWin"></b></div>
+    <div class="sp-metarow"><span data-i="cdMetaAvg">Moyenne premier tour</span><b class="num" id="cdAvg"></b></div>
+    <p class="note" id="cdNote"></p>
+  </div>
+  <div class="sp-body">
+    <h1 id="cdH1"></h1>
+    <div class="sp-trend-title" id="cdTrendLabel"></div>
+    <div class="sp-trend-wrap" id="cdTrendWrap">
+      <svg id="cdTrend" viewBox="0 0 560 200" role="img"></svg>
+    </div>
+    <div class="sp-gap-title"><span id="cdGapLabel"></span><b class="num" id="cdGapVal"></b></div>
+    <div class="sp-gapbar" id="cdGapbar">
+      <span class="base"></span><span class="fill" id="cdFill"></span>
+      <span class="tick-p" id="cdP"></span><span class="tick-m" id="cdM"></span>
+      <span class="lbl p num" id="cdPLbl"></span><span class="lbl m num" id="cdMLbl"></span>
+    </div>
+    <div class="sp-gapscale"><span>0</span><span>50</span><span>100</span></div>
+  </div>
+</div>
+</div>
+
+<footer class="sp-foot2"><div class="wrap">
+  <p data-i="foot"></p>
+  <p class="flinks"><a href="mentions-legales.html" data-i="lnkLegal">Mentions légales</a> · <a href="confidentialite.html" data-i="lnkPriv">Confidentialité</a> · <a href="changelog.html" data-i="lnkChange">Journal des modifications</a> · <a href="#" id="optOut" data-i="optOut">Ne pas être compté</a><span id="optMsg" role="status"></span></p>
+</div></footer>
+
+<script src="analytics.js"></script>
+<script src="js/pages-common.js"></script>
+<script src="js/candidat.js" defer></script>
+</body>
+</html>

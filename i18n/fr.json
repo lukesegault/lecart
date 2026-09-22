@@ -21,6 +21,8 @@
  "cdMetaPollWin": "Sondages, victoire",
  "cdMetaAvg": "Moyenne premier tour",
  "cdTrendTitle": "Intentions au premier tour, moyenne mensuelle",
+ "cdNoTrend": "Pas de série mensuelle de premier tour pour ce candidat.",
+ "cdPeak": "pic à {v}",
  "cdH1Up": "Le marché donne à {n} plus de chances que les sondages {v}.",
  "cdH1Down": "Le marché donne à {n} moins de chances que les sondages {v}.",
  "rtH1AllOne": "{n} gagne tous les seconds tours testés par les instituts.",

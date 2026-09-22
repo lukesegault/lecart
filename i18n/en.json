@@ -21,6 +21,8 @@
  "cdMetaPollWin": "Polls, win",
  "cdMetaAvg": "First round average",
  "cdTrendTitle": "First round share, monthly mean",
+ "cdNoTrend": "No monthly first round series for this candidate.",
+ "cdPeak": "peak at {v}",
  "cdH1Up": "The market gives {n} a higher chance than the polls of {v}.",
  "cdH1Down": "The market gives {n} a lower chance than the polls of {v}.",
  "rtH1AllOne": "{n} wins every runoff the pollsters have tested.",

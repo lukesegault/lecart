@@ -45,8 +45,8 @@
         `<span class="val pol num${none ? " none" : ""}">${none ? "–" : r.poll.toFixed(1)}</span>` +
         `<span class="val ec num${none ? " none" : ""}">${none ? t("marketsOnly") : (ec >= 0 ? "+" : "−") + Math.abs(ec).toFixed(1)}</span>` +
         `<span class="sp-bartrack"><span class="base"></span>` +
-        (none ? "" : `<span class="fill" style="left:${lo}%;width:${hi - lo}%"></span><span class="p" style="left:${r.poll}%"></span>`) +
-        `<span class="m" style="left:${r.market}%"></span></span></a>`;
+        (none ? "" : `<span class="fill" style="left:${lo}%;width:${hi - lo}%"></span><span class="tick-p" style="left:${r.poll}%"></span>`) +
+        `<span class="tick-m" style="left:${r.market}%"></span></span></a>`;
     });
     document.getElementById("ovBoard").innerHTML = h;
   }
