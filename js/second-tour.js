@@ -6,20 +6,32 @@
   const MARKET = DATA.markets.candidates;
   const num = x => Lecart.lang === "fr" ? x.toFixed(1).replace(".", ",") : x.toFixed(1);
 
+  // The candidate common to every tested pairing (currently always Marine Le Pen) anchors the right side of
+  // every row, so the table reads consistently top to bottom instead of the left/right side flipping per pair.
+  function referenceCandidate(keys) {
+    const counts = {};
+    keys.forEach(key => key.split("|").forEach(n => counts[n] = (counts[n] || 0) + 1));
+    const common = Object.keys(counts).filter(n => counts[n] === keys.length);
+    if (common.length === 1) return common[0];
+    return Object.keys(counts).sort((a, b) => counts[b] - counts[a])[0] || null;
+  }
+
   function pairs() {
-    return Object.keys(DATA.pairs || {}).map(key => {
-      const [a, b] = key.split("|"), [share, n] = DATA.pairs[key];
-      // The trailing candidate (share < 50) is the one whose simulated/market win chance the last two columns show,
-      // same role the mockup called "the challenger" — generalised here since the leader isn't always the same name.
-      const trailing = share >= 50 ? b : a;
-      const m = MARKET.find(x => x.c === trailing), s = DATA.sim.mid[trailing];
-      return { a, b, shareA: share, shareB: 100 - share, n, trailing, win: m ? m.win : null, sim: s ? s.win : null };
-    }).sort((x, y) => Math.max(y.shareA, y.shareB) - Math.max(x.shareA, x.shareB));
+    const keys = Object.keys(DATA.pairs || {});
+    const ref = referenceCandidate(keys);
+    return keys.map(key => {
+      const [a, b] = key.split("|"), [shareA, n] = DATA.pairs[key];
+      const flip = ref != null && a !== ref;   // put the reference candidate second (right) in every row
+      const left = flip ? a : b, right = flip ? b : a, shareLeft = flip ? shareA : 100 - shareA, shareRight = 100 - shareLeft;
+      const m = MARKET.find(x => x.c === left), s = DATA.sim.mid[left];
+      return { left, right, shareLeft, shareRight, n, win: m ? m.win : null, sim: s ? s.win : null };
+    }).sort((x, y) => Math.max(y.shareLeft, y.shareRight) - Math.max(x.shareLeft, x.shareRight));
   }
 
   function headline(P) {
-    const leaders = new Set(P.map(r => r.shareA >= 50 ? r.a : r.b));
-    if (leaders.size === 1) return { n: [...leaders][0] };
+    if (!P.length) return null;
+    const rights = new Set(P.map(r => r.right));
+    if (rights.size === 1 && P.every(r => r.shareRight >= 50)) return { n: [...rights][0] };
     return null;
   }
 
@@ -36,13 +48,13 @@
     if (!P.length) { document.getElementById("rtBoard").innerHTML = ""; return; }
     let h = "";
     P.forEach(r => {
-      const aWin = r.shareA >= 50;
+      const rightWins = r.shareRight >= 50;
       h += `<div class="sp-pair-row" role="listitem"><span>` +
         `<span class="sp-pair-names">` +
-        `<a href="candidat.html?c=${encodeURIComponent(r.a)}" style="color:${aWin ? "var(--ink)" : "var(--muted2)"};font-weight:${aWin ? 700 : 500}">${r.a} <span class="num">${num(r.shareA)}</span></a>` +
-        `<a href="candidat.html?c=${encodeURIComponent(r.b)}" style="color:${!aWin ? "var(--ink)" : "var(--muted2)"};font-weight:${!aWin ? 700 : 500}"><span class="num">${num(r.shareB)}</span> ${r.b}</a>` +
+        `<a href="candidat.html?c=${encodeURIComponent(r.left)}" style="color:${!rightWins ? "var(--ink)" : "var(--muted2)"};font-weight:${!rightWins ? 700 : 500}">${r.left} <span class="num">${num(r.shareLeft)}</span></a>` +
+        `<a href="candidat.html?c=${encodeURIComponent(r.right)}" style="color:${rightWins ? "var(--ink)" : "var(--muted2)"};font-weight:${rightWins ? 700 : 500}"><span class="num">${num(r.shareRight)}</span> ${r.right}</a>` +
         `</span>` +
-        `<span class="sp-pair-split"><span style="width:${r.shareA}%;background:${aWin ? "var(--ink)" : "var(--faint)"}"></span><span style="width:${r.shareB}%;background:${!aWin ? "var(--ink)" : "var(--faint)"}"></span></span>` +
+        `<span class="sp-pair-split"><span style="width:${r.shareLeft}%;background:${!rightWins ? "var(--ink)" : "var(--faint)"}"></span><span style="width:${r.shareRight}%;background:${rightWins ? "var(--ink)" : "var(--faint)"}"></span></span>` +
         `</span>` +
         `<span class="sp-pair-n num">${r.n}</span>` +
         `<span class="sp-pair-sim num">${r.sim != null ? num(r.sim) : "–"}</span>` +

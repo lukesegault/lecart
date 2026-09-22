@@ -6,6 +6,19 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://gc.zgo.at; style-src 'self'; style-src-attr 'unsafe-inline'; font-src 'self'; img-src 'self' data: https://vikander.goatcounter.com; connect-src 'self' https://vikander.goatcounter.com; object-src 'none'; base-uri 'self'; form-action 'none'">
 <title>L'Écart · Candidat / Candidate</title>
 <meta name="description" content="Un candidat, marché contre sondages. / One candidate, market against polls.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="L'Écart">
+<meta property="og:url" content="https://lukesegault.github.io/lecart/candidat.html">
+<meta property="og:title" content="L'Écart · Candidat / Candidate">
+<meta property="og:description" content="Un candidat, marché contre sondages. / One candidate, market against polls.">
+<meta property="og:image" content="https://lukesegault.github.io/lecart/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="L'Écart · Candidat / Candidate">
+<meta name="twitter:description" content="Un candidat, marché contre sondages. / One candidate, market against polls.">
+<meta name="twitter:image" content="https://lukesegault.github.io/lecart/og-image.png">
+<meta name="data-version" content="2026-09-21">
 <link rel="preload" href="fonts/archivo-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="fonts/fonts.css">
 <link rel="stylesheet" href="css/pages.css">
@@ -14,7 +27,7 @@
 <div class="sp-bar" id="spBar"><div class="wrap sp-bar-inner">
   <a class="sp-brand" href="index.html"><b>L'ÉCART</b><span data-i="spCtx">Marchés et sondages</span></a>
   <nav class="sp-nav" id="spNav">
-    <a href="apercu.html" data-nav="apercu" data-i="spNavCompare">Comparer</a>
+    <a href="index.html" data-nav="home" data-i="spNavCompare">Comparer</a>
     <a href="second-tour.html" data-nav="second-tour" data-i="spNavRunoff">Second tour</a>
     <a href="index.html#method" data-i="navMethod">Méthode</a>
   </nav>
@@ -26,6 +39,29 @@
 
 <div class="wrap">
 <div class="sp-meta" style="margin-top:24px"><span id="cdSnap"></span><span id="cdSources"></span></div>
+
+<div class="sp-chart" id="otChart">
+  <div class="sp-chart-head">
+    <div class="sp-chart-titlewrap">
+      <h2 class="sp-chart-title"></h2>
+      <span class="sp-chart-pill" hidden></span>
+    </div>
+    <div class="sp-chart-actions">
+      <button type="button" class="sp-chart-export" id="otExportBtn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14"/></svg><span data-i="dvExport">Exporter (PNG / Presse)</span></button>
+    </div>
+  </div>
+  <span class="sp-chart-msg" id="otExportMsg" role="alert"></span>
+  <div class="sp-tabs sp-chart-cands" id="otCands" role="group" aria-label=""></div>
+  <div class="sp-tabs sp-chart-tf" id="otTf" role="group" aria-label="">
+    <button type="button" data-tf="1M" aria-pressed="false">1M</button>
+    <button type="button" data-tf="3M" aria-pressed="false">3M</button>
+    <button type="button" data-tf="6M" aria-pressed="false">6M</button>
+    <button type="button" data-tf="ALL" aria-pressed="true" data-i="tfAll">Tout</button>
+  </div>
+  <div class="sp-chart-box"></div>
+  <p class="sp-chart-readout"></p>
+  <div class="sp-chart-note"></div>
+</div>
 
 <div class="sp-ctls">
   <div class="sp-ctl-group">
@@ -80,6 +116,7 @@
 
 <script src="analytics.js"></script>
 <script src="js/pages-common.js"></script>
+<script src="js/over-time-chart.js"></script>
 <script src="js/candidat.js" defer></script>
 </body>
 </html>

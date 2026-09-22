@@ -4,7 +4,9 @@ const Lecart = (() => {
   let lang = (() => { try { const s = localStorage.getItem("lecart-lang"); if (s === "fr" || s === "en") return s } catch (e) {} return (navigator.language || "fr").toLowerCase().startsWith("fr") ? "fr" : "en" })();
   const T = {};
   const nb = " ";
-  const get = u => fetch(u, { cache: "no-store" }).then(r => { if (!r.ok) throw new Error(u); return r.json() });
+  // data.json and i18n/*.json change once a day: the version in <meta name="data-version"> (rewritten by build_data.py) lets browsers cache them, same as js/app.js.
+  const VER = (document.querySelector('meta[name="data-version"]') || {}).content;
+  const get = u => fetch(VER ? u + "?v=" + VER : u, { cache: VER ? "default" : "no-store" }).then(r => { if (!r.ok) throw new Error(u); return r.json() });
   const loadLang = async l => { if (!T[l]) T[l] = await get("i18n/" + l + ".json") };
   const t = k => T[lang][k];
   const tf = (k, o) => t(k).replace(/\{(\w+)\}/g, (m, x) => x in o ? o[x] : m);
@@ -23,9 +25,9 @@ const Lecart = (() => {
   // Aggregated GoatCounter event (cookie-free), same convention as js/app.js.
   const track = name => { try { if (window.lecartOptOut.get()) return; window.goatcounter.count({ path: name, title: name, event: true }) } catch (e) {} };
 
-  function paintNav(active) {
+  function paintNav(active, figs) {
     document.documentElement.lang = lang;
-    document.querySelectorAll("[data-i]").forEach(el => { const v = t(el.dataset.i); if (typeof v === "string") el.innerHTML = v });
+    document.querySelectorAll("[data-i]").forEach(el => { const v = t(el.dataset.i); if (typeof v === "string") el.innerHTML = figs ? fill(v, figs) : v });
     document.querySelectorAll("[data-lang]").forEach(b => b.setAttribute("aria-pressed", b.dataset.lang === lang));
     document.querySelectorAll("[data-nav]").forEach(a => { if (a.dataset.nav === active) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current") });
     const bar = document.querySelector(".sp-bar"), menuBtn = document.getElementById("spMenuBtn");

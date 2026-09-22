@@ -1,6 +1,6 @@
-/* Styles for apercu.html, candidat.html and second-tour.html only: a sharper, denser "compare" view of the same
-   data as index.html. Deliberately light-only (no dark-mode block) per the design brief: pure white, square
-   corners, hairline rules. Design tokens below; component rules after. Keep in sync with fonts/fonts.css. */
+/* The site's stylesheet: index.html, candidat.html and second-tour.html. Sharp, precise, square corners,
+   hairline rules; mint is the brand accent, orange marks events. Design tokens below; component rules after.
+   Keep in sync with fonts/fonts.css. */
 :root{
   --bg:#FFFFFF; --surface:#FFFFFF; --ink:#111418; --muted:#8C9491; --muted2:#5A6360; --rule:#E4E6E5; --rule2:#EDEFEE;
   --mint:#0FA37F; --mint-text:#0B7A5F; --mint-tint:#E6F7F1; --orange:#F26B1D; --faint:#C8CFCC;
@@ -8,6 +8,9 @@
   --serif:"Instrument Serif",Georgia,"Times New Roman",serif;
   box-sizing:border-box;
 }
+@media (prefers-color-scheme:dark){ :root{
+  --bg:#101218; --surface:#171A21; --ink:#ECEEF3; --muted:#8B92A3; --muted2:#B7BCC7; --rule:#2B2F3A; --rule2:#20242E;
+  --mint:#44CDB9; --mint-text:#44CDB9; --mint-tint:rgba(68,205,185,.16); --orange:#E6A850; --faint:#454B59; }}
 *,*::before,*::after{box-sizing:inherit}
 html{scroll-padding-top:64px}
 body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
@@ -47,9 +50,33 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--mint);outline-offse
 .sp-ctl-group{display:flex;flex-direction:column;gap:9px}
 .sp-ctl-label{font:500 10px var(--sans);letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
 .sp-ctls{display:flex;gap:32px;flex-wrap:wrap;margin:22px 0 20px}
-.sp-tabs{display:flex;gap:22px;border-bottom:1px solid var(--rule)}
+.sp-tabs{display:flex;flex-wrap:wrap;gap:10px 22px;border-bottom:1px solid var(--rule)}
 .sp-tabs button{font:600 12.5px var(--sans);cursor:pointer;background:none;border:0;padding:0 0 8px;margin-bottom:-1px;color:var(--muted);border-bottom:2px solid transparent}
 .sp-tabs button[aria-pressed="true"]{color:var(--ink);border-bottom-color:var(--mint)}
+/* markets and polls over time (index.html and candidat.html) */
+.sp-chart{margin:26px 0 0}
+.sp-chart-head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-start;gap:10px 18px}
+.sp-chart-titlewrap{display:flex;align-items:center;gap:10px;flex-wrap:wrap;min-width:0}
+.sp-chart-title{margin:0;font:400 22px var(--serif);color:var(--ink)}
+.sp-chart-pill{font:700 12.5px var(--sans);padding:3px 10px;white-space:nowrap;background:var(--mint-tint);color:var(--mint-text)}
+.sp-chart-pill.neg{background:var(--rule2);color:var(--ink)}
+.sp-chart-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.sp-chart-export{display:inline-flex;align-items:center;gap:6px;font:600 12.5px var(--sans);border:1.5px solid var(--rule);background:none;color:var(--ink);padding:6px 12px;cursor:pointer}
+.sp-chart-export:disabled{opacity:.6;cursor:wait}
+.sp-chart-msg{font-size:12.5px;color:var(--orange)}
+.sp-chart-cands,.sp-chart-tf{margin-top:14px}
+.sp-chart-box{margin-top:12px}
+.sp-chart-box svg{display:block;width:100%;height:auto;touch-action:pan-y}
+.sp-chart-box .otm{cursor:pointer;outline:none}
+.sp-chart-box .otm.on circle:nth-child(2){fill:var(--ink);stroke:var(--ink)}
+.sp-chart-box .otm.on text{fill:var(--surface)}
+.sp-chart-box .otm:focus-visible circle:nth-child(2){stroke:var(--mint);stroke-width:3}
+.sp-chart-readout{margin:6px 0 0;min-height:1.3em;font-size:12.5px;color:var(--muted2)}
+.sp-chart-note{margin:12px 0 0;min-height:3.6em;padding:2px 0 2px 14px;border-left:3px solid var(--orange);font-size:13px;line-height:1.55}
+.sp-chart-note strong{display:block;font-size:13.5px}
+.sp-chart-note .d{display:block;color:var(--muted);font-size:11.5px;margin:1px 0 4px}
+.sp-chart-note p{margin:0}
+@media (max-width:640px){ .sp-chart-title{font-size:19px} }
 /* overview table */
 .sp-thead{display:grid;grid-template-columns:1fr 74px 74px 74px minmax(140px,1fr);gap:10px;align-items:end;padding:0 0 8px;border-bottom:1px solid var(--ink);font:500 10px var(--sans);letter-spacing:.13em;text-transform:uppercase;color:var(--muted)}
 .sp-thead span{text-align:right}
@@ -63,7 +90,7 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--mint);outline-offse
 .sp-row .val{text-align:right;font:600 14.5px var(--sans);font-variant-numeric:tabular-nums}
 .sp-row .val.mkt{color:var(--mint-text)}
 .sp-row .val.pol{color:var(--ink)}
-.sp-row .val.pol.none,.sp-row .val.ec.none{color:var(--faint)}
+.sp-row .val.pol.none,.sp-row .val.ec.none{color:var(--faint);font-size:10.5px;font-weight:600;white-space:nowrap}
 .sp-bartrack{position:relative;display:block;height:16px;margin-left:24px}
 .sp-bartrack .base{position:absolute;left:0;right:0;top:7px;height:1px;background:var(--rule2)}
 .sp-bartrack .fill{position:absolute;top:3px;height:10px;background:var(--mint-tint)}
@@ -91,6 +118,10 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--mint);outline-offse
 .sp-trend-title{margin:22px 0 10px;font:500 10px var(--sans);letter-spacing:.18em;text-transform:uppercase;color:var(--muted)}
 .sp-trend-wrap{overflow-x:auto}
 .sp-trend-wrap svg{display:block;width:100%;height:auto;min-width:420px}
+.sp-trend-wrap .ctm{cursor:pointer;outline:none}
+.sp-trend-wrap .ctm.on circle:nth-child(2){fill:var(--orange);stroke:var(--orange)}
+.sp-trend-wrap .ctm.on text{fill:var(--surface)}
+.sp-trend-wrap .ctm:focus-visible circle:nth-child(2){stroke:var(--mint);stroke-width:2.5}
 .sp-gap-title{display:flex;align-items:baseline;justify-content:space-between;padding-top:18px;border-top:1px solid var(--ink)}
 .sp-gap-title span:first-child{font:500 10px var(--sans);letter-spacing:.18em;text-transform:uppercase;color:var(--muted)}
 .sp-gap-title b{font:600 13px var(--sans);color:var(--mint-text);font-variant-numeric:tabular-nums}
@@ -136,3 +167,25 @@ footer.sp-foot2{padding:26px 0 48px;color:var(--muted);font-size:13px;border-top
 footer.sp-foot2 a{color:inherit}
 footer.sp-foot2 p{margin:0}
 footer.sp-foot2 .flinks{margin:10px 0 0}
+/* generic sections: method, about (index.html) */
+section{padding:44px 0 10px}
+section h2{font:800 clamp(22px,2.8vw,28px) var(--sans);letter-spacing:-.01em;margin:0 0 14px;color:var(--ink)}
+.method{font-family:var(--serif);font-size:16.5px;line-height:1.65;max-width:660px;color:var(--ink)}
+.method p{margin:0 0 12px}
+.method strong{font-family:var(--sans)}
+.method a{color:var(--mint-text)}
+details{margin-top:12px;border-top:1px solid var(--rule);padding-top:12px}
+summary{cursor:pointer;font-weight:600;font-family:var(--sans);color:var(--ink)}
+.table-wrap{overflow-x:auto;margin-top:10px}
+table{border-collapse:collapse;font-size:13px;width:100%;min-width:560px;font-family:var(--sans)}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--rule2);font-variant-numeric:tabular-nums}
+th{color:var(--muted);font-weight:500}
+.about{font-family:var(--serif);font-size:16.5px;line-height:1.65;max-width:660px;color:var(--ink)}
+.about p{margin:0 0 12px}
+.about a{color:var(--mint-text)}
+.about h3{font:800 16px var(--sans);letter-spacing:-.01em;margin:22px 0 6px;color:var(--ink)}
+.about .only{font-family:var(--sans);font-weight:600;font-size:14.5px;line-height:1.5;padding:12px 14px;border-left:3px solid var(--orange)}
+.about .dl{margin:0 0 8px;padding-left:1.2em}
+.about .dl li{margin:0 0 4px}
+.about .fine{font-size:13.5px;color:var(--muted)}
+.about .cite{font-family:var(--sans);font-size:14px;line-height:1.55;padding:12px 14px;background:var(--rule2);user-select:all;overflow-wrap:anywhere}

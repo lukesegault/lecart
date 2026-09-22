@@ -1,5 +1,5 @@
-"""Local browser check: loads the page, clicks every control in French and English, at desktop and phone width,
-and fails on any console error, uncaught exception, failed request or broken control.
+"""Local browser check: loads every page, clicks every control, in French and English, at desktop and phone
+width, in light and dark colour scheme, and fails on any console error, uncaught exception or failed request.
 
     pip install -r requirements-dev.txt
     python -m playwright install chromium
@@ -30,8 +30,8 @@ def stub_analytics(page):
     page.route("https://*.goatcounter.com/**", lambda r: r.fulfill(status=204, body=""))
 
 
-def new_page(browser, base, size, lang, clock_shift_days=0):
-    ctx = browser.new_context(viewport={"width": size[0], "height": size[1]}, locale=f"{lang}-{lang.upper()}", accept_downloads=True)
+def new_page(browser, base, size, lang, scheme="light", clock_shift_days=0):
+    ctx = browser.new_context(viewport={"width": size[0], "height": size[1]}, locale=f"{lang}-{lang.upper()}", accept_downloads=True, color_scheme=scheme)
     page = ctx.new_page()
     problems = []
     page.on("console", lambda m: problems.append(f"console {m.type}: {m.text}") if m.type in ("error", "warning") else None)
@@ -41,44 +41,67 @@ def new_page(browser, base, size, lang, clock_shift_days=0):
     stub_analytics(page)
     if clock_shift_days:
         page.add_init_script(f"(()=>{{const n=Date.now.bind(Date);Date.now=()=>n()+{clock_shift_days}*864e5}})()")
-    page.goto(base + "index.html")
-    page.wait_for_selector("#board .row")
-    return page, problems
+    return ctx, page, problems
 
 
-def click_all(page, phone):
-    """Click every control of the page once; returns what went wrong."""
-    bad = []
+def check_no_overflow(page, bad, label):
+    w = page.evaluate("document.documentElement.scrollWidth"), page.evaluate("innerWidth")
+    if w[0] > w[1] + 2:
+        bad.append(f"{label}: horizontal overflow ({w[0]}px content in {w[1]}px viewport)")
+
+
+def click_index(page, phone, bad):
     def check(cond, msg):
         if not cond: bad.append(msg)
-    page.click("#more"); check(page.get_attribute("#more", "aria-expanded") == "true", "#more did not expand the board")
-    page.click("#more")
+    check(page.locator("#ovBoard .sp-row").count() >= 15, "index: overview table not fully rendered")
     for q in ("qual", "win"):
         for u in ("low", "mid", "high"):
-            page.click(f'[data-q="{q}"]'); page.click(f'[data-u="{u}"]')
-            check(page.locator("#board .row").count() >= 8, f"board empty for {q}/{u}")
-            check(page.locator("#gaps .gap-item").count() == 3, f"largest gaps missing for {q}/{u}")
-    for i in range(page.locator("#dvPills button").count()):
-        page.click(f"#dvPills button >> nth={i}")
-        check(page.locator("#dvChart svg path").count() > 0, f"over-time chart empty for pill {i}")
-        check(page.inner_text("#dvPill").strip() != "", f"gap badge empty for pill {i}")
+            page.click(f'#ovQ [data-q="{q}"]'); page.click(f'#ovU [data-u="{u}"]')
+            check(page.locator("#ovBoard .sp-row").count() >= 15, f"index: board empty for {q}/{u}")
+    for i in range(min(3, page.locator("#otCands button").count())):
+        page.click(f"#otCands button >> nth={i}")
+        check(page.locator(".sp-chart-box svg path").count() > 0, f"index: over-time chart empty for candidate {i}")
     for tf in ("1M", "3M", "6M", "ALL"):
-        page.click(f'#dvTf button[data-tf="{tf}"]')
-    for i in range(page.locator("#dvEvents button").count()):
-        page.click(f"#dvEvents button >> nth={i}"); check(page.inner_text("#dvNote").strip() != "", "event note empty")
-    page.hover("#dvChart svg")
+        page.click(f'#otTf button[data-tf="{tf}"]')
     with page.expect_download(timeout=15000) as dl:
-        page.click("#dvExport")
-    check(dl.value.suggested_filename.endswith(".png"), "export is not a PNG")
-    check(page.inner_text("#dvExpMsg").strip() == "", "export reported an error")
-    page.click("details summary"); check(page.locator("#polltable tbody tr").count() > 0, "poll table empty")
-    page.hover("#trend .lbl >> nth=0")
-    page.click("#optOut"); page.click("#optOut")   # opt out, then back in: leaves storage as found
-    for href in ("#multiSection", "#compare", "#method"):
-        if phone: page.click("#menuBtn"); check(page.get_attribute("#menuBtn", "aria-expanded") == "true", "menu did not open")
-        page.click(f'#nav a[href="{href}"]')
-        if phone: check(page.get_attribute("#menuBtn", "aria-expanded") == "false", "menu stayed open after a link")
-    return bad
+        page.click("#otExportBtn")
+    check(dl.value.suggested_filename.endswith(".png"), "index: export is not a PNG")
+    check(page.inner_text("#otExportMsg").strip() == "", "index: export reported an error")
+    page.click("details summary"); check(page.locator("#polltable tbody tr").count() > 0, "index: poll table empty")
+    page.click("#optOut"); page.click("#optOut")
+    check(page.locator('#spNav a[href="index.html"]').count() == 1, "index: nav missing Compare link")
+    check(page.locator('#spNav a[href="second-tour.html"]').count() == 1, "index: nav missing Runoff link")
+    check(page.get_attribute('#spNav a[href="index.html"]', "aria-current") == "page", "index: Compare nav item not marked current")
+    if phone:
+        page.click("#spMenuBtn"); check(page.get_attribute("#spMenuBtn", "aria-expanded") == "true", "index: menu did not open")
+        page.click('#spNav a[href="second-tour.html"]')
+        page.wait_for_selector(".sp-pair-row")   # navigation succeeded; a timeout here fails the run
+    check_no_overflow(page, bad, "index")
+
+
+def click_candidat(page, phone, bad):
+    def check(cond, msg):
+        if not cond: bad.append(msg)
+    page.wait_for_selector("#cdName")
+    check(page.inner_text("#cdName").strip() != "", "candidat: no name rendered")
+    for q in ("qual", "win"):
+        for u in ("low", "mid", "high"):
+            page.click(f'#cdQ [data-q="{q}"]'); page.click(f'#cdU [data-u="{u}"]')
+            check(page.inner_text("#cdH1").strip() != "", f"candidat: H1 empty for {q}/{u}")
+    check(page.locator(".sp-chart-box svg path").count() > 0, "candidat: over-time chart empty")
+    if page.locator("#cdTrend .ctm").count() > 0:
+        page.hover("#cdTrend .ctm >> nth=0")
+        check(page.inner_text("#cdTrendNote").strip() != "", "candidat: trend event note empty on hover")
+    check_no_overflow(page, bad, "candidat")
+
+
+def click_second_tour(page, phone, bad):
+    def check(cond, msg):
+        if not cond: bad.append(msg)
+    page.wait_for_selector(".sp-pair-row")
+    check(page.locator(".sp-pair-row").count() >= 1, "second-tour: no pairing rows")
+    check(page.inner_text("#rtH1").strip() != "", "second-tour: H1 empty")
+    check_no_overflow(page, bad, "second-tour")
 
 
 def main():
@@ -88,22 +111,40 @@ def main():
         browser = pw.chromium.launch()
         for vp, size in VIEWPORTS.items():
             for lang in ("fr", "en"):
-                page, problems = new_page(browser, base, size, lang)
-                page.click(f'[data-lang="{lang}"]')
-                problems += click_all(page, phone=vp == "phone")
-                other = "en" if lang == "fr" else "fr"
-                page.click(f'[data-lang="{other}"]'); page.click(f'[data-lang="{lang}"]')
-                print(f"{vp:7} {lang}: {'ok' if not problems else str(len(problems)) + ' problem(s)'}")
-                failures += [f"[{vp} {lang}] {p}" for p in problems]
-                page.context.close()
+                for scheme in ("light", "dark"):
+                    bad = []
+                    ctx, page, problems = new_page(browser, base, size, lang, scheme)
+                    page.goto(base + "index.html")
+                    page.wait_for_selector("#ovBoard .sp-row")
+                    page.click(f'[data-lang="{lang}"]')
+                    click_index(page, vp == "phone", bad)
+                    ctx.close()
+
+                    ctx, page, problems2 = new_page(browser, base, size, lang, scheme)
+                    page.goto(base + "candidat.html?c=%C3%89douard%20Philippe")
+                    page.click(f'[data-lang="{lang}"]')
+                    click_candidat(page, vp == "phone", bad)
+                    ctx.close()
+
+                    ctx, page, problems3 = new_page(browser, base, size, lang, scheme)
+                    page.goto(base + "second-tour.html")
+                    page.click(f'[data-lang="{lang}"]')
+                    click_second_tour(page, vp == "phone", bad)
+                    ctx.close()
+
+                    problems_all = problems + problems2 + problems3 + bad
+                    print(f"{vp:7} {lang} {scheme:5}: {'ok' if not problems_all else str(len(problems_all)) + ' problem(s)'}")
+                    failures += [f"[{vp} {lang} {scheme}] {p}" for p in problems_all]
         # freshness notice: absent on fresh data, present once the data is more than 2 days old
         for shift, expect in ((0, False), (3, True)):
-            page, problems = new_page(browser, base, VIEWPORTS["desktop"], "en", clock_shift_days=shift)
+            ctx, page, problems = new_page(browser, base, VIEWPORTS["desktop"], "en", "light", clock_shift_days=shift)
+            page.goto(base + "index.html")
+            page.wait_for_selector("#ovBoard .sp-row")
             shown = page.locator("#stale").count() == 1
             print(f"stale notice with clock +{shift}d: {'shown' if shown else 'hidden'}")
             failures += problems
             if shown != expect: failures.append(f"stale notice {'shown' if shown else 'hidden'} with clock +{shift} days")
-            page.context.close()
+            ctx.close()
         browser.close()
     srv.shutdown()
     if failures:

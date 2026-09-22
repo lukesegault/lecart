@@ -1,11 +1,13 @@
 (async () => {
   const { get, loadLang, t, tf, paintNav } = Lecart;
-  let DATA;
+  let DATA, EVENTS = [];
   try { [DATA] = await Promise.all([get("data.json"), loadLang(Lecart.lang)]); }
   catch (e) { document.getElementById("cdName").textContent = "Data could not be loaded. / Les données n'ont pas pu être chargées."; return; }
+  try { EVENTS = await get("data/events.json"); EVENTS.sort((a, b) => a.date < b.date ? -1 : 1); } catch (e) {}
   const MARKET = DATA.markets.candidates;
   const state = { q: "qual", u: "mid" };
   const num = x => Lecart.lang === "fr" ? x.toFixed(1).replace(".", ",") : x.toFixed(1);
+  const WK_NAMES = Object.keys(DATA.weekly ? DATA.weekly.series : {});
 
   function headline() {
     const S = DATA.sim.mid;
@@ -20,47 +22,66 @@
   const cand = MARKET.find(m => m.c === NAME);
 
   function pathOf(s, x, y) {
-    // Bridges a single missing month; breaks the line over longer gaps (same rule as js/app.js's pathOf()).
     let d = "", prev = -1, last = null;
     s.forEach((v, i) => { if (v == null) return; d += (prev >= 0 && i - prev <= 1 ? "L" : "M") + x(i).toFixed(1) + " " + y(v).toFixed(1) + " "; prev = i; last = i });
     return { d, last };
   }
 
+  // Nearest trend month to an event date, only kept if within half a month-step of an actual point.
+  function nearestMonth(months, dateIso) {
+    const t0 = Date.parse(dateIso + "T00:00:00Z");
+    let best = -1, bestDiff = Infinity;
+    months.forEach((m, i) => { const diff = Math.abs(Date.parse(m + "-15T00:00:00Z") - t0); if (diff < bestDiff) { bestDiff = diff; best = i } });
+    return bestDiff < 24 * 864e5 * 30 ? best : -1;   // within ~30 days of that month's midpoint
+  }
+
+  const trendState = { hov: null };
   function drawTrend() {
     const tr = (DATA.trend.series[NAME] || []).slice(), months = DATA.trend.months;
     const svg = document.getElementById("cdTrend"), wrap = document.getElementById("cdTrendWrap");
+    let note = document.getElementById("cdTrendNote");
     const vals = tr.filter(v => v != null);
-    if (!vals.length) { wrap.innerHTML = `<p style="font:400 13px var(--sans);color:var(--muted)">${t("cdNoTrend")}</p>`; return; }
-    const lo = Math.floor(Math.min(...vals) - 1), hi = Math.ceil(Math.max(...vals) + 1);
+    if (!vals.length) { wrap.innerHTML = `<p style="font:400 13px var(--sans);color:var(--muted)">${t("cdNoTrend")}</p>`; if (note) note.hidden = true; return; }
+    const lo = 0, hi = Math.max(10, Math.ceil((Math.max(...vals) + 2) / 5) * 5);
     const X = i => 34 + i / (tr.length - 1) * 496, Y = s => 172 - (s - lo) / (hi - lo) * 160;
     const { d: path, last: li } = pathOf(tr, X, Y);
     let g = "";
-    [1, 2, 3].forEach(k => { const tv = Math.round(lo + (hi - lo) * k / 4), y = Y(tv);
-      g += `<line x1="34" y1="${y.toFixed(1)}" x2="530" y2="${y.toFixed(1)}" stroke="var(--rule2)"/><text x="26" y="${(y + 3.5).toFixed(1)}" text-anchor="end" style="font:400 10px var(--sans);fill:var(--muted)">${tv}%</text>`; });
+    const step = hi <= 20 ? 5 : 10;
+    for (let v = 0; v <= hi; v += step) { const y = Y(v); g += `<line x1="34" y1="${y.toFixed(1)}" x2="530" y2="${y.toFixed(1)}" stroke="var(--rule2)"/><text x="26" y="${(y + 3.5).toFixed(1)}" text-anchor="end" style="font:400 10px var(--sans);fill:var(--muted)">${v}%</text>`; }
     g += `<path d="${path}" stroke="var(--ink)" stroke-width="1.6" fill="none" stroke-linejoin="round"/>`;
-    const peak = tr.indexOf(Math.max(...vals));
-    if (peak !== li) {   // no separate marker when the peak is also the latest point (would sit on top of it)
-      const px = X(peak), py = Y(tr[peak]);
-      const mo = t("months")[+months[peak].split("-")[1] - 1];
-      g += `<line x1="${px.toFixed(1)}" y1="${py.toFixed(1)}" x2="${px.toFixed(1)}" y2="22" stroke="var(--orange)" stroke-width="1" stroke-dasharray="2 3"/>` +
-        `<rect x="${(px - 3).toFixed(1)}" y="16" width="6" height="6" fill="var(--orange)"/>` +
-        `<text x="${(px + 10).toFixed(1)}" y="22" style="font:500 10.5px var(--sans);fill:var(--orange)">${mo} ${months[peak].slice(0, 4)}, ${tf("cdPeak", { v: num(tr[peak]) })}</text>`;
-    }
     if (li != null) { const ex = X(li), ey = Y(tr[li]);
       g += `<rect x="${(ex - 3).toFixed(1)}" y="${(ey - 3).toFixed(1)}" width="6" height="6" fill="var(--ink)"/>` +
         `<text x="556" y="${(ey + 4).toFixed(1)}" text-anchor="end" style="font:600 11px var(--sans);fill:var(--ink)" class="num">${num(tr[li])}</text>`; }
     g += `<line x1="34" y1="172" x2="530" y2="172" stroke="var(--ink)"/>`;
-    // Month labels live inside the SVG (like the rest of the chart) so they scale with the viewBox instead of drifting out of alignment at other widths.
     const ml = i => t("months")[+months[i].split("-")[1] - 1] + " " + months[i].slice(2, 4);
     [0, Math.round((tr.length - 1) / 3), Math.round((tr.length - 1) * 2 / 3), tr.length - 1].forEach((i, k) => {
       const anchor = k === 0 ? "start" : k === 3 ? "end" : "middle";
       g += `<text x="${X(i).toFixed(1)}" y="190" text-anchor="${anchor}" style="font:400 10px var(--sans);fill:var(--muted)">${ml(i)}</text>`;
     });
+    // Real events (data/events.json) replace the old single "peak" annotation, same numbered-marker language as the chart above.
+    const evPos = EVENTS.map(e => ({ e, i: nearestMonth(months, e.date) })).filter(p => p.i >= 0);
+    evPos.forEach(({ e, i }, k) => { const ex = X(i), ey = Y(tr[i]) ;
+      g += `<line x1="${ex.toFixed(1)}" y1="${(ey - 14).toFixed(1)}" x2="${ex.toFixed(1)}" y2="${ey.toFixed(1)}" stroke="var(--orange)" stroke-width="1" stroke-dasharray="2 3" stroke-opacity=".6"/>` +
+        `<g class="ctm" data-e="${k}" role="button" tabindex="0" aria-label="${e[Lecart.lang]}"><circle cx="${ex.toFixed(1)}" cy="${(ey - 20).toFixed(1)}" r="11" fill="transparent"/><circle cx="${ex.toFixed(1)}" cy="${(ey - 20).toFixed(1)}" r="7" fill="var(--surface)" stroke="var(--orange)" stroke-width="1.3"/><text x="${ex.toFixed(1)}" y="${(ey - 17).toFixed(1)}" text-anchor="middle" font-size="9" font-weight="700" fill="var(--orange)">${k + 1}</text></g>`;
+    });
     svg.innerHTML = g;
+    if (!note) { note = document.createElement("div"); note.className = "sp-chart-note"; note.id = "cdTrendNote"; wrap.after(note); }
+    note.hidden = !evPos.length;
+    const paintNote = () => {
+      const idx = trendState.hov != null ? trendState.hov : evPos.length - 1, pick = idx >= 0 ? evPos[idx].e : null;
+      svg.querySelectorAll(".ctm").forEach(gm => gm.classList.toggle("on", +gm.dataset.e === idx));
+      note.innerHTML = pick ? `<strong>${pick[Lecart.lang]}</strong><span class="d">${Lecart.longDate(pick.date)}</span><p>${pick[Lecart.lang === "fr" ? "noteFr" : "noteEn"] || ""}</p>` : "";
+    };
+    svg.querySelectorAll(".ctm").forEach(gm => { const i = +gm.dataset.e;
+      gm.addEventListener("pointerenter", e => { if (e.pointerType === "mouse") { trendState.hov = i; paintNote() } });
+      gm.addEventListener("pointerleave", e => { if (e.pointerType === "mouse") { trendState.hov = null; paintNote() } });
+      gm.addEventListener("focus", () => { trendState.hov = i; paintNote() }); gm.addEventListener("blur", () => { trendState.hov = null; paintNote() });
+      gm.addEventListener("click", () => { trendState.hov = trendState.hov === i ? null : i; paintNote() }); });
+    paintNote();
   }
 
   function render() {
-    document.title = Lecart.lang === "fr" ? `L'Écart · ${NAME}` : `L'Écart · ${NAME}`;
+    document.title = `L'Écart · ${NAME}`;
     const S = DATA.sim[state.u][NAME], avg = DATA.avg[NAME];
     document.getElementById("cdName").textContent = NAME;
     document.getElementById("cdFamily").textContent = t("fam")[cand.f] || cand.f;
@@ -68,7 +89,7 @@
     document.getElementById("cdPolQual").textContent = S ? num(S.qual) : "–";
     document.getElementById("cdMktWin").textContent = num(cand.win);
     document.getElementById("cdPolWin").textContent = S ? num(S.win) : "–";
-    document.getElementById("cdAvg").textContent = avg ? num(avg[0]) + (Lecart.lang === "fr" ? " %" : "%") : t("notPolled");
+    document.getElementById("cdAvg").textContent = avg ? num(avg[0]) + (Lecart.lang === "fr" ? Lecart.nb + "%" : "%") : t("notPolled");
     const F = Lecart.figures(DATA);
     document.getElementById("cdSnap").textContent = Lecart.fill(t("spSnap"), F);
     document.getElementById("cdSources").textContent = Lecart.fill(t("spSources"), F);
@@ -103,6 +124,17 @@
     drawTrend();
   }
 
+  let chart = null;
+  function mountChart() {
+    if (WK_NAMES.length && !chart) {
+      chart = Lecart.mountOverTimeChart("otChart", {
+        DATA, EVENTS, candidates: WK_NAMES, initial: WK_NAMES.includes(NAME) ? NAME : WK_NAMES[0],
+        onNav: n => { location.href = "candidat.html?c=" + encodeURIComponent(n) }
+      });
+      document.getElementById("otExportBtn").addEventListener("click", () => Lecart.exportOverTimeChart("otChart", { DATA, EVENTS }, "otExportBtn", "otExportMsg"));
+    }
+  }
+
   document.querySelectorAll("#cdQ [data-q]").forEach(b => b.addEventListener("click", () => {
     Lecart.track("cd-q-" + b.dataset.q);
     state.q = b.dataset.q;
@@ -115,8 +147,12 @@
     document.querySelectorAll("#cdU [data-u]").forEach(x => x.setAttribute("aria-pressed", x === b));
     render();
   }));
-  window.addEventListener("lecart-lang-change", () => { render(); paintNav("apercu"); });
+  window.addEventListener("lecart-lang-change", () => {
+    render(); paintNav("home");
+    const root = document.getElementById("otChart"); if (root._render) root._render();
+  });
 
-  paintNav("apercu");
+  paintNav("home");
   render();
+  mountChart();
 })();
