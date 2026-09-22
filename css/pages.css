@@ -115,6 +115,8 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--mint);outline-offse
 .sp-pairs-head span:first-child{text-align:left}
 .sp-pair-row{display:grid;grid-template-columns:1fr 66px 92px 96px;gap:10px;align-items:center;padding:15px 0;border-bottom:1px solid var(--rule2)}
 .sp-pair-names{display:flex;flex-direction:column;gap:8px;font:500 13.5px var(--sans)}
+.sp-pair-names a{text-decoration:none}
+.sp-pair-names a:hover{text-decoration:underline}
 .sp-pair-split{display:flex;height:14px;width:100%;max-width:340px}
 .sp-pair-split span{display:block;height:14px}
 .sp-pair-n{text-align:right;font:400 13px var(--sans);color:var(--muted);font-variant-numeric:tabular-nums}

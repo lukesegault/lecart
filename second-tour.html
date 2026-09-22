@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://gc.zgo.at; style-src 'self'; style-src-attr 'unsafe-inline'; font-src 'self'; img-src 'self' data: https://vikander.goatcounter.com; connect-src 'self' https://vikander.goatcounter.com; object-src 'none'; base-uri 'self'; form-action 'none'">
+<title>L'Écart · Second tour / Runoff</title>
+<meta name="description" content="Chaque duel de second tour testé par les instituts. / Every runoff pairing tested by pollsters.">
+<link rel="preload" href="fonts/archivo-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="fonts/fonts.css">
+<link rel="stylesheet" href="css/pages.css">
+</head>
+<body>
+<div class="sp-bar" id="spBar"><div class="wrap sp-bar-inner">
+  <a class="sp-brand" href="index.html"><b>L'ÉCART</b><span data-i="spCtx">Marchés et sondages</span></a>
+  <nav class="sp-nav" id="spNav">
+    <a href="apercu.html" data-nav="apercu" data-i="spNavCompare">Comparer</a>
+    <a href="second-tour.html" data-nav="second-tour" data-i="spNavRunoff">Second tour</a>
+    <a href="index.html#method" data-i="navMethod">Méthode</a>
+  </nav>
+  <div class="sp-bar-r">
+    <button type="button" class="sp-menu-btn" id="spMenuBtn" aria-expanded="false" aria-controls="spNav"><span data-i="menu">Menu</span></button>
+    <span class="sp-lang" role="group" aria-label="Langue / Language"><button type="button" data-lang="fr" aria-pressed="true">FR</button><button type="button" data-lang="en" aria-pressed="false">EN</button></span>
+  </div>
+</div></div>
+
+<div class="wrap">
+<p class="sp-kicker" id="rtKicker"></p>
+<h1 class="sp-h1" id="rtH1"></h1>
+<div class="sp-meta"><span id="rtSnap"></span><span id="rtSources"></span></div>
+
+<div class="sp-pairs-head" style="margin-top:28px">
+  <span data-i="rtColPair">Duel testé</span>
+  <span data-i="legPolls">Sondages</span>
+  <span data-i="rtColSim">Sond., victoire</span>
+  <span data-i="rtColWin">Marché, victoire</span>
+</div>
+<div id="rtBoard" role="list" aria-live="polite"></div>
+
+<p class="sp-footnote" style="margin-top:22px" data-i="rtNote"></p>
+</div>
+
+<footer class="sp-foot2"><div class="wrap">
+  <p data-i="foot"></p>
+  <p class="flinks"><a href="mentions-legales.html" data-i="lnkLegal">Mentions légales</a> · <a href="confidentialite.html" data-i="lnkPriv">Confidentialité</a> · <a href="changelog.html" data-i="lnkChange">Journal des modifications</a> · <a href="#" id="optOut" data-i="optOut">Ne pas être compté</a><span id="optMsg" role="status"></span></p>
+</div></footer>
+
+<script src="analytics.js"></script>
+<script src="js/pages-common.js"></script>
+<script src="js/second-tour.js" defer></script>
+</body>
+</html>
