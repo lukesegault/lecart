@@ -5,23 +5,32 @@ Polls: [MieuxVoter/presidentielle2027](https://github.com/MieuxVoter/presidentie
 
 ## What it does
 
-For each candidate the page shows the chance of winning (or reaching the runoff) according to the markets and according to the polls,
+For each candidate the site shows the chance of winning (or reaching the runoff) according to the markets and according to the polls,
 and the gap between the two. The poll side is a Monte Carlo simulation: draw a recent poll, add polling error, take the top two,
-draw the runoff. Everything computed lives in `scripts/build_data.py`; the page only displays it.
+draw the runoff. Everything computed lives in `scripts/build_data.py`; the pages only display it.
+
+Three pages, sharp/mint design (Archivo + Instrument Serif):
+
+- `index.html` — homepage: headline, the markets-vs-polls-over-time chart, the full candidate comparison table, Method, About.
+- `candidat.html?c=<name>` — one candidate: the same over-time chart, qualification/win numbers, first-round trend, the gap isolated.
+- `second-tour.html` — every tested runoff pairing, the common candidate always on the same side.
 
 ## Files
 
 | Path | Role |
 | --- | --- |
-| `index.html` | Markup and the static French layer (crawlers, link previews). Between `STATIC` and `META` markers it is rewritten by the pipeline: edit the copy in `i18n/fr.json`, not there. |
-| `css/styles.css` | All styles. Design tokens (colours, fonts, spacing, radii) are at the top. |
-| `js/app.js` | Rendering and interaction: loads `data.json` and `i18n/*.json`, draws the board, charts, export. No simulation. |
-| `i18n/fr.json`, `i18n/en.json` | Every user-facing string. `{{name}}` slots are figures filled from data (dates, counts, volumes); `{name}` slots are filled by `js/app.js`. |
-| `data.json` | Everything the page displays, minified. Written by the pipeline. |
-| `data/market_history.csv`, `data/polls_average.csv` | Downloadable data (linked from the About section). `data/events.json` lists the events marked on the time chart. |
+| `index.html`, `candidat.html`, `second-tour.html` | The three pages. `index.html`'s markup between `STATIC`/`META` markers is rewritten by the pipeline for crawlers (edit the copy in `i18n/fr.json`, not there); the other two just get their `data-version` meta restamped daily. |
+| `css/pages.css` | The site's only stylesheet. Design tokens (colours, fonts, spacing) are at the top. |
+| `js/pages-common.js` | Shared `Lecart` helpers: language, data/i18n fetch, figure filling, nav/footer, formatting. No simulation. |
+| `js/over-time-chart.js` | The market-vs-poll-implied-win-probability chart shared by index.html and candidat.html (candidate selector, 1M/3M/6M/All, PNG export). |
+| `js/index.js`, `js/candidat.js`, `js/second-tour.js` | Per-page rendering and interaction. No simulation. |
+| `i18n/fr.json`, `i18n/en.json` | Every user-facing string. `{{name}}` slots are figures filled from data (dates, counts, volumes); `{name}` slots are filled by `Lecart.tf()`. |
+| `data.json` | Everything the pages display, minified. Written by the pipeline. |
+| `data/market_history.csv`, `data/polls_average.csv` | Downloadable data (linked from the About section). `data/events.json` lists the events marked on the time charts. |
 | `scripts/build_data.py` | The daily pipeline. `scripts/backfill_history.py` is the one-off that rebuilt the market history. |
 | `scripts/check_site.py` | Browser check (see below). `tests/` holds the pytest suite. |
-| `analytics.js`, `fonts/`, `changelog.html`, `confidentialite.html`, `mentions-legales.html`, `legal.css` | Cookie-free analytics with opt-out, self-hosted fonts, legal pages. |
+| `fonts/` | Self-hosted Schibsted Grotesk/Spectral (legal pages) and Archivo/Instrument Serif (the three pages). |
+| `analytics.js`, `changelog.html`, `confidentialite.html`, `mentions-legales.html`, `legal.css` | Cookie-free analytics with opt-out, legal pages. |
 
 ## Run it locally
 
@@ -47,8 +56,8 @@ python scripts/build_data.py --reuse-markets    # where Polymarket is blocked (e
 2. Runs the simulation for every view the page has (win/runoff × low/mid/high uncertainty) and the weekly series of the time chart.
 3. `validate()` refuses to publish if a price is outside 0-100, the winner prices do not add up to 85-115%, a candidate present yesterday has vanished,
    or the poll count dropped by more than 20%. The reasons are printed and the run exits non-zero.
-4. Only when everything passed, `data.json`, both CSVs, the static text of `index.html` (and its `data-version` meta, the cache key of `data.json`) and `og-image.png`
-   are replaced. Any earlier failure leaves yesterday's files untouched, and the workflow commits nothing.
+4. Only when everything passed, `data.json`, both CSVs, the static text of `index.html`, the `data-version` meta of all three pages
+   (the cache key of `data.json`/`i18n/*.json`) and `og-image.png` are replaced. Any earlier failure leaves yesterday's files untouched, and the workflow commits nothing.
 
 If `data.json` is more than two days old, the page shows a discreet notice that the data may be stale.
 
@@ -58,7 +67,7 @@ If `data.json` is more than two days old, the page shows a discreet notice that 
 python -m pytest -q                      # simulation reference values, validation, parsing, retries, all-or-nothing run
 pip install -r requirements-dev.txt
 python -m playwright install chromium
-python scripts/check_site.py             # loads the page, clicks every control in FR and EN at 1280 and 390 px, fails on console errors
+python scripts/check_site.py             # loads all three pages, clicks every control, FR/EN, 1280/390 px, light/dark, fails on console errors
 ```
 
 `check_site.py` answers the analytics requests locally, so a check run is not counted. The simulation reference
