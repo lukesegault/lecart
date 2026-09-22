@@ -1,5 +1,5 @@
 {
- "updated": "2026-09-21",
+ "updated": "2026-09-22",
  "polls": [
   {
    "id": "20260722_0724_cl_A",
@@ -1158,25 +1158,25 @@
   }
  },
  "markets": {
-  "snapshot": "2026-09-21",
+  "snapshot": "2026-09-22",
   "source": "Polymarket",
   "candidates": [
    {
     "c": "Marine Le Pen",
     "f": "far-right",
-    "win": 37.5,
+    "win": 38.4,
     "qual": 89.0
    },
    {
     "c": "Jordan Bardella",
     "f": "far-right",
     "win": 1.6,
-    "qual": 9.0
+    "qual": 8.5
    },
    {
     "c": "Éric Zemmour",
     "f": "far-right",
-    "win": 1.1,
+    "win": 1.4,
     "qual": 4.8
    },
    {
@@ -1188,8 +1188,8 @@
    {
     "c": "David Lisnard",
     "f": "right",
-    "win": 6.2,
-    "qual": 10.8
+    "win": 6.8,
+    "qual": 9.3
    },
    {
     "c": "Laurent Wauquiez",
@@ -1201,7 +1201,7 @@
     "c": "Gabriel Attal",
     "f": "centre",
     "win": 2.2,
-    "qual": 6.4
+    "qual": 6.5
    },
    {
     "c": "Bruno Retailleau",
@@ -1212,26 +1212,26 @@
    {
     "c": "François Hollande",
     "f": "left",
-    "win": 5.8,
-    "qual": 7.0
+    "win": 5.9,
+    "qual": 6.9
    },
    {
     "c": "Raphaël Glucksmann",
     "f": "left",
-    "win": 1.6,
-    "qual": 6.9
+    "win": 1.7,
+    "qual": 6.7
    },
    {
     "c": "Jean-Luc Mélenchon",
     "f": "far-left",
     "win": 12.5,
-    "qual": 39.0
+    "qual": 37.5
    },
    {
     "c": "Marine Tondelier",
     "f": "green",
     "win": 0.1,
-    "qual": 1.6
+    "qual": 2.6
    },
    {
     "c": "Fabien Roussel",
@@ -1242,13 +1242,13 @@
    {
     "c": "Olivier Faure",
     "f": "left",
-    "win": 0.4,
-    "qual": 5.9
+    "win": 0.1,
+    "qual": 6.2
    },
    {
     "c": "Dominique de Villepin",
     "f": "right",
-    "win": 0.9,
+    "win": 0.5,
     "qual": 5.0
    },
    {
@@ -1260,14 +1260,14 @@
    {
     "c": "Sarah Knafo",
     "f": "far-right",
-    "win": 1.0,
-    "qual": 3.3
+    "win": 0.9,
+    "qual": 3.1
    },
    {
     "c": "Sébastien Lecornu",
     "f": "centre",
-    "win": 0.9,
-    "qual": 4.9
+    "win": 0.7,
+    "qual": 4.8
    }
   ]
  }
