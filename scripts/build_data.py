@@ -450,7 +450,7 @@ def run(reuse_markets=False):
         history_rows = history_with_today(history_rows, today, candidates)
     weekly = weekly_series(history, history_rows)
     sim, avg = page_views(polls, pairs)
-    data = {"updated": today, "polls": slim_polls(polls), "avg": avg, "sim": sim, "trend": trend, "weekly": weekly, "markets": markets}
+    data = {"updated": today, "polls": slim_polls(polls), "avg": avg, "sim": sim, "trend": trend, "weekly": weekly, "markets": markets, "pairs": pairs}
     problems = validate(data, previous, win_sum)
     if problems:
         print("VALIDATION FAILED, nothing was written:", *problems, sep="\n  - ", file=sys.stderr)

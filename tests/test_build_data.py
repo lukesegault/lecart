@@ -186,6 +186,7 @@ def test_successful_run_writes_everything_and_is_idempotent(sandbox, monkeypatch
     b.run()
     d = json.loads((root / "data.json").read_text(encoding="utf-8"))
     assert d["updated"] == b.datetime.date.today().isoformat() and d["markets"]["volume"]["win"] == 123456
+    assert d["pairs"] == PAIRS   # written verbatim by run(), same as pairs_of() computes
     assert f'name="data-version" content="{d["updated"]}"' in (root / "index.html").read_text(encoding="utf-8")
     rows = (root / "data/market_history.csv").read_text(encoding="utf-8").splitlines()
     b.run()   # a second run the same day does not duplicate that day's history rows

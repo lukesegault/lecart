@@ -6,5 +6,8 @@ symbols ● and ◆ fall back to a system font, as they did with Google Fonts). 
 
 - Schibsted Grotesk (variable, 400 to 900): SIL Open Font License 1.1, https://fonts.google.com/specimen/Schibsted+Grotesk
 - Spectral (400, 500): SIL Open Font License 1.1, Production Type, https://fonts.google.com/specimen/Spectral
+- Archivo (variable, 400 to 900), Instrument Serif (400): SIL Open Font License 1.1, used only by
+  `apercu.html`, `candidat.html` and `second-tour.html`, https://fonts.google.com/specimen/Archivo,
+  https://fonts.google.com/specimen/Instrument+Serif
 
 Full licence text: https://openfontlicense.org
