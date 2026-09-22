@@ -1,0 +1,68 @@
+{
+ "low": {
+  "Marine Le Pen": {
+   "qual": 99.85,
+   "win": 86.9
+  },
+  "Édouard Philippe": {
+   "qual": 75.475,
+   "win": 13.025
+  },
+  "Jean-Luc Mélenchon": {
+   "qual": 29.859571,
+   "win": 0.110865
+  },
+  "Raphaël Glucksmann": {
+   "qual": 4.2,
+   "win": 0.0
+  },
+  "Bruno Retailleau": {
+   "qual": 0.275,
+   "win": 0.0
+  }
+ },
+ "mid": {
+  "Marine Le Pen": {
+   "qual": 96.975,
+   "win": 77.55
+  },
+  "Édouard Philippe": {
+   "qual": 65.925,
+   "win": 20.925
+  },
+  "Jean-Luc Mélenchon": {
+   "qual": 36.622321,
+   "win": 1.589061
+  },
+  "Raphaël Glucksmann": {
+   "qual": 10.15,
+   "win": 0.45
+  },
+  "Bruno Retailleau": {
+   "qual": 2.175,
+   "win": 0.0
+  }
+ },
+ "high": {
+  "Marine Le Pen": {
+   "qual": 91.075,
+   "win": 69.75
+  },
+  "Édouard Philippe": {
+   "qual": 60.2,
+   "win": 23.625
+  },
+  "Jean-Luc Mélenchon": {
+   "qual": 40.391722,
+   "win": 5.506282
+  },
+  "Raphaël Glucksmann": {
+   "qual": 15.575,
+   "win": 2.425
+  },
+  "Bruno Retailleau": {
+   "qual": 5.825,
+   "win": 0.475
+  }
+ }
+}

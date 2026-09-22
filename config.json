@@ -1,0 +1,10 @@
+{
+ "blackout": {
+  "timezone": "Europe/Paris",
+  "note": "French law (Act No. 77-808 of 19 July 1977) forbids publishing election poll results the day before and the day of each round. Periods are local wall-clock time in the given timezone, end exclusive. Read by js/pages-common.js (client) and scripts/build_data.py (server); keep both in step. Extra cron entries at these boundaries live in .github/workflows/update-data.yml.",
+  "periods": [
+   {"start": "2027-04-17T00:00", "end": "2027-04-18T20:00", "round": "Premier tour"},
+   {"start": "2027-05-01T00:00", "end": "2027-05-02T20:00", "round": "Second tour"}
+  ]
+ }
+}

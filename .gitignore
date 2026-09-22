@@ -1,0 +1,9 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+venv/
+.DS_Store
+Thumbs.db
+# temporary folder of scripts/build_data.py, normally removed at the end of a run
+tmp*/

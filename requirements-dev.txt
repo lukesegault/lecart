@@ -1,0 +1,3 @@
+# Local tooling on top of requirements.txt: the browser check (scripts/check_site.py).
+-r requirements.txt
+playwright==1.63.0
