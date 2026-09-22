@@ -53,14 +53,23 @@ def check_no_overflow(page, bad, label):
 def click_index(page, phone, bad):
     def check(cond, msg):
         if not cond: bad.append(msg)
-    check(page.locator("#ovBoard .sp-row").count() >= 15, "index: overview table not fully rendered")
+    check(page.locator("#ovBoard .sp-row").count() == 8, "index: overview table does not show the top 8 rows by default")
     for q in ("qual", "win"):
         for u in ("low", "mid", "high"):
             page.click(f'#ovQ [data-q="{q}"]'); page.click(f'#ovU [data-u="{u}"]')
-            check(page.locator("#ovBoard .sp-row").count() >= 15, f"index: board empty for {q}/{u}")
+            check(page.locator("#ovBoard .sp-row").count() == 8, f"index: board not capped at 8 rows for {q}/{u}")
+    check(not page.is_hidden("#ovMore"), "index: show-all toggle missing")
+    page.click("#ovMore")
+    check(page.locator("#ovBoard .sp-row").count() >= 15, "index: show-all toggle did not reveal every row")
+    page.click("#ovMore")
+    check(page.locator("#ovBoard .sp-row").count() == 8, "index: show-fewer toggle did not collapse back to 8")
+    check(page.locator('[data-i="subA"] .lm').count() == 1 and page.locator('[data-i="subA"] .lp').count() == 1,
+          "index: table intro text lost its mint-mark/black-tick emphasis spans")
     for i in range(min(3, page.locator("#otCands button").count())):
         page.click(f"#otCands button >> nth={i}")
         check(page.locator(".sp-chart-box svg path").count() > 0, f"index: over-time chart empty for candidate {i}")
+        labels = page.locator(".sp-chart-box svg text", has_text="%").count()
+        check(labels >= 1, f"index: over-time chart has no direct end-of-line label for candidate {i}")
     for tf in ("1M", "3M", "6M", "ALL"):
         page.click(f'#otTf button[data-tf="{tf}"]')
     with page.expect_download(timeout=15000) as dl:
@@ -72,6 +81,7 @@ def click_index(page, phone, bad):
     check(page.locator('#spNav a[href="index.html"]').count() == 1, "index: nav missing Compare link")
     check(page.locator('#spNav a[href="second-tour.html"]').count() == 1, "index: nav missing Runoff link")
     check(page.get_attribute('#spNav a[href="index.html"]', "aria-current") == "page", "index: Compare nav item not marked current")
+    check("serif" in (page.eval_on_selector("#h-compare", "el => getComputedStyle(el).fontFamily") or "").lower(), "index: section h2 is not set in the serif face")
     if phone:
         page.click("#spMenuBtn"); check(page.get_attribute("#spMenuBtn", "aria-expanded") == "true", "index: menu did not open")
         page.click('#spNav a[href="second-tour.html"]')
@@ -145,6 +155,28 @@ def main():
             failures += problems
             if shown != expect: failures.append(f"stale notice {'shown' if shown else 'hidden'} with clock +{shift} days")
             ctx.close()
+        # election-silence period (config.json): ?blackout=1/0 forces the state for testing, on every page,
+        # at both viewports and in both languages; the real (non-blackout) date is checked once per page above,
+        # implicitly, since click_index/click_candidat/click_second_tour only pass with #mainContent visible.
+        pages = {"index.html": "#ovBoard .sp-row", "candidat.html?c=%C3%89douard%20Philippe": "#cdName", "second-tour.html": ".sp-pair-row"}
+        for vp, size in VIEWPORTS.items():
+            for lang in ("fr", "en"):
+                for url, ready in pages.items():
+                    for qs, expect_blackout in (("blackout=1", True), ("blackout=0", False)):
+                        ctx, page, problems = new_page(browser, base, size, lang)
+                        page.goto(base + url + ("&" if "?" in url else "?") + qs)
+                        page.click(f'[data-lang="{lang}"]')
+                        page.wait_for_timeout(400)   # no ready-selector wait: it never appears while blackout hides #mainContent
+                        notice_hidden = page.locator("#blackoutNotice").get_attribute("hidden") is not None
+                        main_hidden = page.locator("#mainContent").get_attribute("hidden") is not None
+                        label = f"{vp} {lang} {url}?{qs}"
+                        failures += [f"[blackout {label}] {p}" for p in problems]
+                        if main_hidden != expect_blackout: failures.append(f"[blackout {label}] #mainContent {'hidden' if main_hidden else 'shown'}, expected {'hidden' if expect_blackout else 'shown'} (blackout {'active' if expect_blackout else 'inactive'})")
+                        if notice_hidden == expect_blackout: failures.append(f"[blackout {label}] #blackoutNotice should be {'shown' if expect_blackout else 'hidden'} when blackout is {'active' if expect_blackout else 'inactive'}")
+                        if not expect_blackout: page.wait_for_selector(ready, timeout=5000)   # ?blackout=0: normal render still works
+                        else: check_no_overflow(page, failures, f"blackout {label}")
+                        ctx.close()
+        print("blackout mode: checked on all 3 pages, both viewports, both languages, ?blackout=1 and ?blackout=0")
         browser.close()
     srv.shutdown()
     if failures:

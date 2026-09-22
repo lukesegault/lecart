@@ -8,7 +8,8 @@
   const dvTs = d => Date.parse(d + "T00:00:00Z");
   const xml = v => String(v).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/"/g, "&quot;");
   const dvDate = (d, lang) => { const [yy, mm, dd] = d.split("-"); return (+dd) + " " + t("months")[+mm - 1] + " " + yy };
-  const dvSigned = (d, lang) => { const r = Math.round(d * 10) / 10, a = Math.abs(r).toFixed(1); return (r > 0 ? "+" : r < 0 ? "−" : "") + (lang === "fr" ? a.replace(".", ",") : a) + nb + "pts" };
+  // whole points, matching the headline sentence and the comparison board's gap column (Math.round, no decimal)
+  const dvSigned = d => { const r = Math.round(d); return (r > 0 ? "+" : r < 0 ? "−" : "") + Math.abs(r) + nb + "pts" };
   const dvLastIdx = a => { for (let i = a.length - 1; i >= 0; i--) if (a[i] != null) return i; return -1 };
   const pathOf = (s, x, y, gap) => { let d = "", prev = -1, last = null; s.forEach((v, i) => { if (v == null) return; d += (prev >= 0 && i - prev <= gap ? "L" : "M") + x(i).toFixed(1) + " " + y(v).toFixed(1) + " "; prev = i; last = i }); return { d, last } };
 
@@ -26,8 +27,10 @@
     const monthLab = (m, i) => { const [yy, mm] = m.split("-"); return t("months")[+mm - 1] + ((mm === "01" || i === 0) ? " " + yy.slice(2) : "") };
     if (days <= 45) weeks.forEach((w, i) => { const [, mm, dd] = w.split("-"); g += tick(x(i), (+dd) + " " + t("months")[+mm - 1]) });
     else { const d0 = new Date(t0); for (let k = 1; ; k++) { const dt = new Date(Date.UTC(d0.getUTCFullYear(), d0.getUTCMonth() + k, 1)); if (+dt > t1) break; const mo = dt.getUTCMonth() + 1; g += tick(px(+dt), (days <= 240 || mo % 2 === 1) ? monthLab(dt.getUTCFullYear() + "-" + String(mo).padStart(2, "0"), 1) : ""); } }
+    // the shaded gap only ever covers weeks that are genuinely consecutive (no bridging): both series must have a
+    // value in every week of the run, so the tint never implies data that isn't there
     const P = poll.map((v, i) => v == null || market[i] == null ? null : i).filter(i => i != null);
-    for (let k = 0; k < P.length;) { let e = k; while (e + 1 < P.length && P[e + 1] - P[e] <= 2) e++;
+    for (let k = 0; k < P.length;) { let e = k; while (e + 1 < P.length && P[e + 1] - P[e] <= 1) e++;
       if (e > k) { const fwd = [], back = []; for (let j = k; j <= e; j++) fwd.push(x(P[j]).toFixed(1) + " " + y(poll[P[j]]).toFixed(1));
         for (let i = P[e]; i >= P[k]; i--) if (market[i] != null) back.push(x(i).toFixed(1) + " " + y(market[i]).toFixed(1));
         if (back.length) g += `<path d="M${fwd.join(" L")} L${back.join(" L")} Z" fill="${col.fill}" stroke="none"/>`; }
@@ -36,6 +39,16 @@
     g += `<path d="${M.d}" fill="none" stroke="${col.market}" stroke-width="2.25" stroke-linejoin="round" stroke-linecap="round"/><path d="${Pp.d}" fill="none" stroke="${col.poll}" stroke-width="1.75" stroke-linejoin="round" stroke-linecap="round"/>`;
     if (M.last != null) { const cx = x(M.last), cy = y(market[M.last]); g += `<rect x="${cx - 4}" y="${cy - 4}" width="8" height="8" fill="${col.market}" stroke="${col.surface}" stroke-width="1.5" transform="rotate(45 ${cx} ${cy})"/>`; }
     poll.forEach((v, i) => { if (v != null && (i === Pp.last || (poll[i - 1] == null && poll[i + 1] == null))) g += `<rect x="${(x(i) - 2.5).toFixed(1)}" y="${(y(v) - 2.5).toFixed(1)}" width="5" height="5" fill="${col.poll}" stroke="${col.surface}" stroke-width="1.5"/>`; });
+    // direct labels at each line's end (name + latest value), instead of making the reader match colour to a legend;
+    // anchored to hug the point (extending left) unless there is clear room to the right, so the text never overflows
+    let ends = [];
+    if (M.last != null) ends.push({ x: x(M.last), y: y(market[M.last]), color: col.market, text: `${t("legMarket")} ${Lecart.pct(market[M.last])}` });
+    if (Pp.last != null) ends.push({ x: x(Pp.last), y: y(poll[Pp.last]), color: col.poll, text: `${t("legPolls")} ${Lecart.pct(poll[Pp.last])}` });
+    ends.sort((a, b) => a.y - b.y);
+    for (let i = 1; i < ends.length; i++) if (ends[i].y - ends[i - 1].y < 13) ends[i].y = ends[i - 1].y + 13;
+    ends.forEach(e => { const right = W - e.x > 90, tx = right ? e.x + 6 : e.x - 6;
+      // a halo (stroke drawn under the fill) keeps the label legible where it crosses the other line or the shaded gap
+      g += `<text x="${tx.toFixed(1)}" y="${(e.y + 3.5).toFixed(1)}" text-anchor="${right ? "start" : "end"}" font-size="10.5" font-weight="700" fill="${e.color}" stroke="${col.surface}" stroke-width="3" stroke-linejoin="round" paint-order="stroke fill">${xml(e.text)}</text>`; });
     if (interactive) g += `<line id="otGuide" y1="${mt}" y2="${H - mb}" stroke="${col.ink}" stroke-opacity=".35" visibility="hidden"/><g id="otDots"></g>`;
     (o.events || []).forEach((e, i) => { const tt = dvTs(e.date); if (tt < t0 || tt > t1) return; const xx = px(tt), cy = mt - 14;
       g += `<line x1="${xx}" x2="${xx}" y1="${cy + 8}" y2="${H - mb}" stroke="${col.orange}" stroke-dasharray="2 3" stroke-opacity=".6"/>` +
@@ -71,7 +84,7 @@
       const G = root._otGeo, m = D.market[idx], p = D.poll[idx], xx = G.x(idx);
       guide.setAttribute("x1", xx); guide.setAttribute("x2", xx); guide.setAttribute("visibility", "visible");
       dots.innerHTML = (m != null ? `<circle cx="${xx}" cy="${G.y(m)}" r="4.5" fill="var(--mint)" stroke="var(--surface)" stroke-width="2"/>` : "") + (p != null ? `<circle cx="${xx}" cy="${G.y(p)}" r="4.5" fill="var(--ink)" stroke="var(--surface)" stroke-width="2"/>` : "");
-      out.innerHTML = tf("dvAt", { w: dvDate(D.weeks[idx]), m: m == null ? "–" : Lecart.pct1(m), p: p == null ? t("dvNoPoll") : Lecart.pct1(p), g: m != null && p != null ? dvSigned(m - p, Lecart.lang) : "–" });
+      out.innerHTML = tf("dvAt", { w: dvDate(D.weeks[idx]), m: m == null ? "–" : Lecart.pct1(m), p: p == null ? t("dvNoPoll") : Lecart.pct1(p), g: m != null && p != null ? dvSigned(m - p) : "–" });
     }
 
     function eventNote(D) {
@@ -104,7 +117,7 @@
       const D = data();
       root.querySelector(".sp-chart-title").textContent = state.cand;
       const pill = root.querySelector(".sp-chart-pill");
-      if (D) { const gap = summary(D).gap; pill.hidden = gap == null; if (gap != null) { pill.textContent = t("gapCol") + " " + dvSigned(gap, Lecart.lang); pill.classList.toggle("neg", gap < 0) } }
+      if (D) { const gap = summary(D).gap; pill.hidden = gap == null; if (gap != null) { pill.textContent = t("gapCol") + " " + dvSigned(gap); pill.classList.toggle("neg", gap < 0) } }
       else pill.hidden = true;
       const cTabs = root.querySelector(".sp-chart-cands");
       cTabs.setAttribute("aria-label", t("dvCand"));
@@ -148,7 +161,7 @@
       const Dx = { weeks: WK.weeks.slice(a), poll: s.poll.slice(a), market: s.market.slice(a) };
       const chart = chartSvg({ W: cw - 24, H: ch, weeks: Dx.weeks, poll: Dx.poll, market: Dx.market, events: EVENTS, col: C, interactive: false, lang: Lecart.lang }).svg;
       const Z = summary(Dx), gap = Z.gap, cardY = 150, legY = cardY + ch + 24 + 28;
-      let pillSvg = ""; if (gap != null) { const txt = xml(t("gapCol") + " " + dvSigned(gap, Lecart.lang)), w = txt.length * 9.6 + 30, neg = gap < 0;
+      let pillSvg = ""; if (gap != null) { const txt = xml(t("gapCol") + " " + dvSigned(gap)), w = txt.length * 9.6 + 30, neg = gap < 0;
         pillSvg = `<rect x="${W - pad - w}" y="78" width="${w}" height="34" rx="0" fill="${neg ? "rgba(17,20,24,.08)" : C.fill}"/><text x="${W - pad - w / 2}" y="100" text-anchor="middle" font-size="17" font-weight="700" fill="${neg ? C.ink : "#0B7A5F"}">${txt}</text>`; }
       const legend = `<rect x="${pad}" y="${legY - 12}" width="18" height="8" fill="${C.market}" transform="rotate(45 ${pad + 9} ${legY - 8})"/><text x="${pad + 26}" y="${legY}" font-size="13" fill="${C.muted}">${xml(t("dvLegM"))}</text>` +
         `<rect x="${pad + 260}" y="${legY - 13}" width="10" height="10" fill="${C.poll}"/><text x="${pad + 278}" y="${legY}" font-size="13" fill="${C.muted}">${xml(t("dvLegP"))}</text>` +

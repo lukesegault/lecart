@@ -20,7 +20,12 @@ Serif, self-hosted in `fonts/`; square corners, hairline rules): `css/pages.css`
   `referenceCandidate()` in `js/second-tour.js`, currently always Marine Le Pen) is anchored on the right in
   every row so the table doesn't flip sides; the last two columns are always the *other* candidate's
   (the challenger's) simulated/market win chance.
-- `js/pages-common.js` (`Lecart` global): language, `data.json`/i18n fetch (`?v=<meta data-version>` cache-busting), figure filling, nav/footer/opt-out wiring, shared formatting (`pct` whole numbers, `pct1` one decimal, both with French comma/nbsp-% rules). `js/over-time-chart.js` (`Lecart.mountOverTimeChart`/`exportOverTimeChart`): the market-vs-poll-implied-win-probability chart shared by index.html and candidat.html (0-100 fixed axis, 1M/3M/6M/All, PNG export as a self-contained SVG with embedded fonts). `js/index.js`, `js/candidat.js`, `js/second-tour.js`: one per page, no simulation.
+- Comparison table (`#ovBoard` in index.html): the mint mark is the market value, the black tick the poll value
+  (`subA` describes exactly this; keep it in step if the visual encoding changes). Shows the top 8 rows by
+  default, with an `#ovMore` "show all" toggle (`ovMore`/`ovLess` i18n keys); `js/index.js`'s `SHOWN` constant.
+- `js/pages-common.js` (`Lecart` global): language, `data.json`/i18n fetch (`?v=<meta data-version>` cache-busting), figure filling, nav/footer/opt-out wiring, shared formatting (`pct` whole numbers, `pct1` one decimal, both with French comma/nbsp-% rules), `checkBlackout()`/`paintBlackout()` (see Constraints). `js/over-time-chart.js` (`Lecart.mountOverTimeChart`/`exportOverTimeChart`): the market-vs-poll-implied-win-probability chart shared by index.html and candidat.html (0-100 fixed axis, 1M/3M/6M/All, direct end-of-line labels with a white halo, gap shading only across genuinely consecutive weeks, PNG export as a self-contained SVG with embedded fonts). `js/index.js`, `js/candidat.js`, `js/second-tour.js`: one per page, no simulation.
+- Top bar (`.sp-bar`, all three pages): under 760px the nav collapses into `#spMenuBtn`'s menu; under 400px the
+  brand's tagline (`.sp-brand span`) also hides, keeping the brand and FR/EN buttons visible without crowding.
 - `data.json` (minified, written by the pipeline only): `updated`, `polls` (fields the table shows), `avg`,
   `sim` (win/qual per candidate for low/mid/high uncertainty), `trend`, `weekly` (poll-vs-market win
   probability by week, `WEEKLY_CANDIDATES` = the same 7 as `TREND_CANDIDATES`), `pairs` (head-to-head poll
@@ -47,8 +52,15 @@ Serif, self-hosted in `fonts/`; square corners, hairline rules): `css/pages.css`
 ## Constraints (important)
 - Never link to Polymarket or encourage betting: it is not authorised in France. Show prices as data only.
 - Poll disclosure: keep the table of polls with institute, sponsor, fieldwork dates and sample size.
-- French poll law: publication of polls is prohibited the day before and the day of each round.
-  Before April 2027, add a blackout switch that hides poll-derived figures during those windows.
+- French poll law (Act No. 77-808 of 19 July 1977): publication of polls is prohibited the day before and the day
+  of each round. **Implemented**: `config.json` (`blackout.periods`, local time in `blackout.timezone`) lists the
+  windows; `Lecart.checkBlackout()`/`paintBlackout()` in `js/pages-common.js` hide `#mainContent` and show
+  `#blackoutNotice` on all three pages (checked once per load; `?blackout=1`/`0` in the URL forces it for testing).
+  `scripts/build_data.py`'s `in_blackout()`/`render_index()` mirror this server-side for index.html's static
+  layer and meta tags (`write_blackout_image()` for `og-image.png`), so a crawler that never runs JS also gets the
+  notice, not the figures. Extra `schedule.cron` entries in `.github/workflows/update-data.yml` fire right at each
+  boundary. Update `config.json` for any future election; keep its periods in step with the client and server copy
+  (there is only one file, both read it) and add matching cron entries for the new dates.
 - Every user-facing string must exist in both FR and EN (`i18n/fr.json` and `i18n/en.json`).
 - Writing style for page copy: no em-dashes.
 - Keep it dependency-free and fast; no frameworks unless there is a clear need. The page has no runtime dependency; Python dependencies are pinned in `requirements.txt`.

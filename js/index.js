@@ -5,8 +5,23 @@
   catch (e) { document.getElementById("ovBoard").innerHTML = "<p style=\"padding:16px\">Data could not be loaded. / Les données n'ont pas pu être chargées.</p>"; return; }
   try { EVENTS = await get("data/events.json"); } catch (e) {}
   const MARKET = DATA.markets.candidates;
-  const state = { q: "qual", u: "mid" };
+  const state = { q: "qual", u: "mid", all: false };
   const WK_NAMES = Object.keys(DATA.weekly ? DATA.weekly.series : {});
+  const SHOWN = 8;
+
+  // Election-silence period (see config.json): no poll-derived chances or market prices are rendered at all, only
+  // the legal notice. Checked once at load; ?blackout=1/0 in the URL overrides the real date for testing.
+  const blackout = await Lecart.checkBlackout();
+  Lecart.paintBlackout(blackout);
+  if (blackout) {
+    document.title = Lecart.lang === "fr" ? "L'Écart · Publication suspendue" : "L'Écart · Publication suspended";
+    paintNav("home");
+    window.addEventListener("lecart-lang-change", () => {
+      document.title = Lecart.lang === "fr" ? "L'Écart · Publication suspendue" : "L'Écart · Publication suspended";
+      paintNav("home");
+    });
+    return;
+  }
 
   function headline() {
     const S = DATA.sim.mid;
@@ -42,9 +57,9 @@
   }
 
   function renderBoard() {
-    const R = rows();
+    const R = rows(), shown = state.all ? R : R.slice(0, SHOWN);
     let h = "";
-    R.forEach(r => {
+    shown.forEach(r => {
       const sub = r.avg != null ? tf("inPolls", { a: Lecart.pct1(r.avg), n: r.n }) : t("notPolled");
       const none = r.poll == null;
       const lo = none ? 0 : Math.min(r.poll, r.market), hi = none ? 0 : Math.max(r.poll, r.market);
@@ -59,6 +74,9 @@
         `<span class="tick-m" style="left:${r.market}%"></span></span></a>`;
     });
     document.getElementById("ovBoard").innerHTML = h;
+    const more = document.getElementById("ovMore");
+    more.hidden = R.length <= SHOWN;
+    if (!more.hidden) more.textContent = state.all ? t("ovLess") : tf("ovMore", { n: R.length });
   }
 
   function table() {
@@ -91,6 +109,9 @@
     document.querySelectorAll("#ovU [data-u]").forEach(x => x.setAttribute("aria-pressed", x === b));
     renderBoard();
   }));
+  document.getElementById("ovMore").addEventListener("click", () => {
+    Lecart.track("ov-more"); state.all = !state.all; renderBoard();
+  });
   window.addEventListener("lecart-lang-change", () => {
     renderStatic(); renderBoard(); table(); paintNav("home", Lecart.figures(DATA));
     const root = document.getElementById("otChart"); if (root._render) root._render();

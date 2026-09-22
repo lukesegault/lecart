@@ -1,3 +1,5 @@
 # Runtime and test dependencies of the daily pipeline (scripts/build_data.py, tests/). Pinned so a runner never picks up a new release unseen.
 matplotlib==3.11.2
 pytest==9.1.1
+# zoneinfo (stdlib) needs this on platforms with no system tz database, e.g. Windows; harmless where one exists (Linux runners).
+tzdata==2026.4

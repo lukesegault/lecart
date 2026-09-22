@@ -3,6 +3,21 @@
   let DATA;
   try { [DATA] = await Promise.all([get("data.json"), loadLang(Lecart.lang)]); }
   catch (e) { document.getElementById("rtBoard").innerHTML = "<p style=\"padding:16px\">Data could not be loaded. / Les données n'ont pas pu être chargées.</p>"; return; }
+
+  // Election-silence period (see config.json): no poll-derived chances or market prices are rendered at all, only
+  // the legal notice. Checked once at load; ?blackout=1/0 in the URL overrides the real date for testing.
+  const blackout = await Lecart.checkBlackout();
+  Lecart.paintBlackout(blackout);
+  if (blackout) {
+    document.title = Lecart.lang === "fr" ? "L'Écart · Publication suspendue" : "L'Écart · Publication suspended";
+    paintNav("second-tour");
+    window.addEventListener("lecart-lang-change", () => {
+      document.title = Lecart.lang === "fr" ? "L'Écart · Publication suspendue" : "L'Écart · Publication suspended";
+      paintNav("second-tour");
+    });
+    return;
+  }
+
   const MARKET = DATA.markets.candidates;
   const num = x => Lecart.lang === "fr" ? x.toFixed(1).replace(".", ",") : x.toFixed(1);
 

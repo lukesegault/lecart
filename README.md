@@ -27,6 +27,7 @@ Three pages, sharp/mint design (Archivo + Instrument Serif):
 | `i18n/fr.json`, `i18n/en.json` | Every user-facing string. `{{name}}` slots are figures filled from data (dates, counts, volumes); `{name}` slots are filled by `Lecart.tf()`. |
 | `data.json` | Everything the pages display, minified. Written by the pipeline. |
 | `data/market_history.csv`, `data/polls_average.csv` | Downloadable data (linked from the About section). `data/events.json` lists the events marked on the time charts. |
+| `config.json` | Election-silence periods (see below). Read by both `js/pages-common.js` and `scripts/build_data.py`. |
 | `scripts/build_data.py` | The daily pipeline. `scripts/backfill_history.py` is the one-off that rebuilt the market history. |
 | `scripts/check_site.py` | Browser check (see below). `tests/` holds the pytest suite. |
 | `fonts/` | Self-hosted Schibsted Grotesk/Spectral (legal pages) and Archivo/Instrument Serif (the three pages). |
@@ -61,13 +62,20 @@ python scripts/build_data.py --reuse-markets    # where Polymarket is blocked (e
 
 If `data.json` is more than two days old, the page shows a discreet notice that the data may be stale.
 
+`config.json` lists the election-silence periods (French Act No. 77-808 of 19 July 1977: no poll publication the
+day before or the day of each round). During one of them, all three pages show a legal notice instead of any
+poll-derived chance or market price; `Lecart.checkBlackout()` in `js/pages-common.js` checks the current time
+against it client-side, and `scripts/build_data.py`'s `in_blackout()` mirrors that server-side for index.html's
+crawler-visible layer and `og-image.png`. Append `?blackout=1` (or `?blackout=0` to force it off) to any page's URL
+to preview the notice without waiting for a real period.
+
 ## Tests and checks
 
 ```bash
-python -m pytest -q                      # simulation reference values, validation, parsing, retries, all-or-nothing run
+python -m pytest -q                      # simulation reference values, validation, parsing, retries, all-or-nothing run, blackout periods
 pip install -r requirements-dev.txt
 python -m playwright install chromium
-python scripts/check_site.py             # loads all three pages, clicks every control, FR/EN, 1280/390 px, light/dark, fails on console errors
+python scripts/check_site.py             # loads all three pages, clicks every control, FR/EN, 1280/390 px, light/dark, blackout mode, fails on console errors
 ```
 
 `check_site.py` answers the analytics requests locally, so a check run is not counted. The simulation reference
@@ -77,4 +85,6 @@ python scripts/check_site.py             # loads all three pages, clicks every c
 
 - Never link to Polymarket or encourage betting (not authorised in France): prices are data.
 - Every user-facing string exists in FR and EN. No em-dashes in page copy.
-- French poll law: polls may not be published the day before and the day of each round; a blackout switch is planned before April 2027.
+- French poll law: polls may not be published the day before and the day of each round; enforced by the blackout
+  switch above (`config.json`). Add a new election's periods there (and matching cron entries in
+  `.github/workflows/update-data.yml`) well ahead of time.

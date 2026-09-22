@@ -5,7 +5,8 @@
 3. Runs the poll-to-probability simulation for every view of the page and writes data.json, plus the CSV downloads
    (data/market_history.csv gets today's prices, data/polls_average.csv).
 4. Writes the static French text, meta/Open Graph tags and og-image.png so crawlers and link
-   previews see content without running JS (index.html, between the STATIC and META markers).
+   previews see content without running JS (index.html, between the STATIC and META markers). During an
+   election-silence period (config.json, see in_blackout()) this static layer shows the legal notice instead.
 
 All-or-nothing: everything is built in memory and in a temporary folder, checked by validate(), and only then moved over
 the real files. Any failure (network, parsing, validation) ends the run with a non-zero exit code and leaves yesterday's
@@ -13,9 +14,10 @@ files untouched. Polymarket is blocked from some countries: use --reuse-markets 
 
 Run `python scripts/build_data.py`; the tests are in tests/.
 """
-import argparse, csv, io, json, datetime, math, os, pathlib, re, shutil, sys, tempfile, time, urllib.error, urllib.request
+import argparse, csv, io, json, datetime, math, os, pathlib, re, shutil, sys, tempfile, textwrap, time, urllib.error, urllib.request
 from collections import defaultdict
 from statistics import mean
+from zoneinfo import ZoneInfo
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 POLLS_URL = "https://raw.githubusercontent.com/MieuxVoter/presidentielle2027/main/presidentielle2027.csv"
@@ -29,6 +31,7 @@ INDEX = ROOT / "index.html"
 CANDIDAT = ROOT / "candidat.html"
 SECOND_TOUR = ROOT / "second-tour.html"
 OG_IMAGE = ROOT / "og-image.png"
+CONFIG = ROOT / "config.json"
 SIM_RUNS = 20000
 # polling-error levels of the page's "Poll uncertainty" control: sd of a first-round score = base + k * score, sd of the runoff share = run
 LEVELS = {"low": {"base": 1, "k": 0.12, "run": 3.5}, "mid": {"base": 1.5, "k": 0.2, "run": 6}, "high": {"base": 2, "k": 0.3, "run": 9}}
@@ -215,6 +218,29 @@ def validate(data, previous, win_sum):
     if not data["polls"]: bad.append("no poll in the window")
     return bad
 
+# ---- Election-silence period (French Act No. 77-808 of 19 July 1977: no poll publication the day before or the day
+# of a round) ------------------------------------------------------------------------------------------------------
+# config.json is the single source of truth, read here and by js/pages-common.js's checkBlackout(): keep both in step.
+
+def load_config():
+    if not CONFIG.exists(): return {"blackout": {"timezone": "Europe/Paris", "periods": []}}
+    return json.loads(CONFIG.read_text(encoding="utf-8"))
+
+def blackout_periods_utc(config):
+    cfg = config.get("blackout", {})
+    tz = ZoneInfo(cfg.get("timezone", "Europe/Paris"))
+    periods = []
+    for p in cfg.get("periods", []):
+        start = datetime.datetime.fromisoformat(p["start"]).replace(tzinfo=tz).astimezone(datetime.timezone.utc)
+        end = datetime.datetime.fromisoformat(p["end"]).replace(tzinfo=tz).astimezone(datetime.timezone.utc)
+        periods.append((start, end))
+    return periods
+
+def in_blackout(config, now=None):
+    """Whether `now` (UTC, defaults to the current instant) falls inside one of config.json's blackout periods."""
+    now = now or datetime.datetime.now(datetime.timezone.utc)
+    return any(start <= now < end for start, end in blackout_periods_utc(config))
+
 def _i32(x):
     x &= 0xFFFFFFFF
     return x - (1 << 32) if x & 0x80000000 else x
@@ -336,19 +362,36 @@ def fr_headline_sentence(fr, hl):
     if re.search(r"\{\w+\}", sentence): raise ValueError("gapUp/gapDown use placeholders other than {s}, {v}, {d}")
     return sentence
 
-def static_html(region, fr, hl):
-    """Fill every data-i element and the crawler-visible headline (js/index.js computes the same sentence at runtime)."""
+def toggle_blackout_markup(region, blackout):
+    """Swap which of #blackoutNotice/#mainContent carries the `hidden` attribute, so a crawler that never runs JS
+    still sees the legal notice (not the figures) during an election-silence period. A no-op outside one."""
+    if not blackout: return region
+    subs = [('<div id="blackoutNotice" class="sp-blackout" hidden>', '<div id="blackoutNotice" class="sp-blackout">'),
+            ('<div id="mainContent">', '<div id="mainContent" hidden>')]
+    for old, new in subs:
+        if region.count(old) != 1: raise ValueError(f"expected exactly one {old!r} in index.html")
+        region = region.replace(old, new, 1)
+    return region
+
+def static_html(region, fr, hl, blackout=False):
+    """Fill every data-i element and the crawler-visible headline (js/index.js computes the same sentence at runtime).
+    During an election-silence period (see in_blackout()), the headline becomes the legal notice instead, and
+    toggle_blackout_markup() (called by render_index()) swaps which block is visible."""
     keys = set(re.findall(r'\bdata-i="(\w+)"', region))
     if keys - set(fr): raise KeyError(f"no FR string for data-i keys: {sorted(keys - set(fr))}")
     region = re.sub(r'(<(\w+)\b[^>]*\bdata-i="(\w+)"[^>]*>)(.*?)(</\2>)',
                     lambda m: m.group(1) + fr[m.group(3)] + m.group(5), region, flags=re.S)
-    return fill(region, r'(<h1 class="sp-h1" id="siteH1">)(.*?)(</h1>)', fr_headline_sentence(fr, hl))
+    headline_text = fr["blackoutTitle"] if blackout else fr_headline_sentence(fr, hl)
+    return fill(region, r'(<h1 class="sp-h1" id="siteH1">)(.*?)(</h1>)', headline_text)
 
-def meta_html(page, fr, hl):
+def meta_html(page, fr, hl, blackout=False):
     title = re.search(r"<title>(.*?)</title>", page, re.S).group(1)
-    figs = f"{hl['name']}, {fr_pct(hl['poll'])} dans les sondages contre {fr_pct(hl['market'])} sur les marchés"
-    desc = f"{fr_headline_sentence(fr, hl)} {fr['dek']}"
-    alt = f"{figs} ({fr_date(hl['updated'])})"
+    if blackout:
+        desc = alt = fr["blackoutMeta"]
+    else:
+        figs = f"{hl['name']}, {fr_pct(hl['poll'])} dans les sondages contre {fr_pct(hl['market'])} sur les marchés"
+        desc = f"{fr_headline_sentence(fr, hl)} {fr['dek']}"
+        alt = f"{figs} ({fr_date(hl['updated'])})"
     img = SITE_URL + OG_IMAGE.name
     tags = [
         ("name", "description", desc),
@@ -368,14 +411,14 @@ def between(page, start, end, transform):
     if len(pat.findall(page)) != 1: raise ValueError(f"need exactly one {start} ... {end} pair in index.html")
     return pat.sub(lambda m: m.group(1) + transform(m.group(2)) + m.group(3), page)
 
-def render_index(hl):
+def render_index(hl, fr, blackout=False):
     """index.html with the static French layer and the meta tags refreshed."""
     raw = INDEX.read_bytes().decode("utf-8")
     eol = "\r\n" if "\r\n" in raw else "\n"   # keep the file's own line endings (CRLF checkout on Windows)
     page = raw.replace("\r\n", "\n")
-    fr = {k: fill_figures(v, hl["figs"]) for k, v in french_strings().items() if isinstance(v, str)}
-    page = between(page, "<!--STATIC-START-->", "<!--STATIC-END-->", lambda region: static_html(region, fr, hl))
-    page = between(page, "<!--META-START-->", "<!--META-END-->", lambda _: "\n" + meta_html(page, fr, hl) + "\n")
+    page = between(page, "<!--STATIC-START-->", "<!--STATIC-END-->",
+                   lambda region: toggle_blackout_markup(static_html(region, fr, hl, blackout), blackout))
+    page = between(page, "<!--META-START-->", "<!--META-END-->", lambda _: "\n" + meta_html(page, fr, hl, blackout) + "\n")
     return page.replace("\n", eol)
 
 def write_og_image(hl, path):
@@ -414,6 +457,24 @@ def write_og_image(hl, path):
     fig.savefig(path, format="png", dpi=100, facecolor=BG, metadata={"Software": None})
     plt.close(fig)
 
+def write_blackout_image(fr, path):
+    """og-image.png during an election-silence period: the legal notice, no candidate figures. Same palette as
+    write_og_image() (kept separate: this card has no chart, so it doesn't share layout with it)."""
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    BG, INK, MUTED, ORANGE = "#EEF0F4", "#161922", "#5A6071", "#A15F00"
+    fig = plt.figure(figsize=(12, 6.3), dpi=100, facecolor=BG)
+    ax = fig.add_axes([0, 0, 1, 1]); ax.set_xlim(0, 1200); ax.set_ylim(630, 0); ax.axis("off")
+    ax.plot(80, 72, "o", ms=14, color="#3446A6"); ax.plot(106, 72, "D", ms=11, color="#0B8474")
+    ax.text(132, 72, "L'Écart", fontsize=30, fontweight="bold", color=INK, va="center")
+    ax.plot([80, 1120], [140, 140], color=ORANGE, lw=5, solid_capstyle="round")
+    ax.text(80, 236, fr["blackoutTitle"], fontsize=44, fontweight="bold", color=INK, va="center")
+    body = re.sub(r"<[^>]+>", "", fr["blackoutMeta"])   # plain text: this card has no link to follow
+    ax.text(80, 340, "\n".join(textwrap.wrap(body, 58)), fontsize=21, color=MUTED, va="center", linespacing=1.7)
+    fig.savefig(path, format="png", dpi=100, facecolor=BG, metadata={"Software": None})
+    plt.close(fig)
+
 def restamp_version(path, updated):
     """candidat.html and second-tour.html carry no STATIC/META markers (generic, parameterised pages): only their
     <meta name="data-version"> needs a daily refresh, so js/pages-common.js can cache-bust data.json and i18n/*.json."""
@@ -427,7 +488,10 @@ def build_outputs(data, history_rows, history, tmp):
     """Everything main() publishes, written into the temporary folder `tmp`: {final path: temporary path}."""
     hl = headline(data)
     hl["figs"] = fr_figures(data)
-    print(f"Headline: {hl['name']}, polls {hl['poll']:.1f}%, markets {hl['market']:.1f}%")
+    fr = {k: fill_figures(v, hl["figs"]) for k, v in french_strings().items() if isinstance(v, str)}
+    blackout = in_blackout(load_config())
+    print(f"Headline: {hl['name']}, polls {hl['poll']:.1f}%, markets {hl['market']:.1f}%"
+          + (" -- election-silence period active: the homepage shows the legal notice instead" if blackout else ""))
     out = {}
     def stage(final, text=None, writer=None):
         t = pathlib.Path(tmp) / str(len(out))
@@ -437,10 +501,10 @@ def build_outputs(data, history_rows, history, tmp):
     stage(ROOT / "data.json", json.dumps(data, ensure_ascii=False, separators=(",", ":")))
     stage(HISTORY, csv_text(["date", "candidate", "win", "qual"], [[r["date"], r["candidate"], r["win"], r["qual"]] for r in history_rows], "\r\n"))
     stage(POLLS_AVERAGE, csv_text(["week", "candidate", "average", "scenarios"], polls_average_rows(history)))
-    stage(INDEX, render_index(hl))
+    stage(INDEX, render_index(hl, fr, blackout))
     stage(CANDIDAT, restamp_version(CANDIDAT, hl["updated"]))
     stage(SECOND_TOUR, restamp_version(SECOND_TOUR, hl["updated"]))
-    stage(OG_IMAGE, writer=lambda t: write_og_image(hl, t))
+    stage(OG_IMAGE, writer=lambda t: write_blackout_image(fr, t) if blackout else write_og_image(hl, t))
     return out
 
 def run(reuse_markets=False):

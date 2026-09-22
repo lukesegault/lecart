@@ -4,6 +4,21 @@
   try { [DATA] = await Promise.all([get("data.json"), loadLang(Lecart.lang)]); }
   catch (e) { document.getElementById("cdName").textContent = "Data could not be loaded. / Les données n'ont pas pu être chargées."; return; }
   try { EVENTS = await get("data/events.json"); EVENTS.sort((a, b) => a.date < b.date ? -1 : 1); } catch (e) {}
+
+  // Election-silence period (see config.json): no poll-derived chances or market prices are rendered at all, only
+  // the legal notice. Checked once at load; ?blackout=1/0 in the URL overrides the real date for testing.
+  const blackout = await Lecart.checkBlackout();
+  Lecart.paintBlackout(blackout);
+  if (blackout) {
+    document.title = Lecart.lang === "fr" ? "L'Écart · Publication suspendue" : "L'Écart · Publication suspended";
+    paintNav("home");
+    window.addEventListener("lecart-lang-change", () => {
+      document.title = Lecart.lang === "fr" ? "L'Écart · Publication suspendue" : "L'Écart · Publication suspended";
+      paintNav("home");
+    });
+    return;
+  }
+
   const MARKET = DATA.markets.candidates;
   const state = { q: "qual", u: "mid" };
   const num = x => Lecart.lang === "fr" ? x.toFixed(1).replace(".", ",") : x.toFixed(1);
@@ -105,7 +120,8 @@
       document.getElementById("cdNote").textContent = tf(ec >= 0 ? "gapUp" : "gapDown", { s: Lecart.surname(NAME), v: verb, d: Math.abs(Math.round(ec)) });
     }
     document.getElementById("cdGapLabel").textContent = t(state.q === "qual" ? "qual" : "win");
-    document.getElementById("cdGapVal").textContent = poll == null ? t("marketsOnly") : (market - poll >= 0 ? "+" : "−") + num(Math.abs(market - poll));
+    // whole points, matching the headline sentence and the over-time chart's gap badge
+    document.getElementById("cdGapVal").textContent = poll == null ? t("marketsOnly") : (market - poll >= 0 ? "+" : "−") + Math.round(Math.abs(market - poll));
     const bar = document.getElementById("cdGapbar");
     if (poll == null) {
       bar.querySelectorAll(".fill,.tick-p,.lbl.p").forEach(el => el.style.display = "none");

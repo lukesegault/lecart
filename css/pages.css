@@ -21,7 +21,7 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--mint);outline-offse
 .num{font-variant-numeric:tabular-nums}
 /* top bar: same brand mark as the rest of the site, sharp typography */
 .sp-bar{border-bottom:1px solid var(--rule)}
-.sp-bar-inner{position:relative;display:flex;align-items:center;justify-content:space-between;padding:16px 0;gap:16px}
+.sp-bar-inner{position:relative;display:flex;align-items:center;justify-content:space-between;padding-top:16px;padding-bottom:16px;gap:16px}
 .sp-brand{display:flex;align-items:baseline;gap:11px;text-decoration:none;color:var(--ink)}
 .sp-brand b{font:700 15px var(--sans);letter-spacing:.17em}
 .sp-brand span{font:400 10px var(--sans);letter-spacing:.15em;text-transform:uppercase;color:var(--muted)}
@@ -41,11 +41,19 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--mint);outline-offse
   .sp-nav a[aria-current="page"]{border-bottom-color:var(--rule2);border-left:3px solid var(--mint);padding-left:8px}
   .sp-menu-btn{display:inline-flex}
 }
+@media (max-width:399px){
+  .sp-brand span{display:none}
+  .sp-bar-inner{gap:10px}
+  .sp-lang{padding-left:10px;gap:7px}
+}
 .sp-kicker{margin:30px 0 0;font:500 10px var(--sans);letter-spacing:.18em;text-transform:uppercase;color:var(--muted)}
 .sp-h1{margin:14px 0 0;max-width:800px;font:400 clamp(28px,4.4vw,44px)/1.1 var(--serif);color:var(--ink);text-wrap:pretty}
 .sp-dek{margin:18px 0 0;max-width:640px;font:400 15px/1.6 var(--sans);color:var(--muted2);text-wrap:pretty}
-.sp-dek .lp{color:var(--ink);font-weight:600;white-space:nowrap}
-.sp-dek .lm{color:var(--mint-text);font-weight:600;white-space:nowrap}
+.lp{color:var(--ink);font-weight:600;white-space:nowrap}
+.lm{color:var(--mint-text);font-weight:600;white-space:nowrap}
+.sp-blackout{padding:40px 0 6px}
+.sp-blackout-body{margin-top:18px;max-width:640px;padding:2px 0 2px 16px;border-left:3px solid var(--orange);font:400 15px/1.6 var(--sans);color:var(--muted2)}
+.sp-blackout-body a{color:var(--mint-text)}
 .sp-meta{display:flex;flex-wrap:wrap;justify-content:space-between;gap:4px 18px;align-items:baseline;margin:26px 0 0;padding:9px 0;border-top:1px solid var(--rule);border-bottom:1px solid var(--rule);font:400 11px var(--sans);color:var(--muted)}
 .sp-ctl-group{display:flex;flex-direction:column;gap:9px}
 .sp-ctl-label{font:500 10px var(--sans);letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
@@ -96,6 +104,8 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--mint);outline-offse
 .sp-bartrack .fill{position:absolute;top:3px;height:10px;background:var(--mint-tint)}
 .sp-bartrack .tick-p{position:absolute;top:1px;width:2px;height:14px;background:var(--ink);transform:translateX(-50%)}
 .sp-bartrack .tick-m{position:absolute;top:0;width:7px;height:16px;background:var(--mint);transform:translateX(-50%)}
+.sp-more{display:inline-block;margin:16px 0 0;font:600 12.5px var(--sans);color:var(--ink);background:none;border:1.5px solid var(--rule);padding:8px 16px;cursor:pointer}
+.sp-more:hover{border-color:var(--mint);color:var(--mint-text)}
 .sp-foot{display:flex;align-items:flex-start;justify-content:space-between;gap:32px;flex-wrap:wrap;margin:22px 0 0}
 .sp-footnote{margin:0;max-width:600px;font:400 11.5px/1.6 var(--sans);color:var(--muted)}
 .sp-legend{display:flex;gap:18px;font:500 10.5px var(--sans);color:var(--muted2);white-space:nowrap}
@@ -169,7 +179,7 @@ footer.sp-foot2 p{margin:0}
 footer.sp-foot2 .flinks{margin:10px 0 0}
 /* generic sections: method, about (index.html) */
 section{padding:44px 0 10px}
-section h2{font:800 clamp(22px,2.8vw,28px) var(--sans);letter-spacing:-.01em;margin:0 0 14px;color:var(--ink)}
+section h2{font:400 clamp(24px,3.2vw,32px)/1.15 var(--serif);letter-spacing:0;margin:0 0 14px;color:var(--ink)}
 .method{font-family:var(--serif);font-size:16.5px;line-height:1.65;max-width:660px;color:var(--ink)}
 .method p{margin:0 0 12px}
 .method strong{font-family:var(--sans)}

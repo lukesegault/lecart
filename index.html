@@ -17,13 +17,13 @@
 <meta property="og:image" content="https://lukesegault.github.io/lecart/og-image.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="Marine Le Pen, 85 % dans les sondages contre 38 % sur les marchés (21 septembre 2026)">
+<meta property="og:image:alt" content="Marine Le Pen, 85 % dans les sondages contre 38 % sur les marchés (22 septembre 2026)">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="L'Écart · Marchés vs sondages, présidentielle 2027">
 <meta name="twitter:description" content="Les marchés sont plus sceptiques que les sondages sur les chances de Le Pen de l'emporter, avec 48 points d'écart. Sondages et marchés prédictifs tentent tous deux de dire qui sera président de la République en 2027. Ils ne sont pas toujours d'accord. Cette page montre où, et de combien.">
 <meta name="twitter:image" content="https://lukesegault.github.io/lecart/og-image.png">
-<meta name="twitter:image:alt" content="Marine Le Pen, 85 % dans les sondages contre 38 % sur les marchés (21 septembre 2026)">
-<meta name="data-version" content="2026-09-21">
+<meta name="twitter:image:alt" content="Marine Le Pen, 85 % dans les sondages contre 38 % sur les marchés (22 septembre 2026)">
+<meta name="data-version" content="2026-09-22">
 <!--META-END-->
 <link rel="preload" href="fonts/archivo-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="fonts/fonts.css">
@@ -45,6 +45,12 @@
 </div></div>
 
 <div class="wrap">
+<div id="blackoutNotice" class="sp-blackout" hidden>
+  <p class="sp-kicker" data-i="blackoutKicker">Conformité légale</p>
+  <h1 class="sp-h1" data-i="blackoutTitle">Publication suspendue</h1>
+  <p class="sp-blackout-body" data-i="blackoutBody">La loi n° 77-808 du 19 juillet 1977 interdit la publication de sondages électoraux la veille et le jour de chaque tour de l'élection présidentielle. Les chances issues des sondages et les prix de marché sont donc masqués jusqu'à la fin de cette période. Voir les <a href="mentions-legales.html">mentions légales</a>.</p>
+</div>
+<div id="mainContent">
 <p class="sp-kicker" data-i="ctx">Présidentielle 2027</p>
 <h1 class="sp-h1" id="siteH1">Les marchés sont plus sceptiques que les sondages sur les chances de Le Pen de l'emporter, avec 48 points d'écart.</h1>
 <p class="sp-dek" data-i="dek">Sondages et marchés prédictifs tentent tous deux de dire qui sera président de la République en 2027. Ils ne sont pas toujours d'accord. Cette page montre où, et de combien.</p>
@@ -75,7 +81,7 @@
 
 <section aria-labelledby="h-compare" style="margin-top:40px">
   <h2 id="h-compare" data-i="h2a">Deux lectures de la même course</h2>
-  <p class="sp-footnote" style="max-width:640px;font-size:14px" data-i="subA">Chaque ligne montre les chances d'un candidat selon les <span class="lp">● sondages</span>, converties en probabilité par simulation, et selon les <span class="lm">◆ marchés</span>, lues dans les prix de Polymarket. La barre matérialise l'écart.</p>
+  <p class="sp-footnote" style="max-width:640px;font-size:14px" data-i="subA">Chaque ligne compare les chances d'un candidat : <span class="lm">la marque menthe</span> indique le marché, <span class="lp">le repère noir</span> les sondages, convertis en probabilité par simulation. La zone teintée entre les deux mesure l'écart.</p>
   <div class="sp-ctls">
     <div class="sp-ctl-group">
       <span class="sp-ctl-label" id="ov-q-label" data-i="chanceTo">Chances de</span>
@@ -101,6 +107,7 @@
     <span id="ovBarLabel"></span>
   </div>
   <div id="ovBoard" role="list" aria-live="polite"></div>
+  <button type="button" class="sp-more" id="ovMore" hidden></button>
   <div class="sp-foot">
     <p class="sp-footnote" data-i="ovFoot">Probabilités de sondage par simulation : 20 000 tirages, un sondage récent tiré au hasard, erreur croissant avec le score, vainqueur du second tour tiré des moyennes de duel. Prix affichés comme données, sans lien vers aucune plateforme.</p>
     <span class="sp-legend">
@@ -133,9 +140,10 @@
     </ul>
     <p class="fine" data-i="dlNote">Sondages : compilation MieuxVoter/presidentielle2027 (licence MIT). Prix : relevés publics, présentés comme de simples données.</p>
     <h3 data-i="citeT">Citer cette page</h3>
-    <p class="cite" data-i="cite">Segault, L. (2026). L'Écart : marchés et sondages, présidentielle 2027. https://lukesegault.github.io/lecart/ (mis à jour le 21 septembre 2026).</p>
+    <p class="cite" data-i="cite">Segault, L. (2026). L'Écart : marchés et sondages, présidentielle 2027. https://lukesegault.github.io/lecart/ (mis à jour le 22 septembre 2026).</p>
   </div>
 </section>
+</div>
 
 <footer class="sp-foot2"><div class="wrap">
   <p data-i="foot">L'Écart est un prototype indépendant, à visée de recherche et de débat. Ce n'est pas une prévision, il n'est affilié à aucun institut ni plateforme, et ne constitue pas une incitation à parier.</p>

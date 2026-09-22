@@ -56,5 +56,34 @@ const Lecart = (() => {
     loadLang(b.dataset.lang).then(() => { setLang(b.dataset.lang); window.dispatchEvent(new Event("lecart-lang-change")) });
   }));
 
-  return { get lang() { return lang }, T, t, tf, nb, get, loadLang, setLang, pct, pct1, surname, longDate, figures, fill, track, paintNav };
+  // Election-silence switch (French Act No. 77-808 of 19 July 1977): config.json lists the periods, in local wall-clock
+  // time for its timezone, when poll-derived chances and market prices must not be published. checkBlackout() compares
+  // "now" (converted to that timezone) against them; ?blackout=1/0 in the URL forces the state, for testing.
+  // scripts/build_data.py reads the same file to also swap index.html's server-rendered headline/meta during a blackout.
+  let blackoutConfig = null;
+  async function loadBlackoutConfig() {
+    if (!blackoutConfig) { try { blackoutConfig = await fetch("config.json").then(r => r.json()) } catch (e) { blackoutConfig = { blackout: { periods: [] } } } }
+    return blackoutConfig;
+  }
+  function parisStamp(ms, timezone) {
+    // "YYYY-MM-DDTHH:MM" in the given timezone: sortable, and directly comparable with config.json's period strings
+    const fmt = new Intl.DateTimeFormat("en-CA", { timeZone: timezone, hourCycle: "h23", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" });
+    const p = Object.fromEntries(fmt.formatToParts(new Date(ms)).map(x => [x.type, x.value]));
+    return `${p.year}-${p.month}-${p.day}T${p.hour}:${p.minute}`;
+  }
+  async function checkBlackout() {
+    const qs = new URLSearchParams(location.search);
+    if (qs.has("blackout")) return qs.get("blackout") !== "0";
+    const cfg = (await loadBlackoutConfig()).blackout || {};
+    const now = parisStamp(Date.now(), cfg.timezone || "Europe/Paris");
+    return (cfg.periods || []).some(p => now >= p.start && now < p.end);
+  }
+  function paintBlackout(active) {
+    const notice = document.getElementById("blackoutNotice"), main = document.getElementById("mainContent");
+    if (!notice || !main) return;
+    notice.hidden = !active;
+    main.hidden = active;
+  }
+
+  return { get lang() { return lang }, T, t, tf, nb, get, loadLang, setLang, pct, pct1, surname, longDate, figures, fill, track, paintNav, checkBlackout, paintBlackout };
 })();

@@ -2,6 +2,15 @@ name: Update data
 on:
   schedule:
     - cron: "0 5 * * *"   # every day, 05:00 UTC (07:00 Paris in summer)
+    # Extra runs right at each election-silence boundary in config.json (French Act No. 77-808 of 19 July 1977), so
+    # index.html's server-rendered headline/meta and og-image.png flip to and from the legal notice promptly, on top
+    # of the client-side check in js/pages-common.js (checkBlackout()) which is instant regardless of these runs.
+    # Cron has no year field, so these recur every year on the same day/month: harmless (a normal refresh) once 2027
+    # has passed. Update or remove them if config.json's periods change.
+    - cron: "5 22 16 4 *"   # 2027-04-17T00:00 Europe/Paris (blackout start, premier tour) = 2027-04-16T22:00 UTC, +5 min
+    - cron: "5 18 18 4 *"   # 2027-04-18T20:00 Europe/Paris (blackout end, premier tour) = 2027-04-18T18:00 UTC, +5 min
+    - cron: "5 22 30 4 *"   # 2027-05-01T00:00 Europe/Paris (blackout start, second tour) = 2027-04-30T22:00 UTC, +5 min
+    - cron: "5 18 2 5 *"    # 2027-05-02T20:00 Europe/Paris (blackout end, second tour) = 2027-05-02T18:00 UTC, +5 min
   workflow_dispatch:       # allows a manual run from the Actions tab
 permissions:
   contents: write

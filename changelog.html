@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Journal des modifications · L'Écart / Changelog · L'Écart</title>
 <meta name="description" content="Les évolutions notables de L'Écart. / Notable updates to L'Écart.">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://gc.zgo.at; style-src 'self'; style-src-attr 'unsafe-inline'; font-src 'self'; img-src 'self' data: https://vikander.goatcounter.com; connect-src 'self' https://vikander.goatcounter.com; object-src 'none'; base-uri 'self'; form-action 'none'">
 <link rel="stylesheet" href="fonts/fonts.css">
 <link rel="stylesheet" href="legal.css">
 <script src="analytics.js"></script>
@@ -19,6 +20,17 @@
 <main class="legal" id="fr" lang="fr">
   <h1>Journal des modifications</h1>
   <p class="lede">Les évolutions notables du site, de la plus récente à la plus ancienne. Les données sont actualisées chaque jour ; seules les évolutions de fond figurent ici.</p>
+  <p class="lede">À des fins de recherche académique uniquement. Sources : sondages MieuxVoter/presidentielle2027 (licence MIT) ; prix de marché Polymarket, présentés comme données.</p>
+
+  <h2>22 septembre 2026</h2>
+  <ul>
+    <li>Étiquettes directes au bout des deux courbes du graphique « dans le temps » (marché et sondages, avec leur dernière valeur) ; l'écart n'est plus teinté que sur les semaines où les deux séries existent réellement.</li>
+    <li>Titres de section en serif, comme le reste de la page, à la place de l'ancienne graisse grotesque.</li>
+    <li>Écart arrondi en points entiers partout, comme le titre ; texte d'introduction du tableau corrigé pour décrire la marque menthe (marché) et le repère noir (sondages) ; le tableau n'affiche plus que les 8 premiers candidats, avec un bouton « Afficher tous ».</li>
+    <li>Barre du haut réparée sous 400 px : la marque et les boutons FR/EN restent entièrement visibles.</li>
+    <li>Bloc statique, mention de recherche académique et lignes de sources ajoutés à la page candidat, second tour et à ce journal.</li>
+    <li>Interrupteur de silence électoral (<code>config.json</code>) : la page masque les chances issues des sondages et les prix de marché, et affiche un avis légal, pendant les périodes qui précèdent chaque tour, en application de la loi n° 77-808 du 19 juillet 1977.</li>
+  </ul>
 
   <h2>21 septembre 2026</h2>
   <ul>
@@ -39,6 +51,17 @@
 <main class="legal" id="en" lang="en">
   <h1>Changelog</h1>
   <p class="lede">Notable updates to the site, newest first. The data is refreshed every day; only substantive changes are listed here.</p>
+  <p class="lede">For academic research only. Sources: polls from MieuxVoter/presidentielle2027 (MIT licence); market prices from Polymarket, shown as data.</p>
+
+  <h2>22 September 2026</h2>
+  <ul>
+    <li>Direct labels at the end of both lines in the "over time" chart (market and polls, with their latest value); the shaded gap now only covers weeks where both series actually have data.</li>
+    <li>Section titles set in serif, matching the rest of the page, instead of the old heavy grotesk.</li>
+    <li>The gap is rounded to whole points everywhere, like the headline; the table's intro text was fixed to describe the mint mark (market) and black tick (polls); the table now shows the top 8 rows with a "show all" toggle.</li>
+    <li>Fixed the top bar under 400px: the brand and FR/EN buttons stay fully visible.</li>
+    <li>Added a static block, an academic-research notice and source lines to the candidate page, the runoff page and this changelog.</li>
+    <li>Election-silence switch (<code>config.json</code>): the page hides poll-derived chances and market prices, and shows a legal notice, during the periods before each round, per French Act No. 77-808 of 19 July 1977.</li>
+  </ul>
 
   <h2>21 September 2026</h2>
   <ul>

@@ -1,4 +1,4 @@
-import hashlib, json, pathlib, shutil, urllib.error
+import hashlib, json, pathlib, re, shutil, urllib.error
 
 import pytest
 
@@ -109,6 +109,86 @@ def test_parse_event_rejects_an_empty_response():
         b.parse_event([{"markets": [{"groupItemTitle": "X", "outcomePrices": "[]"}]}])
 
 
+# ---- election-silence period --------------------------------------------------------------
+
+CONFIG = {"blackout": {"timezone": "Europe/Paris", "periods": [
+    {"start": "2027-04-17T00:00", "end": "2027-04-18T20:00"}, {"start": "2027-05-01T00:00", "end": "2027-05-02T20:00"}]}}
+
+
+@pytest.mark.parametrize("iso,expect", [
+    ("2027-04-16T21:59:00+00:00", False),   # just before period 1 (Paris 00:00 = UTC 22:00, CEST)
+    ("2027-04-16T22:00:00+00:00", True),    # start, inclusive
+    ("2027-04-17T12:00:00+00:00", True),    # well inside
+    ("2027-04-18T17:59:00+00:00", True),    # just before period 1 end
+    ("2027-04-18T18:00:00+00:00", False),   # end, exclusive
+    ("2027-04-30T22:00:00+00:00", True),    # period 2 start
+    ("2027-05-02T18:00:00+00:00", False),   # period 2 end, exclusive
+    ("2026-09-22T12:00:00+00:00", False),   # today: nowhere near either period
+])
+def test_in_blackout_boundaries(iso, expect):
+    assert b.in_blackout(CONFIG, b.datetime.datetime.fromisoformat(iso)) is expect
+
+
+def test_in_blackout_with_no_configured_periods():
+    assert b.in_blackout({"blackout": {"periods": []}}) is False
+    assert b.in_blackout({}) is False
+
+
+def test_config_json_is_the_live_config():
+    """load_config() reads the real config.json (not a fixture): keep this in step with js/pages-common.js's copy."""
+    cfg = b.load_config()
+    assert cfg["blackout"]["timezone"] == "Europe/Paris"
+    assert len(cfg["blackout"]["periods"]) == 2
+    for p in cfg["blackout"]["periods"]: assert p["start"] < p["end"]
+
+
+def blackout_fr():
+    hl = {"name": "Marine Le Pen", "poll": 85.0, "market": 38.0, "updated": "2027-04-17", "figs": {"upd": "17 avril 2027", "year": "2027", "snap": "x", "n": "1", "from": "x", "to": "x"}}
+    fr = {k: b.fill_figures(v, hl["figs"]) for k, v in b.french_strings().items() if isinstance(v, str)}
+    return fr, hl
+
+
+def test_static_html_swaps_the_headline_for_the_legal_notice():
+    fr, hl = blackout_fr()
+    region = '<h1 class="sp-h1" id="siteH1">placeholder</h1><p data-i="dek">x</p>'
+    normal = b.static_html(region, fr, hl, blackout=False)
+    silent = b.static_html(region, fr, hl, blackout=True)
+    assert "Marine Le Pen" in normal or "Le Pen" in normal   # the real headline sentence names the candidate
+    assert fr["blackoutTitle"] in silent
+    assert "Le Pen" not in silent and "Marine" not in silent
+
+
+def test_meta_html_drops_the_figures_during_blackout():
+    fr, hl = blackout_fr()
+    page = "<title>L'Écart</title>"
+    normal = b.meta_html(page, fr, hl, blackout=False)
+    silent = b.meta_html(page, fr, hl, blackout=True)
+    assert "38" in normal or "85" in normal   # the real description carries the poll/market figures
+    assert "38" not in silent and "85" not in silent and "Le Pen" not in silent
+    assert fr["blackoutMeta"] in silent
+
+
+def test_toggle_blackout_markup_swaps_the_hidden_attribute():
+    region = '<div id="blackoutNotice" class="sp-blackout" hidden>x</div><div id="mainContent">y</div>'
+    assert b.toggle_blackout_markup(region, False) == region
+    silent = b.toggle_blackout_markup(region, True)
+    assert '<div id="blackoutNotice" class="sp-blackout">' in silent
+    assert '<div id="mainContent" hidden>' in silent
+
+
+def test_render_index_full_page_hides_the_candidate_during_blackout(sandbox):
+    # the headline and meta description are where a figure would otherwise leak; the poll table's fixed column
+    # headers ("Le Pen", "Philippe"...) are plain labels with no data next to them and are excluded from this check
+    fr, hl = blackout_fr()
+    page = b.render_index(hl, fr, blackout=True)
+    h1 = re.search(r'<h1 class="sp-h1" id="siteH1">(.*?)</h1>', page, re.S).group(1)
+    desc = re.search(r'<meta name="description" content="(.*?)">', page, re.S).group(1)
+    assert fr["blackoutTitle"] in h1 and "Le Pen" not in h1
+    assert fr["blackoutMeta"] in desc and "Le Pen" not in desc and "38" not in desc and "85" not in desc
+    assert 'id="blackoutNotice" class="sp-blackout">' in page   # visible (no `hidden`) even before JS runs
+    assert 'id="mainContent" hidden>' in page
+
+
 # ---- network ----------------------------------------------------------------------------
 
 class Resp:
@@ -193,3 +273,17 @@ def test_successful_run_writes_everything_and_is_idempotent(sandbox, monkeypatch
     rows = (root / "data/market_history.csv").read_text(encoding="utf-8").splitlines()
     b.run()   # a second run the same day does not duplicate that day's history rows
     assert (root / "data/market_history.csv").read_text(encoding="utf-8").splitlines() == rows
+
+
+def test_run_during_blackout_publishes_the_legal_notice_not_the_candidate(sandbox, monkeypatch):
+    root, names = sandbox
+    monkeypatch.setattr(b, "market_prices", lambda slug: ({n: 100 / len(names) for n in names}, {"volume": 123456, "sum": 100.0}))
+    monkeypatch.setattr(b, "in_blackout", lambda config: True)
+    b.run()
+    page = (root / "index.html").read_text(encoding="utf-8")
+    assert 'id="blackoutNotice" class="sp-blackout">' in page and 'id="mainContent" hidden>' in page
+    h1 = re.search(r'<h1 class="sp-h1" id="siteH1">(.*?)</h1>', page, re.S).group(1)
+    desc = re.search(r'<meta name="description" content="(.*?)">', page, re.S).group(1)
+    hl_name = b.headline(json.loads((root / "data.json").read_text(encoding="utf-8")))["name"]
+    assert hl_name not in h1 and hl_name not in desc
+    assert (root / "og-image.png").stat().st_size > 0   # the neutral card, not the candidate chart
