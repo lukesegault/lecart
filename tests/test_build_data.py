@@ -148,7 +148,7 @@ def test_get_gives_up_and_does_not_retry_client_errors(monkeypatch):
 def sha(path): return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-FILES = ("data.json", "index.html", "og-image.png", "data/market_history.csv", "data/polls_average.csv")
+FILES = ("data.json", "index.html", "candidat.html", "second-tour.html", "og-image.png", "data/market_history.csv", "data/polls_average.csv")
 
 
 @pytest.fixture
@@ -157,8 +157,8 @@ def sandbox(tmp_path, monkeypatch):
     root = pathlib.Path(b.ROOT)
     for rel in FILES + ("i18n/fr.json",):
         (tmp_path / rel).parent.mkdir(parents=True, exist_ok=True); shutil.copy(root / rel, tmp_path / rel)
-    for name, rel in (("ROOT", ""), ("INDEX", "index.html"), ("OG_IMAGE", "og-image.png"), ("HISTORY", "data/market_history.csv"),
-                      ("POLLS_AVERAGE", "data/polls_average.csv")):
+    for name, rel in (("ROOT", ""), ("INDEX", "index.html"), ("CANDIDAT", "candidat.html"), ("SECOND_TOUR", "second-tour.html"),
+                      ("OG_IMAGE", "og-image.png"), ("HISTORY", "data/market_history.csv"), ("POLLS_AVERAGE", "data/polls_average.csv")):
         monkeypatch.setattr(b, name, tmp_path / rel if rel else tmp_path)
     today = b.datetime.date.today()
     fake = [dict(p, end=(today - b.datetime.timedelta(days=i)).isoformat()) for i, p in enumerate(POLLS)]
@@ -188,6 +188,8 @@ def test_successful_run_writes_everything_and_is_idempotent(sandbox, monkeypatch
     assert d["updated"] == b.datetime.date.today().isoformat() and d["markets"]["volume"]["win"] == 123456
     assert d["pairs"] == PAIRS   # written verbatim by run(), same as pairs_of() computes
     assert f'name="data-version" content="{d["updated"]}"' in (root / "index.html").read_text(encoding="utf-8")
+    assert f'name="data-version" content="{d["updated"]}"' in (root / "candidat.html").read_text(encoding="utf-8")
+    assert f'name="data-version" content="{d["updated"]}"' in (root / "second-tour.html").read_text(encoding="utf-8")
     rows = (root / "data/market_history.csv").read_text(encoding="utf-8").splitlines()
     b.run()   # a second run the same day does not duplicate that day's history rows
     assert (root / "data/market_history.csv").read_text(encoding="utf-8").splitlines() == rows

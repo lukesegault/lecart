@@ -26,6 +26,8 @@ FIRST_ROUND_WINDOW_DAYS = 60   # polls used for the simulation
 TREND_START = "2025-09-01"
 SITE_URL = "https://lukesegault.github.io/lecart/"
 INDEX = ROOT / "index.html"
+CANDIDAT = ROOT / "candidat.html"
+SECOND_TOUR = ROOT / "second-tour.html"
 OG_IMAGE = ROOT / "og-image.png"
 SIM_RUNS = 20000
 # polling-error levels of the page's "Poll uncertainty" control: sd of a first-round score = base + k * score, sd of the runoff share = run
@@ -43,7 +45,7 @@ FAMILY = {  # political family per candidate, used for colours on the page
  "Marine Tondelier":"green","Jean-Luc Mélenchon":"far-left","Fabien Roussel":"far-left",
 }
 TREND_CANDIDATES = ["Marine Le Pen","Jordan Bardella","Édouard Philippe","Jean-Luc Mélenchon","Raphaël Glucksmann","Gabriel Attal","Bruno Retailleau"]
-WEEKLY_CANDIDATES = ["Marine Le Pen","Édouard Philippe","Jean-Luc Mélenchon"]   # polls vs markets chart
+WEEKLY_CANDIDATES = TREND_CANDIDATES   # polls vs markets chart: same roster as the monthly trend, now selectable on the homepage and candidate page
 WEEKLY_WINDOW_DAYS = 30        # polls feeding each weekly poll-implied win probability
 HISTORY = ROOT / "data" / "market_history.csv"
 POLLS_AVERAGE = ROOT / "data" / "polls_average.csv"
@@ -326,23 +328,26 @@ def fill(page, pattern, text):
 def attr(s):
     return s.replace("&", "&amp;").replace('"', "&quot;").replace("<", "&lt;")
 
+def fr_headline_sentence(fr, hl):
+    """The same sentence js/index.js builds client-side (tf("gapUp"/"gapDown", {s,v,d})), for the static layer and the meta description."""
+    d = hl["market"] - hl["poll"]
+    tmpl = fr["gapUp"] if d >= 0 else fr["gapDown"]
+    sentence = tmpl.replace("{s}", surname(hl["name"])).replace("{v}", fr["verbW"]).replace("{d}", str(abs(round(d))))
+    if re.search(r"\{\w+\}", sentence): raise ValueError("gapUp/gapDown use placeholders other than {s}, {v}, {d}")
+    return sentence
+
 def static_html(region, fr, hl):
-    """Fill every data-i element and the spotlight with the French text, in place."""
+    """Fill every data-i element and the crawler-visible headline (js/index.js computes the same sentence at runtime)."""
     keys = set(re.findall(r'\bdata-i="(\w+)"', region))
     if keys - set(fr): raise KeyError(f"no FR string for data-i keys: {sorted(keys - set(fr))}")
     region = re.sub(r'(<(\w+)\b[^>]*\bdata-i="(\w+)"[^>]*>)(.*?)(</\2>)',
                     lambda m: m.group(1) + fr[m.group(3)] + m.group(5), region, flags=re.S)
-    cap = fr["spotCap"].replace("{n}", surname(hl["name"]))
-    if re.search(r"\{\w+\}", cap): raise ValueError("spotCap uses placeholders other than {n}")
-    region = fill(region, r'(<p class="who" id="spotWho">)(.*?)(</p>)', hl["name"])
-    region = fill(region, r'(<div class="pin p" id="spotP"[^>]*><b>)(.*?)(</b>)', fr_pct(hl["poll"]))
-    region = fill(region, r'(<div class="pin m" id="spotM"[^>]*><b>)(.*?)(</b>)', fr_pct(hl["market"]))
-    return fill(region, r'(<p class="cap" id="spotCap">)(.*?)(</p>)', cap)
+    return fill(region, r'(<h1 class="sp-h1" id="siteH1">)(.*?)(</h1>)', fr_headline_sentence(fr, hl))
 
 def meta_html(page, fr, hl):
     title = re.search(r"<title>(.*?)</title>", page, re.S).group(1)
     figs = f"{hl['name']}, {fr_pct(hl['poll'])} dans les sondages contre {fr_pct(hl['market'])} sur les marchés"
-    desc = f"{fr['spotK']} : {figs}. {fr['h1']}"
+    desc = f"{fr_headline_sentence(fr, hl)} {fr['dek']}"
     alt = f"{figs} ({fr_date(hl['updated'])})"
     img = SITE_URL + OG_IMAGE.name
     tags = [
@@ -409,6 +414,15 @@ def write_og_image(hl, path):
     fig.savefig(path, format="png", dpi=100, facecolor=BG, metadata={"Software": None})
     plt.close(fig)
 
+def restamp_version(path, updated):
+    """candidat.html and second-tour.html carry no STATIC/META markers (generic, parameterised pages): only their
+    <meta name="data-version"> needs a daily refresh, so js/pages-common.js can cache-bust data.json and i18n/*.json."""
+    raw = path.read_bytes().decode("utf-8")
+    eol = "\r\n" if "\r\n" in raw else "\n"
+    page = raw.replace("\r\n", "\n")
+    page = fill(page, r'(<meta name="data-version" content=")([^"]*)(")', updated)
+    return page.replace("\n", eol)
+
 def build_outputs(data, history_rows, history, tmp):
     """Everything main() publishes, written into the temporary folder `tmp`: {final path: temporary path}."""
     hl = headline(data)
@@ -424,6 +438,8 @@ def build_outputs(data, history_rows, history, tmp):
     stage(HISTORY, csv_text(["date", "candidate", "win", "qual"], [[r["date"], r["candidate"], r["win"], r["qual"]] for r in history_rows], "\r\n"))
     stage(POLLS_AVERAGE, csv_text(["week", "candidate", "average", "scenarios"], polls_average_rows(history)))
     stage(INDEX, render_index(hl))
+    stage(CANDIDAT, restamp_version(CANDIDAT, hl["updated"]))
+    stage(SECOND_TOUR, restamp_version(SECOND_TOUR, hl["updated"]))
     stage(OG_IMAGE, writer=lambda t: write_og_image(hl, t))
     return out
 
