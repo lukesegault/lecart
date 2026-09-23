@@ -19,7 +19,7 @@
   const LIGHT_COL = { poll: "#111418", market: "#0FA37F", fill: "#E6F7F1", rule: "#EDEFEE", muted: "#8C9491", faint: "#C8CFCC", ink: "#111418", surface: "#FFFFFF", orange: "#F26B1D", mono: "'IBM Plex Mono',ui-monospace,monospace" };
 
   function chartSvg(o) {
-    const { W, H, weeks, poll, market, col, interactive } = o, ml = 42, mr = 14, mt = 30, mb = 26, n = weeks.length;
+    const { W, H, weeks, poll, market, venues, col, interactive } = o, ml = 42, mr = 14, mt = 30, mb = 26, n = weeks.length;
     const t0 = dvTs(weeks[0]), t1 = dvTs(weeks[n - 1]), span = Math.max(1, t1 - t0), days = span / 864e5;
     const px = tt => ml + (tt - t0) / span * (W - ml - mr), x = i => px(dvTs(weeks[i]));
     const y = v => mt + (1 - v / 100) * (H - mt - mb);   // fixed 0-100: these are probabilities, not first-round scores
@@ -30,6 +30,18 @@
     const monthLab = (m, i) => { const [yy, mm] = m.split("-"); return t("months")[+mm - 1] + ((mm === "01" || i === 0) ? " " + yy.slice(2) : "") };
     if (days <= 45) weeks.forEach((w, i) => { const [, mm, dd] = w.split("-"); g += tick(x(i), (+dd) + " " + t("months")[+mm - 1]) });
     else { const d0 = new Date(t0); for (let k = 1; ; k++) { const dt = new Date(Date.UTC(d0.getUTCFullYear(), d0.getUTCMonth() + k, 1)); if (+dt > t1) break; const mo = dt.getUTCMonth() + 1; g += tick(px(+dt), (days <= 240 || mo % 2 === 1) ? monthLab(dt.getUTCFullYear() + "-" + String(mo).padStart(2, "0"), 1) : ""); } }
+    // the venue band: a thin fill between Polymarket's and Kalshi's own weekly averages, wherever both venues priced
+    // the same genuinely-consecutive run of weeks (same no-bridging rule as the poll/market gap below). Drawn first,
+    // under everything else, since it is secondary to the mean line the page's headline figures are built from.
+    if (venues && venues.polymarket && venues.kalshi) {
+      const a = venues.polymarket, b2 = venues.kalshi;
+      const V = a.map((v, i) => v == null || b2[i] == null ? null : i).filter(i => i != null);
+      for (let k = 0; k < V.length;) { let e = k; while (e + 1 < V.length && V[e + 1] - V[e] <= 1) e++;
+        if (e > k) { const fwd = [], back = []; for (let j = k; j <= e; j++) fwd.push(x(V[j]).toFixed(1) + " " + y(a[V[j]]).toFixed(1));
+          for (let i = V[e]; i >= V[k]; i--) back.push(x(i).toFixed(1) + " " + y(b2[i]).toFixed(1));
+          g += `<path d="M${fwd.join(" L")} L${back.join(" L")} Z" fill="${col.market}" fill-opacity="0.14" stroke="none"/>`; }
+        k = e + 1; }
+    }
     // the shaded gap only ever covers weeks that are genuinely consecutive (no bridging): both series must have a
     // value in every week of the run, so the tint never implies data that isn't there
     const P = poll.map((v, i) => v == null || market[i] == null ? null : i).filter(i => i != null);
@@ -78,7 +90,8 @@
       const WK = opts.DATA.weekly; if (!WK || !WK.series[state.cand]) return null;
       const s = WK.series[state.cand], cut = dvTs(WK.weeks[WK.weeks.length - 1]) - DAYS[state.tf] * 864e5;
       const a = Math.max(0, WK.weeks.findIndex(w => dvTs(w) >= cut));
-      return { weeks: WK.weeks.slice(a), poll: s.poll.slice(a), market: s.market.slice(a) };
+      const venues = s.venues ? Object.fromEntries(Object.entries(s.venues).map(([v, arr]) => [v, arr.slice(a)])) : null;
+      return { weeks: WK.weeks.slice(a), poll: s.poll.slice(a), market: s.market.slice(a), venues };
     }
 
     function readout(idx, D) {
@@ -89,7 +102,10 @@
       const G = root._otGeo, m = D.market[idx], p = D.poll[idx], xx = G.x(idx);
       guide.setAttribute("x1", xx); guide.setAttribute("x2", xx); guide.setAttribute("visibility", "visible");
       dots.innerHTML = (m != null ? `<circle cx="${xx}" cy="${G.y(m)}" r="4.5" fill="var(--mint)" stroke="var(--surface)" stroke-width="2"/>` : "") + (p != null ? `<circle cx="${xx}" cy="${G.y(p)}" r="4.5" fill="var(--ink)" stroke="var(--surface)" stroke-width="2"/>` : "");
-      out.innerHTML = tf("dvAt", { w: dvDate(D.weeks[idx]), m: m == null ? "–" : Lecart.pct1(m), p: p == null ? t("dvNoPoll") : Lecart.pct1(p), g: m != null && p != null ? dvSigned(m - p) : "–" });
+      let line = tf("dvAt", { w: dvDate(D.weeks[idx]), m: m == null ? "–" : Lecart.pct1(m), p: p == null ? t("dvNoPoll") : Lecart.pct1(p), g: m != null && p != null ? dvSigned(m - p) : "–" });
+      const poly = D.venues && D.venues.polymarket ? D.venues.polymarket[idx] : null, kal = D.venues && D.venues.kalshi ? D.venues.kalshi[idx] : null;
+      if (poly != null && kal != null) line += " " + tf("dvAtVenues", { poly: Lecart.pct1(poly), kalshi: Lecart.pct1(kal) });
+      out.innerHTML = line;
     }
 
     function eventNote(D) {
@@ -102,7 +118,7 @@
     function drawChart(D) {
       const box = root.querySelector(".sp-chart-box");
       const W = Math.max(280, Math.round(box.clientWidth) || 640), H = W < 520 ? 230 : 300;
-      const C = chartSvg({ W, H, weeks: D.weeks, poll: D.poll, market: D.market, events: EVENTS, col: PAGE_COL, interactive: true, lang: Lecart.lang });
+      const C = chartSvg({ W, H, weeks: D.weeks, poll: D.poll, market: D.market, venues: D.venues, events: EVENTS, col: PAGE_COL, interactive: true, lang: Lecart.lang });
       box.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${xml(tf("dvAria", { n: state.cand }))}">${C.svg}</svg>`;
       root._otGeo = C.geo; state.w = Math.round(box.clientWidth);
       const svg = box.querySelector("svg");
@@ -176,8 +192,9 @@
         `</style>` : "";
       const EVENTS = (opts.EVENTS || []);
       const s = WK.series[cand], cut = dvTs(WK.weeks[WK.weeks.length - 1]) - DAYS[tfKey] * 864e5, a = Math.max(0, WK.weeks.findIndex(w => dvTs(w) >= cut));
-      const Dx = { weeks: WK.weeks.slice(a), poll: s.poll.slice(a), market: s.market.slice(a) };
-      const chart = chartSvg({ W: cw - 24, H: ch, weeks: Dx.weeks, poll: Dx.poll, market: Dx.market, events: EVENTS, col: C, interactive: false, lang: Lecart.lang }).svg;
+      const venues = s.venues ? Object.fromEntries(Object.entries(s.venues).map(([v, arr]) => [v, arr.slice(a)])) : null;
+      const Dx = { weeks: WK.weeks.slice(a), poll: s.poll.slice(a), market: s.market.slice(a), venues };
+      const chart = chartSvg({ W: cw - 24, H: ch, weeks: Dx.weeks, poll: Dx.poll, market: Dx.market, venues: Dx.venues, events: EVENTS, col: C, interactive: false, lang: Lecart.lang }).svg;
       const Z = summary(Dx), gap = Z.gap, cardY = 150, legY = cardY + ch + 24 + 28;
       let pillSvg = ""; if (gap != null) { const txt = xml(t("gapCol") + " " + dvSigned(gap)), w = txt.length * 9.6 + 30, neg = gap < 0;
         pillSvg = `<rect x="${W - pad - w}" y="78" width="${w}" height="34" rx="0" fill="${neg ? "rgba(17,20,24,.08)" : C.fill}"/><text x="${W - pad - w / 2}" y="100" text-anchor="middle" font-family="${C.mono}" font-size="17" font-weight="700" fill="${neg ? C.ink : "#0B7A5F"}">${txt}</text>`; }

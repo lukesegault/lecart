@@ -52,7 +52,7 @@
 
   function rows() {
     const S = DATA.sim[state.u];
-    return MARKET.map(m => { const s = S[m.c], a = DATA.avg[m.c]; return { c: m.c, f: m.f, market: m[state.q], poll: s ? s[state.q] : null, avg: a ? a[0] : null, n: a ? a[1] : 0 } })
+    return MARKET.map(m => { const s = S[m.c], a = DATA.avg[m.c]; return { c: m.c, f: m.f, market: m[state.q], poll: s ? s[state.q] : null, avg: a ? a[0] : null, n: a ? a[1] : 0, venues: m.venues || {} } })
       .sort((x, y) => Math.max(y.market, y.poll || 0) - Math.max(x.market, x.poll || 0));
   }
 
@@ -64,9 +64,12 @@
       const none = r.poll == null;
       const lo = none ? 0 : Math.min(r.poll, r.market), hi = none ? 0 : Math.max(r.poll, r.market);
       const ec = none ? null : r.market - r.poll;
+      const poly = r.venues.polymarket ? r.venues.polymarket[state.q] : null;
+      const kal = state.q === "win" && r.venues.kalshi ? r.venues.kalshi.win : null;   // Kalshi never prices "qual"
       h += `<a class="sp-row" role="listitem" href="candidat.html?c=${encodeURIComponent(r.c)}">` +
         `<span class="name"><b>${r.c}</b><small>${sub}</small></span>` +
-        `<span class="val mkt num">${Lecart.pct(r.market)}</span>` +
+        `<span class="val poly num${poly == null ? " none" : ""}">${poly == null ? t("venueNone") : Lecart.pct(poly)}</span>` +
+        `<span class="val kal num${kal == null ? " none" : ""}">${kal == null ? t("venueNone") : Lecart.pct(kal)}</span>` +
         `<span class="val pol num${none ? " none" : ""}">${none ? "–" : Lecart.pct(r.poll)}</span>` +
         `<span class="val ec num${none ? " none" : ""}">${none ? t("marketsOnly") : (ec >= 0 ? "+" : "−") + Math.round(Math.abs(ec)) + (Lecart.lang === "fr" ? Lecart.nb + "%" : "%")}</span>` +
         `<span class="sp-bartrack"><span class="base"></span>` +
@@ -77,6 +80,22 @@
     const more = document.getElementById("ovMore");
     more.hidden = R.length <= SHOWN;
     if (!more.hidden) more.textContent = state.all ? t("ovLess") : tf("ovMore", { n: R.length });
+  }
+
+  // "Écart entre places de marché": the FAMILY candidates priced by both venues, ranked by how far Polymarket
+  // and Kalshi disagree on the winner price. Hidden entirely when fewer than two candidates have both prices.
+  function renderVenueGap() {
+    const sec = document.getElementById("venueGap");
+    const diffs = MARKET.map(m => {
+      const v = m.venues || {};
+      if (!v.polymarket || !v.kalshi) return null;
+      return { c: m.c, p: v.polymarket.win, k: v.kalshi.win, d: Math.abs(v.polymarket.win - v.kalshi.win) };
+    }).filter(Boolean).sort((a, b) => b.d - a.d);
+    sec.hidden = diffs.length < 2;
+    if (sec.hidden) return;
+    document.getElementById("venueGapList").innerHTML = diffs.slice(0, 5).map(r =>
+      `<li><b>${r.c}</b><span class="d">${tf("venueGapItem", { p: Lecart.pct(r.p), k: Lecart.pct(r.k), d: (r.p >= r.k ? "+" : "−") + Math.round(r.d) + (Lecart.lang === "fr" ? Lecart.nb + "%" : "%") })}</span></li>`
+    ).join("");
   }
 
   function table() {
@@ -113,13 +132,14 @@
     Lecart.track("ov-more"); state.all = !state.all; renderBoard();
   });
   window.addEventListener("lecart-lang-change", () => {
-    renderStatic(); renderBoard(); table(); paintNav("home", Lecart.figures(DATA));
+    renderStatic(); renderBoard(); renderVenueGap(); table(); paintNav("home", Lecart.figures(DATA));
     const root = document.getElementById("otChart"); if (root._render) root._render();
   });
 
   paintNav("home", Lecart.figures(DATA));
   const hl = renderStatic();
   renderBoard();
+  renderVenueGap();
   table();
   mountChart(hl);
 })();
