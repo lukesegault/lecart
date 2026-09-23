@@ -25,3 +25,21 @@ def market(names_prices):
     """A Polymarket-like response: one Yes/No market per name."""
     return [{"markets": [{"groupItemTitle": n, "outcomePrices": f'["{p / 100}", "{1 - p / 100}"]', "outcomes": '["Yes", "No"]'}
                          for n, p in names_prices.items()], "volume": "1000000"}]
+
+
+def kalshi_markets_page(names_prices, volume_fp=500, cursor=""):
+    """A Kalshi GetMarkets-like response page: one market per name."""
+    return {"markets": [{"yes_sub_title": n, "last_price_dollars": f"{p / 100:.4f}", "volume_fp": str(volume_fp)}
+                        for n, p in names_prices.items()], "cursor": cursor}
+
+
+def kalshi_candlesticks(closes):
+    """A Kalshi GetMarketCandlesticks-like response: one daily candle per (end_period_ts, close %); a None close
+    means a quiet day (no price block, just a bid/ask to average)."""
+    cs = []
+    for ts, close in closes:
+        if close is None:
+            cs.append({"end_period_ts": ts, "price": {}, "yes_bid": {"close_dollars": "0.1000"}, "yes_ask": {"close_dollars": "0.3000"}})
+        else:
+            cs.append({"end_period_ts": ts, "price": {"close_dollars": f"{close / 100:.4f}"}, "yes_bid": {}, "yes_ask": {}})
+    return {"ticker": "X", "candlesticks": cs}
