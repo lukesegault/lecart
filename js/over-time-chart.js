@@ -33,11 +33,17 @@
     // the venue band: a thin fill between Polymarket's and Kalshi's own weekly averages, wherever both venues priced
     // the same genuinely-consecutive run of weeks (same no-bridging rule as the poll/market gap below). Drawn first,
     // under everything else, since it is secondary to the mean line the page's headline figures are built from.
+    // MIN_RUN: a run of only 2 consecutive weeks has no curve shape to show (just two points), so at the kind of
+    // gaps this page has (poll or market sometimes silent for months), it rendered as an isolated, near-rectangular
+    // block that read as a solid vertical band dropped over a stretch of otherwise-missing data, rather than as
+    // shading that tracks the two lines. Requiring at least 3 consecutive weeks before shading a run drops those
+    // blocks while keeping every run long enough to actually trace a gap.
+    const MIN_RUN = 3;
     if (venues && venues.polymarket && venues.kalshi) {
       const a = venues.polymarket, b2 = venues.kalshi;
       const V = a.map((v, i) => v == null || b2[i] == null ? null : i).filter(i => i != null);
       for (let k = 0; k < V.length;) { let e = k; while (e + 1 < V.length && V[e + 1] - V[e] <= 1) e++;
-        if (e > k) { const fwd = [], back = []; for (let j = k; j <= e; j++) fwd.push(x(V[j]).toFixed(1) + " " + y(a[V[j]]).toFixed(1));
+        if (e - k + 1 >= MIN_RUN) { const fwd = [], back = []; for (let j = k; j <= e; j++) fwd.push(x(V[j]).toFixed(1) + " " + y(a[V[j]]).toFixed(1));
           for (let i = V[e]; i >= V[k]; i--) back.push(x(i).toFixed(1) + " " + y(b2[i]).toFixed(1));
           g += `<path d="M${fwd.join(" L")} L${back.join(" L")} Z" fill="${col.market}" fill-opacity="0.14" stroke="none"/>`; }
         k = e + 1; }
@@ -46,20 +52,25 @@
     // value in every week of the run, so the tint never implies data that isn't there
     const P = poll.map((v, i) => v == null || market[i] == null ? null : i).filter(i => i != null);
     for (let k = 0; k < P.length;) { let e = k; while (e + 1 < P.length && P[e + 1] - P[e] <= 1) e++;
-      if (e > k) { const fwd = [], back = []; for (let j = k; j <= e; j++) fwd.push(x(P[j]).toFixed(1) + " " + y(poll[P[j]]).toFixed(1));
+      if (e - k + 1 >= MIN_RUN) { const fwd = [], back = []; for (let j = k; j <= e; j++) fwd.push(x(P[j]).toFixed(1) + " " + y(poll[P[j]]).toFixed(1));
         for (let i = P[e]; i >= P[k]; i--) if (market[i] != null) back.push(x(i).toFixed(1) + " " + y(market[i]).toFixed(1));
         if (back.length) g += `<path d="M${fwd.join(" L")} L${back.join(" L")} Z" fill="${col.fill}" stroke="none"/>`; }
       k = e + 1; }
     const M = pathOf(market, x, y, 2), Pp = pathOf(poll, x, y, 1);
     g += `<path d="${M.d}" fill="none" stroke="${col.market}" stroke-width="2.25" stroke-linejoin="round" stroke-linecap="round"/><path d="${Pp.d}" fill="none" stroke="${col.poll}" stroke-width="1.75" stroke-linejoin="round" stroke-linecap="round"/>`;
-    if (M.last != null) { const cx = x(M.last), cy = y(market[M.last]); g += `<rect x="${cx - 4}" y="${cy - 4}" width="8" height="8" fill="${col.market}" stroke="${col.surface}" stroke-width="1.5" transform="rotate(45 ${cx} ${cy})"/>`; }
-    poll.forEach((v, i) => { if (v != null && (i === Pp.last || (poll[i - 1] == null && poll[i + 1] == null))) g += `<rect x="${(x(i) - 2.5).toFixed(1)}" y="${(y(v) - 2.5).toFixed(1)}" width="5" height="5" fill="${col.poll}" stroke="${col.surface}" stroke-width="1.5"/>`; });
+    // small square markers on the poll line for isolated single-week points, which would otherwise be invisible
+    // (a lone point has no line to it). Not drawn at the very last point: the end label right next to it already
+    // marks "latest value", and a marker there just sits against the label like a stray trailing glyph.
+    poll.forEach((v, i) => { if (v != null && i !== Pp.last && poll[i - 1] == null && poll[i + 1] == null) g += `<rect x="${(x(i) - 2.5).toFixed(1)}" y="${(y(v) - 2.5).toFixed(1)}" width="5" height="5" fill="${col.poll}" stroke="${col.surface}" stroke-width="1.5"/>`; });
     // direct labels at each line's end (series name + latest value), instead of making the reader match colour to a
     // legend; anchored to hug the point (extending left) unless there is clear room to the right, so the text never
     // overflows. The value sits in its own tspan so it renders in the tabular-figures face, the name in the UI face.
+    // A plain space (not Lecart.pct's French nbsp) before "%": SVG text never wraps, so nbsp's only purpose there
+    // doesn't apply, and it has shown as a visible stray mark in some fonts/browsers when set as raw SVG text.
+    const svgPct = v => Lecart.pct(v).replace(/ /g, " ");
     let ends = [];
-    if (M.last != null) ends.push({ x: x(M.last), y: y(market[M.last]), color: col.market, name: t("legMarket"), value: Lecart.pct(market[M.last]) });
-    if (Pp.last != null) ends.push({ x: x(Pp.last), y: y(poll[Pp.last]), color: col.poll, name: t("legPolls"), value: Lecart.pct(poll[Pp.last]) });
+    if (M.last != null) ends.push({ x: x(M.last), y: y(market[M.last]), color: col.market, name: t("legMarket"), value: svgPct(market[M.last]) });
+    if (Pp.last != null) ends.push({ x: x(Pp.last), y: y(poll[Pp.last]), color: col.poll, name: t("legPolls"), value: svgPct(poll[Pp.last]) });
     ends.sort((a, b) => a.y - b.y);
     for (let i = 1; i < ends.length; i++) if (ends[i].y - ends[i - 1].y < 13) ends[i].y = ends[i - 1].y + 13;
     ends.forEach(e => { const right = W - e.x > 90, tx = right ? e.x + 6 : e.x - 6;
