@@ -22,6 +22,8 @@ Serif, self-hosted in `fonts/`; square corners, hairline rules): `css/pages.css`
   `referenceCandidate()` in `js/second-tour.js`, currently always Marine Le Pen) is anchored on the right in
   every row so the table doesn't flip sides; the last two columns are always the *other* candidate's
   (the challenger's) simulated win chance and each venue's own market win chance, stacked (`.sp-pair-win .pv`).
+- `notes.html`/`js/notes.js`: the full archive of `data/notes.json`, newest first. index.html shows only the
+  latest entry (`#latestNote`); this page shows all of them, same card style (`.sp-note`).
 - **No blended market figure exists anywhere in this codebase** (owner instruction, 24 Sept 2026): not in
   `data.json`, not in a chart line, not in a table cell, not in the generated headline. Every number a venue
   quotes stands on its own; where two venues both quote the same event the page shows both (or the range they
@@ -35,23 +37,29 @@ Serif, self-hosted in `fonts/`; square corners, hairline rules): `css/pages.css`
   page (`state.q` in `js/index.js`/`js/candidat.js`): it is the only event both venues price. Under "Accéder au
   second tour" the Kalshi column and its half of the gap are hidden outright (CSS `.q-qual .g.kal`, plus the
   Kalshi cell rendered empty in JS) and a one-line note (`ovQualKalshiNote`) explains why: Kalshi has no
-  qualification market. Under each venue's header, a `.sp-volrow` line shows that venue's cumulative traded
-  volume as of the day's snapshot (`volCumul`, from `markets.venues.<venue>.volume.win`), with a discreet
-  `.thinbadge` when that venue's win (or, in the qual tab, Polymarket's qual) market is flagged thin (see
-  `THIN_MARKET_VOLUME` below). Shows the top 8 rows by default, with an `#ovMore` "show all" toggle
-  (`ovMore`/`ovLess` i18n keys); `js/index.js`'s `SHOWN` constant. "Écart entre places de marché" (`#venueGap`,
-  `renderVenueGap()` in `js/index.js`): the FAMILY candidates priced on both venues, ranked by
-  `|polymarket − kalshi|`, top 5; hidden when fewer than two candidates qualify. "Figurer sur le bulletin"
+  qualification market. Under each venue's header, a `.sp-volrow` line gives that venue's own volume, liquidity
+  and snapshot date as one sentence (`volSentencePoly`/`volSentenceKal`, from `markets.venues.<venue>.volume.win`/
+  `.liquidity.win`), with a discreet `.thinbadge` when that venue's win (or, in the qual tab, Polymarket's qual)
+  market is flagged thin (see `THIN_MARKET_VOLUME` below). Shows the top 8 rows by default, with an `#ovMore`
+  "show all" toggle (`ovMore`/`ovLess` i18n keys); `js/index.js`'s `SHOWN` constant. "Écarts marché-sondages les
+  plus marqués" (`#divergences`, `renderDivergences()`): the three candidates with the largest gap between one
+  venue and the polls, one generated sentence each (`data.json`'s `notes.divergences`, computed once by
+  `scripts/build_data.py`'s `largest_divergences()`/`generated_notes()` — see "Generated, not hand-written prose"
+  below). "Écart entre places de marché" (`#venueGap`, `renderVenueGap()`): the FAMILY candidates priced on both
+  venues, ranked by `|polymarket − kalshi|`, top 5, with a generated lead sentence naming the single largest
+  disagreement (`notes.venueGapLead`); hidden when fewer than two candidates qualify. "Figurer sur le bulletin"
   (`#ballot`, `renderBallot()`): Kalshi's `KXFRPRESBALLOT` candidacy-confirmation price, its own small section,
   never merged with win or qual (see "Kalshi decisions" under Constraints); hidden when `data.json` has no
-  `markets.ballot`.
+  `markets.ballot`. A dated note (`#latestNote`, `renderLatestNote()`) shows the most recent entry of
+  `data/notes.json`, hand-written by the owner; older ones live on `notes.html` (`js/notes.js`).
 - `js/pages-common.js` (`Lecart` global): language, `data.json`/i18n fetch (`?v=<meta data-version>` cache-busting), figure filling, nav/footer/opt-out wiring, shared formatting (`pct` whole numbers, `pct1` one decimal, both with French comma/nbsp-% rules), `checkBlackout()`/`paintBlackout()` (see Constraints). `js/over-time-chart.js` (`Lecart.mountOverTimeChart`/`exportOverTimeChart`): the market-vs-poll-implied-win-probability chart shared by index.html and candidat.html (0-100 fixed axis, 1M/3M/6M/All). Two market lines, one per venue — Polymarket solid mint, Kalshi dashed mint (`stroke-dasharray`) — plus the poll line, each with its own direct end-of-line label; no poll-vs-market gap shading (dropped when the chart went from one blended line to two: two overlapping semi-transparent fills read as a muddy overlap, not a legible gap — see the code comment in `chartSvg()`). The one shaded region left is the thin band between the two venues' own weekly series, wherever both priced the same run of 3+ consecutive weeks (`MIN_RUN`). The gap pill and hover readout show each venue's own gap against the polls, joined by "/" when they differ (`gapsText()`), never a mean. `js/index.js`, `js/candidat.js`, `js/second-tour.js`: one per page, no simulation.
 - Top bar (`.sp-bar`, all three pages): under 760px the nav collapses into `#spMenuBtn`'s menu; under 400px the
   brand's tagline (`.sp-brand span`) also hides, keeping the brand and FR/EN buttons visible without crowding.
 - `data.json` (minified, written by the pipeline only): `updated`, `polls` (fields the table shows), `avg`,
   `sim` (win/qual per candidate for low/mid/high uncertainty), `trend`, `weekly` (poll-vs-market win
   probability by week, `WEEKLY_CANDIDATES` = the same 7 as `TREND_CANDIDATES`), `pairs` (head-to-head poll
-  share and poll count per tested runoff pairing), `markets`.
+  share and poll count per tested runoff pairing), `markets`, `notes` (`{divergences: [{fr, en}, ...], venueGapLead: {fr, en} | null}`,
+  built once per run by `generated_notes()` — see "Generated, not hand-written, prose" under Constraints).
   `markets`: `snapshot` (today's date), `source` (comma-joined venue names that priced this run), `thinThreshold`
   (= `THIN_MARKET_VOLUME`, so the page and the Method text always quote the same figure), `venues`
   (`{polymarket: {snapshot, stale, volume: {win, qual}, liquidity: {win, qual}, winSum, qualSum, thin: {win, qual}},
@@ -153,3 +161,25 @@ Serif, self-hosted in `fonts/`; square corners, hairline rules): `css/pages.css`
   $20,000; the flag is meant to move with the data, not to hard-code that market as permanently thin. Change the
   constant (and only the constant) if $20,000 stops being the right line; the page and the Method text pick it up
   automatically via `markets.thinThreshold` in data.json.
+- **Generated, not hand-written, prose (24 Sept 2026).** Every sentence that names a specific candidate or figure
+  is either a template filled from `data.json` at render time, or generated once server-side and stored as final
+  text in `data.json`'s `notes` object — never typed by hand into an i18n string. This followed an audit of every
+  string in `i18n/fr.json`/`en.json`: the one hand-written sentence that assumed something about *today's* numbers
+  (`m5`'s old claim that the qualification market "is thinly traded") was reworded into a pure definition; 20 dead
+  keys left over from earlier redesigns (never referenced by any page or script) were deleted. `m2`'s reference to
+  the 2022 election understating Jean-Luc Mélenchon is kept on purpose: it is a fixed historical fact used to
+  justify the uncertainty model, not analysis of the current race, so it can never go stale.
+  `scripts/build_data.py`'s `generated_notes()` builds, once per run, in both languages: `largest_divergences()`
+  (the 3 candidates with the biggest single-venue gap against the polls, `data.json`'s `notes.divergences`,
+  rendered via the `divergenceItem` i18n template) and `largest_venue_gap()` (the single biggest Polymarket-vs-
+  Kalshi disagreement, `notes.venueGapLead`, via the `venueGapLead` template). Both read from `data.json`'s
+  `candidates[].venues`, never a mean. `elide_de()` handles French elision ("d'Édouard" vs "de Marine") for the
+  venue-gap-lead sentence; `signed_pts()` rounds *before* signing a gap, so a value that rounds to zero reads "0",
+  never "−0" (the same fix is mirrored in `js/index.js`'s `gapText()` and `js/candidat.js`'s `gapOf()` — round
+  first, sign the rounded value, in every place a gap is displayed). Templates avoid adjectives that would need
+  gender agreement, by design, rather than tracking each candidate's gender. Covered by
+  `tests/test_build_data.py`'s "generated notes" section (elision, signed zero, one-venue-only, negative and
+  positive gaps). `data/notes.json` (`date`, `titleFr`/`bodyFr`, `titleEn`/`bodyEn`) is the one genuinely
+  hand-written, dated exception: the owner's own notes, latest one on the homepage (`#latestNote`), the rest on
+  `notes.html`. Keep this pattern when adding new page text: if a sentence would need updating as the numbers
+  change, generate it from data.json instead of writing it by hand.

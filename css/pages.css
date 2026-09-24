@@ -51,6 +51,10 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--mint);outline-offse
 .sp-kicker{margin:30px 0 0;font:500 10px var(--sans);letter-spacing:.18em;text-transform:uppercase;color:var(--muted)}
 .sp-h1{margin:14px 0 0;max-width:800px;font:500 clamp(28px,4.4vw,44px)/1.22 var(--head);letter-spacing:-.006em;color:var(--ink);text-wrap:pretty}
 .sp-dek{margin:18px 0 0;max-width:640px;font:400 17px/1.6 var(--serif);color:var(--muted2);text-wrap:pretty}
+.sp-note{margin:26px 0 0;max-width:640px;padding:2px 0 2px 16px;border-left:3px solid var(--mint)}
+.sp-note-date{margin:0;font:500 10px var(--sans);letter-spacing:.13em;text-transform:uppercase;color:var(--muted)}
+.sp-note-title{margin:4px 0 6px;font:500 18px var(--head);color:var(--ink)}
+.sp-note p{margin:0 0 8px;font:400 14.5px/1.55 var(--sans);color:var(--muted2)}
 .lp{color:var(--ink);font-weight:600;white-space:nowrap}
 .lm{color:var(--mint-text);font-weight:600;white-space:nowrap}
 .sp-blackout{padding:40px 0 6px}
@@ -202,6 +206,7 @@ section h2{font:500 clamp(24px,3.2vw,32px)/1.3 var(--head);letter-spacing:-.005e
 .method p{margin:0 0 12px}
 .method strong{font-family:var(--sans)}
 .venue-gap-intro{max-width:640px;font-size:14px;color:var(--muted);margin:0 0 16px}
+.venue-gap-lead{max-width:640px;font:500 14.5px var(--sans);color:var(--ink);margin:-8px 0 16px}
 .venue-gap{list-style:none;margin:0;padding:0;max-width:640px}
 .venue-gap li{display:flex;justify-content:space-between;align-items:baseline;gap:16px;padding:9px 0;border-bottom:1px solid var(--rule2);font:400 14px var(--sans)}
 .venue-gap li b{font-weight:500;color:var(--ink)}

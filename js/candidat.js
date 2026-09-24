@@ -144,7 +144,8 @@
     document.getElementById("cdGapLabel").textContent = t(qualMode ? "qual" : "win");
     // whole points, matching the headline sentence and the over-time chart's gap badge; one venue's gap, or two
     // separated by "/" when both price this candidate, never a mean of the two
-    const gapOf = m => m == null || poll == null ? null : (m - poll >= 0 ? "+" : "−") + Math.round(Math.abs(m - poll));
+    // round first, then sign the rounded value: a raw gap of, say, -0.3 must read "0", never "−0"
+    const gapOf = m => { if (m == null || poll == null) return null; const r = Math.round(m - poll); return (r > 0 ? "+" : r < 0 ? "−" : "") + Math.abs(r); };
     const gaps = [gapOf(poly), !qualMode ? gapOf(kal) : null].filter(g => g != null);
     document.getElementById("cdGapVal").textContent = gaps.length ? gaps.join(" / ") : t("marketsOnly");
     const bar = document.getElementById("cdGapbar");

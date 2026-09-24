@@ -1,9 +1,10 @@
 (async () => {
   const { get, loadLang, t, tf, paintNav } = Lecart;
-  let DATA, EVENTS = [];
+  let DATA, EVENTS = [], NOTES = [];
   try { [DATA] = await Promise.all([get("data.json"), loadLang(Lecart.lang)]); }
   catch (e) { document.getElementById("ovBoard").innerHTML = "<p style=\"padding:16px\">Data could not be loaded. / Les données n'ont pas pu être chargées.</p>"; return; }
   try { EVENTS = await get("data/events.json"); } catch (e) {}
+  try { NOTES = await get("data/notes.json"); } catch (e) {}
   const MARKET = DATA.markets.candidates;
   const VENUES = DATA.markets.venues || {};
   // "Gagner" is the default view everywhere: it is the only event both venues price (Kalshi has no qualification
@@ -79,13 +80,14 @@
     return abbr + "$";
   }
   function renderVolRow() {
-    ["Poly", "Kal"].forEach((suffix, i) => {
-      const venue = i === 0 ? "polymarket" : "kalshi", el = document.getElementById("ovVol" + suffix), v = VENUES[venue];
+    [["Poly", "polymarket", "volSentencePoly"], ["Kal", "kalshi", "volSentenceKal"]].forEach(([suffix, venue, key]) => {
+      const el = document.getElementById("ovVol" + suffix), v = VENUES[venue];
       if (!v) { el.textContent = ""; return; }
       const d = new Date(v.snapshot + "T00:00:00Z");
       const short = Lecart.lang === "fr" ? `${d.getUTCDate()} ${t("months")[d.getUTCMonth()].slice(0, 3)}` : `${t("months")[d.getUTCMonth()].slice(0, 3)} ${d.getUTCDate()}`;
       const thinT = (DATA.markets.thinThreshold || 0).toLocaleString(Lecart.lang === "fr" ? "fr-FR" : "en-US");
-      el.innerHTML = tf("volCumul", { v: fmtMoney(v.volume.win), d: short }) + (v.thin && v.thin.win ? ` <span class="thinbadge" title="${tf("thinNote", { t: thinT }).replace(/"/g, "&quot;")}">${t("thinBadge")}</span>` : "");
+      el.innerHTML = tf(key, { v: fmtMoney(v.volume.win), l: fmtMoney(v.liquidity && v.liquidity.win), d: short }) +
+        (v.thin && v.thin.win ? ` <span class="thinbadge" title="${tf("thinNote", { t: thinT }).replace(/"/g, "&quot;")}">${t("thinBadge")}</span>` : "");
     });
   }
 
@@ -110,8 +112,9 @@
 
   function gapText(val, poll) {
     if (val == null || poll == null) return `${EM}${MARK}`;
-    const d = val - poll;
-    return (d >= 0 ? "+" : "−") + Math.round(Math.abs(d)) + (Lecart.lang === "fr" ? Lecart.nb + "%" : "%");
+    // round first, then sign the rounded value: a raw gap of, say, -0.3 must read "0%", never "−0%"
+    const r = Math.round(val - poll);
+    return (r > 0 ? "+" : r < 0 ? "−" : "") + Math.abs(r) + (Lecart.lang === "fr" ? Lecart.nb + "%" : "%");
   }
 
   function renderBoard() {
@@ -148,6 +151,8 @@
 
   // "Écart entre places de marché": the FAMILY candidates priced by both venues, ranked by how far Polymarket
   // and Kalshi disagree on the winner price. Hidden entirely when fewer than two candidates have both prices.
+  // The lead sentence (DATA.notes.venueGapLead) is generated once server-side by scripts/build_data.py, in
+  // both languages, so there is no hand-written claim on this page that could go stale as the numbers move.
   function renderVenueGap() {
     const sec = document.getElementById("venueGap");
     const diffs = MARKET.map(m => {
@@ -157,9 +162,32 @@
     }).filter(Boolean).sort((a, b) => b.d - a.d);
     sec.hidden = diffs.length < 2;
     if (sec.hidden) return;
+    const lead = DATA.notes && DATA.notes.venueGapLead;
+    document.getElementById("venueGapLead").textContent = lead ? lead[Lecart.lang] : "";
     document.getElementById("venueGapList").innerHTML = diffs.slice(0, 5).map(r =>
       `<li><b>${r.c}</b><span class="d">${tf("venueGapItem", { p: Lecart.pct(r.p), k: Lecart.pct(r.k), d: (r.p >= r.k ? "+" : "−") + Math.round(r.d) + (Lecart.lang === "fr" ? Lecart.nb + "%" : "%") })}</span></li>`
     ).join("");
+  }
+
+  // Hand-written by the owner in data/notes.json (date, titleFr/bodyFr, titleEn/bodyEn): the one thing on this
+  // page that isn't generated. Only the latest note shows here, under its own date; the rest live on notes.html.
+  function renderLatestNote() {
+    const sec = document.getElementById("latestNote");
+    if (!NOTES.length) { sec.hidden = true; return; }
+    const note = NOTES.slice().sort((a, b) => b.date < a.date ? -1 : 1)[0];
+    sec.hidden = false;
+    document.getElementById("noteDate").textContent = Lecart.longDate(note.date);
+    document.getElementById("noteTitle").textContent = Lecart.lang === "fr" ? note.titleFr : note.titleEn;
+    document.getElementById("noteBody").textContent = Lecart.lang === "fr" ? note.bodyFr : note.bodyEn;
+  }
+
+  // "Écarts marché-sondages les plus marqués": the three candidates with the largest gap between one venue and
+  // the polls, generated once server-side (DATA.notes.divergences) so the sentences never drift from the data.
+  function renderDivergences() {
+    const sec = document.getElementById("divergences"), rows = (DATA.notes && DATA.notes.divergences) || [];
+    sec.hidden = rows.length === 0;
+    if (sec.hidden) return;
+    document.getElementById("divergenceList").innerHTML = rows.map(r => `<li>${r[Lecart.lang]}</li>`).join("");
   }
 
   // "Figurer sur le bulletin" (Kalshi KXFRPRESBALLOT): a separate indicator, never merged with win or qual.
@@ -207,14 +235,16 @@
     Lecart.track("ov-more"); state.all = !state.all; renderBoard();
   });
   window.addEventListener("lecart-lang-change", () => {
-    renderStatic(); renderVolRow(); renderBoard(); renderVenueGap(); renderBallot(); table(); paintNav("home", Lecart.figures(DATA));
+    renderStatic(); renderLatestNote(); renderVolRow(); renderBoard(); renderDivergences(); renderVenueGap(); renderBallot(); table(); paintNav("home", Lecart.figures(DATA));
     const root = document.getElementById("otChart"); if (root._render) root._render();
   });
 
   paintNav("home", Lecart.figures(DATA));
   const hl = renderStatic();
+  renderLatestNote();
   renderVolRow();
   renderBoard();
+  renderDivergences();
   renderVenueGap();
   renderBallot();
   table();

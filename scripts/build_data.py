@@ -50,6 +50,7 @@ SITE_URL = "https://lukesegault.github.io/lecart/"
 INDEX = ROOT / "index.html"
 CANDIDAT = ROOT / "candidat.html"
 SECOND_TOUR = ROOT / "second-tour.html"
+NOTES_PAGE = ROOT / "notes.html"
 OG_IMAGE = ROOT / "og-image.png"
 CONFIG = ROOT / "config.json"
 SIM_RUNS = 20000
@@ -482,8 +483,70 @@ def headline(data):
     _, name, poll, venues = best
     return {"name": name, "poll": poll, "venues": venues, "updated": data["updated"]}
 
+VOWEL_SOUNDS = "AEIOUYÀÂÉÈÊËÎÏÔÙÛÜ"
+
+def elide_de(name):
+    """French "de {name}", elided to "d'{name}" before a vowel sound (Éric, Édouard, Olivier...)."""
+    return ("d'" if name[0].upper() in VOWEL_SOUNDS else "de ") + name
+
+def signed_pts(x):
+    """Whole-point gap, signed, "pts" kept unlocalised (same convention as js/over-time-chart.js's dvSigned):
+    "0 pts" for a gap that rounds to zero, never a bare "+0"."""
+    r = round(x)
+    sign = "+" if r > 0 else "−" if r < 0 else ""
+    return f"{sign}{abs(r)}{NB}pts"
+
+def largest_divergences(data, n=3):
+    """The `n` candidates with the largest gap between one venue's own win price and the poll simulation, one row
+    per candidate (never a mean across venues: each candidate's own largest venue gap is used, same rule as
+    headline()). Each row is that candidate's single most-divergent venue, so a candidate never appears twice."""
+    sim = data["sim"]["mid"]
+    rows = []
+    for m in data["markets"]["candidates"]:
+        poll = sim.get(m["c"], {}).get("win")
+        if poll is None: continue
+        venue, market = max(((v, p["win"]) for v, p in m["venues"].items()), key=lambda vp: abs(vp[1] - poll))
+        rows.append({"c": m["c"], "f": m["f"], "venue": venue, "market": market, "poll": poll, "gap": market - poll})
+    rows.sort(key=lambda r: abs(r["gap"]), reverse=True)
+    return rows[:n]
+
+def largest_venue_gap(data):
+    """The one candidate where Polymarket and Kalshi disagree most (both must price them); None if fewer than
+    one candidate is priced by both."""
+    rows = [{"c": m["c"], "poly": m["venues"]["polymarket"]["win"], "kal": m["venues"]["kalshi"]["win"],
+             "gap": m["venues"]["polymarket"]["win"] - m["venues"]["kalshi"]["win"]}
+            for m in data["markets"]["candidates"] if "polymarket" in m["venues"] and "kalshi" in m["venues"]]
+    return max(rows, key=lambda r: abs(r["gap"])) if rows else None
+
+def generated_notes(data, fr, en):
+    """Short, template-generated sentences that replace hand-written analysis of the current numbers: the
+    largest poll/market divergences and the largest venue-vs-venue disagreement, in both languages. Structural
+    (never names a candidate or figure that isn't read straight from data.json this run)."""
+    notes = {"divergences": [], "venueGapLead": None}
+    for r in largest_divergences(data):
+        venue_name = {"polymarket": "Polymarket", "kalshi": "Kalshi"}[r["venue"]]
+        notes["divergences"].append({
+            "fr": fr["divergenceItem"].replace("{name}", r["c"]).replace("{venue}", venue_name)
+                    .replace("{market}", fr_pct(r["market"])).replace("{poll}", fr_pct(r["poll"])).replace("{gap}", signed_pts(r["gap"])),
+            "en": en["divergenceItem"].replace("{name}", r["c"]).replace("{venue}", venue_name)
+                    .replace("{market}", en_pct(r["market"])).replace("{poll}", en_pct(r["poll"])).replace("{gap}", signed_pts(r["gap"])),
+        })
+    vg = largest_venue_gap(data)
+    if vg:
+        notes["venueGapLead"] = {
+            "fr": fr["venueGapLead"].replace("{deName}", elide_de(vg["c"])).replace("{poly}", fr_pct(vg["poly"]))
+                    .replace("{kal}", fr_pct(vg["kal"])).replace("{gap}", signed_pts(vg["gap"])),
+            "en": en["venueGapLead"].replace("{name}", vg["c"]).replace("{poly}", en_pct(vg["poly"]))
+                    .replace("{kal}", en_pct(vg["kal"])).replace("{gap}", signed_pts(vg["gap"])),
+        }
+    return notes
+
 def fr_pct(x):
     return "<1" + NB + "%" if 0 < x < 1 else f"{math.floor(x + 0.5)}{NB}%"
+
+def en_pct(x):
+    """Same rounding as fr_pct(), no nbsp: English has no rule requiring one before a unit sign."""
+    return "<1%" if 0 < x < 1 else f"{math.floor(x + 0.5)}%"
 
 def fr_date(iso):
     d = datetime.date.fromisoformat(iso)
@@ -504,6 +567,12 @@ def fill_figures(text, figs):
 def french_strings():
     """The French strings of the page (i18n/fr.json): plain strings, plus lists and objects the static layer ignores."""
     return json.loads((ROOT / "i18n" / "fr.json").read_text(encoding="utf-8"))
+
+def english_strings():
+    """The English strings of the page (i18n/en.json), for the handful of generated notes that are rendered once
+    here in both languages and stored in data.json (divergences, the venue-gap lead) rather than re-templated
+    client-side: they don't depend on any page toggle, unlike the headline, so one render per day is enough."""
+    return json.loads((ROOT / "i18n" / "en.json").read_text(encoding="utf-8"))
 
 def fill(page, pattern, text):
     page, n = re.subn(pattern, lambda m: m.group(1) + text + m.group(3), page, flags=re.S)
@@ -664,6 +733,8 @@ def build_outputs(data, history_rows, history, liquidity_rows, tmp):
     hl = headline(data)
     hl["figs"] = fr_figures(data)
     fr = {k: fill_figures(v, hl["figs"]) for k, v in french_strings().items() if isinstance(v, str)}
+    en = {k: v for k, v in english_strings().items() if isinstance(v, str)}
+    data["notes"] = generated_notes(data, fr, en)
     blackout = in_blackout(load_config())
     mkt_txt = ", ".join(f"{v} {p:.1f}%" for v, p in hl["venues"].items())
     print(f"Headline: {hl['name']}, polls {hl['poll']:.1f}%, markets {mkt_txt}"
@@ -683,6 +754,7 @@ def build_outputs(data, history_rows, history, liquidity_rows, tmp):
     stage(INDEX, render_index(hl, fr, blackout))
     stage(CANDIDAT, restamp_version(CANDIDAT, hl["updated"]))
     stage(SECOND_TOUR, restamp_version(SECOND_TOUR, hl["updated"]))
+    stage(NOTES_PAGE, restamp_version(NOTES_PAGE, hl["updated"]))
     stage(OG_IMAGE, writer=lambda t: write_blackout_image(fr, t) if blackout else write_og_image(hl, t))
     return out
 

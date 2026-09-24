@@ -238,6 +238,81 @@ def test_fetch_ballot_returns_none_on_failure(monkeypatch):
     assert b.fetch_ballot(None) is None
 
 
+# ---- generated notes: replace hand-written analysis with short, templated sentences ------------------------
+
+def test_elide_de_handles_a_vowel_start_and_a_consonant_start():
+    assert b.elide_de("Éric Zemmour") == "d'Éric Zemmour"
+    assert b.elide_de("Édouard Philippe") == "d'Édouard Philippe"
+    assert b.elide_de("Olivier Faure") == "d'Olivier Faure"
+    assert b.elide_de("Marine Le Pen") == "de Marine Le Pen"       # female candidate, consonant start
+    assert b.elide_de("Jordan Bardella") == "de Jordan Bardella"   # male candidate, consonant start
+
+
+def test_signed_pts_a_gap_of_zero_carries_no_sign():
+    assert b.signed_pts(0) == "0" + b.NB + "pts"
+    assert b.signed_pts(0.4) == "0" + b.NB + "pts"   # rounds to zero
+
+
+def test_signed_pts_positive_and_negative():
+    assert b.signed_pts(5.2) == "+5" + b.NB + "pts"
+    assert b.signed_pts(-5.2) == "−5" + b.NB + "pts"
+
+
+def _cand(c, f, venues):
+    return {"c": c, "f": f, "venues": venues}
+
+
+def test_largest_divergences_uses_each_candidates_own_biggest_venue_never_a_mean():
+    data = {"sim": {"mid": {"Marine Le Pen": {"win": 30.0}, "Jordan Bardella": {"win": 5.0}}},
+            "markets": {"candidates": [
+                _cand("Marine Le Pen", "far-right", {"polymarket": {"win": 36.0}, "kalshi": {"win": 34.0}}),   # female, gap 6 (poly) vs 4 (kalshi)
+                _cand("Jordan Bardella", "far-right", {"polymarket": {"win": 8.0}}),                            # male, one venue only, gap 3
+            ]}}
+    rows = b.largest_divergences(data, n=2)
+    assert rows[0]["c"] == "Marine Le Pen" and rows[0]["venue"] == "polymarket" and rows[0]["gap"] == 6.0
+    assert rows[1]["c"] == "Jordan Bardella" and rows[1]["venue"] == "polymarket" and rows[1]["gap"] == 3.0
+
+
+def test_largest_divergences_skips_a_candidate_with_no_poll():
+    data = {"sim": {"mid": {}}, "markets": {"candidates": [_cand("Marine Le Pen", "far-right", {"polymarket": {"win": 36.0}})]}}
+    assert b.largest_divergences(data) == []
+
+
+def test_largest_venue_gap_needs_both_venues_on_the_same_candidate():
+    data = {"markets": {"candidates": [
+        _cand("Marine Le Pen", "far-right", {"polymarket": {"win": 36.0}}),   # kalshi missing: not eligible
+        _cand("Jordan Bardella", "far-right", {"polymarket": {"win": 8.0}, "kalshi": {"win": 2.0}}),
+    ]}}
+    vg = b.largest_venue_gap(data)
+    assert vg["c"] == "Jordan Bardella" and vg["gap"] == 6.0
+
+
+def test_largest_venue_gap_is_none_when_no_candidate_qualifies():
+    data = {"markets": {"candidates": [_cand("Marine Le Pen", "far-right", {"polymarket": {"win": 36.0}})]}}
+    assert b.largest_venue_gap(data) is None
+
+
+def test_generated_notes_renders_elision_and_signs_in_both_languages():
+    fr, en = b.french_strings(), b.english_strings()
+    data = {"sim": {"mid": {"Éric Zemmour": {"win": 10.0}, "Marine Le Pen": {"win": 30.0}}},
+            "markets": {"candidates": [
+                # vowel-start candidate: kalshi's gap (+15) unambiguously beats polymarket's (-6), and beats
+                # Marine Le Pen's own largest gap (+6) too, so this row must lead both generated notes
+                _cand("Éric Zemmour", "far-right", {"polymarket": {"win": 4.0}, "kalshi": {"win": 25.0}}),
+                _cand("Marine Le Pen", "far-right", {"polymarket": {"win": 36.0}, "kalshi": {"win": 34.0}}),
+            ]}}
+    notes = b.generated_notes(data, fr, en)
+    assert len(notes["divergences"]) == 2
+    top = notes["divergences"][0]
+    assert "Éric Zemmour" in top["fr"] and "Éric Zemmour" in top["en"]
+    assert "+15" in top["fr"] and "+15" in top["en"]
+    lead = notes["venueGapLead"]
+    assert lead is not None
+    assert "d'Éric Zemmour" in lead["fr"]          # elision before the vowel-start name
+    assert "Éric Zemmour's" in lead["en"]
+    assert "−21" in lead["fr"]   # signed: polymarket (4) minus kalshi (25)
+
+
 def test_kalshi_candlestick_prices_falls_back_to_bid_ask_midpoint_on_a_quiet_day(monkeypatch):
     monkeypatch.setattr(b, "kalshi_get", lambda path, **params: kalshi_candlesticks([(1700000000, 37.0), (1700086400, None)]))
     prices = b.kalshi_candlestick_prices("KXFRENCHPRES", "KXFRENCHPRES-27-MLEP", TODAY, TODAY)
@@ -383,7 +458,7 @@ def test_get_gives_up_and_does_not_retry_client_errors(monkeypatch):
 def sha(path): return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-FILES = ("data.json", "index.html", "candidat.html", "second-tour.html", "og-image.png",
+FILES = ("data.json", "index.html", "candidat.html", "second-tour.html", "notes.html", "og-image.png",
          "data/market_history.csv", "data/market_liquidity.csv", "data/polls_average.csv")
 
 
@@ -411,12 +486,12 @@ def sandbox(tmp_path, monkeypatch):
     """A copy of the published files, and the pipeline pointed at it with fake network data for both venues
     (override b.market_prices / b.kalshi_win_prices in a test for non-default behaviour, e.g. a failing venue)."""
     root = pathlib.Path(b.ROOT)
-    for rel in FILES + ("i18n/fr.json",):
+    for rel in FILES + ("i18n/fr.json", "i18n/en.json"):
         (tmp_path / rel).parent.mkdir(parents=True, exist_ok=True)
         if (root / rel).exists(): shutil.copy(root / rel, tmp_path / rel)
         else: (tmp_path / rel).write_text("", encoding="utf-8")
     for name, rel in (("ROOT", ""), ("INDEX", "index.html"), ("CANDIDAT", "candidat.html"), ("SECOND_TOUR", "second-tour.html"),
-                      ("OG_IMAGE", "og-image.png"), ("HISTORY", "data/market_history.csv"),
+                      ("NOTES_PAGE", "notes.html"), ("OG_IMAGE", "og-image.png"), ("HISTORY", "data/market_history.csv"),
                       ("LIQUIDITY", "data/market_liquidity.csv"), ("POLLS_AVERAGE", "data/polls_average.csv")):
         monkeypatch.setattr(b, name, tmp_path / rel if rel else tmp_path)
     today = b.datetime.date.today()
