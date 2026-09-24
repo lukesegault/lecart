@@ -1,0 +1,65 @@
+date,venue,candidate,market,volume,liquidity
+2026-09-24,polymarket,Marine Le Pen,win,2685536,461835
+2026-09-24,polymarket,Marine Le Pen,qual,12513,20842
+2026-09-24,polymarket,Jordan Bardella,win,2241726,159656
+2026-09-24,polymarket,Jordan Bardella,qual,22817,15865
+2026-09-24,polymarket,Éric Zemmour,win,2518952,225507
+2026-09-24,polymarket,Éric Zemmour,qual,695,17896
+2026-09-24,polymarket,Édouard Philippe,win,1703138,237264
+2026-09-24,polymarket,Édouard Philippe,qual,2648,5237
+2026-09-24,polymarket,David Lisnard,win,2428302,214346
+2026-09-24,polymarket,David Lisnard,qual,55024,99232
+2026-09-24,polymarket,Laurent Wauquiez,win,3684663,590683
+2026-09-24,polymarket,Laurent Wauquiez,qual,758,13038
+2026-09-24,polymarket,Gabriel Attal,win,2387159,219315
+2026-09-24,polymarket,Gabriel Attal,qual,2899,30904
+2026-09-24,polymarket,Bruno Retailleau,win,2351482,265908
+2026-09-24,polymarket,Bruno Retailleau,qual,2246,15147
+2026-09-24,polymarket,François Hollande,win,1972495,136401
+2026-09-24,polymarket,François Hollande,qual,12269,39223
+2026-09-24,polymarket,Raphaël Glucksmann,win,1854847,251003
+2026-09-24,polymarket,Raphaël Glucksmann,qual,5042,28478
+2026-09-24,polymarket,Jean-Luc Mélenchon,win,1591389,288717
+2026-09-24,polymarket,Jean-Luc Mélenchon,qual,10907,6144
+2026-09-24,polymarket,Marine Tondelier,win,4223814,639981
+2026-09-24,polymarket,Marine Tondelier,qual,3022,13968
+2026-09-24,polymarket,Fabien Roussel,win,4244293,527148
+2026-09-24,polymarket,Fabien Roussel,qual,6265,17462
+2026-09-24,polymarket,Olivier Faure,win,5989460,267386
+2026-09-24,polymarket,Olivier Faure,qual,936,16753
+2026-09-24,polymarket,Dominique de Villepin,win,1987771,224759
+2026-09-24,polymarket,Dominique de Villepin,qual,1463,17643
+2026-09-24,polymarket,Nicolas Dupont-Aignan,win,4741077,636722
+2026-09-24,polymarket,Nicolas Dupont-Aignan,qual,799,18326
+2026-09-24,polymarket,Sarah Knafo,win,2176156,274572
+2026-09-24,polymarket,Sarah Knafo,qual,4781,27952
+2026-09-24,polymarket,Sébastien Lecornu,win,1776757,237309
+2026-09-24,polymarket,Sébastien Lecornu,qual,1557,17701
+2026-09-24,kalshi,François Hollande,win,36779,25387
+2026-09-24,kalshi,Sarah Knafo,win,5091,2812
+2026-09-24,kalshi,Sébastien Lecornu,win,2247,2196
+2026-09-24,kalshi,Dominique de Villepin,win,8219,5016
+2026-09-24,kalshi,Olivier Faure,win,102,102
+2026-09-24,kalshi,Jean-Luc Mélenchon,win,23288,15644
+2026-09-24,kalshi,Laurent Wauquiez,win,2,2
+2026-09-24,kalshi,Gabriel Attal,win,18347,9252
+2026-09-24,kalshi,David Lisnard,win,23035,11181
+2026-09-24,kalshi,Bruno Retailleau,win,3685,3222
+2026-09-24,kalshi,Marine Le Pen,win,105418,59525
+2026-09-24,kalshi,Jordan Bardella,win,78619,26491
+2026-09-24,kalshi,Éric Zemmour,win,3137,3136
+2026-09-24,kalshi,Édouard Philippe,win,33437,12745
+2026-09-24,kalshi,Raphaël Glucksmann,ballot,1920,1523
+2026-09-24,kalshi,Olivier Faure,ballot,470,310
+2026-09-24,kalshi,Nicolas Dupont-Aignan,ballot,103,88
+2026-09-24,kalshi,Marine Tondelier,ballot,103,96
+2026-09-24,kalshi,Marine Le Pen,ballot,60,37
+2026-09-24,kalshi,Jean-Luc Mélenchon,ballot,6,6
+2026-09-24,kalshi,Jordan Bardella,ballot,325,211
+2026-09-24,kalshi,Gabriel Attal,ballot,4573,2611
+2026-09-24,kalshi,Fabien Roussel,ballot,382,380
+2026-09-24,kalshi,François Hollande,ballot,1643,1596
+2026-09-24,kalshi,Éric Zemmour,ballot,4460,1340
+2026-09-24,kalshi,Édouard Philippe,ballot,584,258
+2026-09-24,kalshi,Dominique de Villepin,ballot,1735,1721
+2026-09-24,kalshi,Bruno Retailleau,ballot,1364,590

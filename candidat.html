@@ -18,7 +18,7 @@
 <meta name="twitter:title" content="L'Écart · Candidat / Candidate">
 <meta name="twitter:description" content="Un candidat, marché contre sondages. / One candidate, market against polls.">
 <meta name="twitter:image" content="https://lukesegault.github.io/lecart/og-image.png">
-<meta name="data-version" content="2026-09-23">
+<meta name="data-version" content="2026-09-24">
 <link rel="preload" href="fonts/bodoni-moda-500-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="fonts/ibm-plex-sans-400-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="fonts/fonts.css">
@@ -76,8 +76,8 @@
   <div class="sp-ctl-group">
     <span class="sp-ctl-label" id="cd-q-label" data-i="chanceTo">Chances de</span>
     <div class="sp-tabs" id="cdQ" role="group" aria-labelledby="cd-q-label">
-      <button type="button" data-q="qual" aria-pressed="true" data-i="qual">Accéder au second tour</button>
-      <button type="button" data-q="win" aria-pressed="false" data-i="win">Gagner</button>
+      <button type="button" data-q="qual" aria-pressed="false" data-i="qual">Accéder au second tour</button>
+      <button type="button" data-q="win" aria-pressed="true" data-i="win">Gagner</button>
     </div>
   </div>
   <div class="sp-ctl-group">
@@ -94,9 +94,10 @@
   <div class="sp-rail">
     <h2 id="cdName"></h2>
     <div class="fam" id="cdFamily"></div>
-    <div class="sp-metarow"><span data-i="cdMetaMktQual">Marché, qualification</span><b class="num" id="cdMktQual"></b></div>
+    <div class="sp-metarow"><span data-i="cdMetaMktQualPoly">Polymarket, qualification</span><b class="num" id="cdMktQual"></b></div>
     <div class="sp-metarow"><span data-i="cdMetaPollQual">Sondages, qualification</span><b class="num" id="cdPolQual"></b></div>
-    <div class="sp-metarow"><span data-i="cdMetaMktWin">Marché, victoire</span><b class="num" id="cdMktWin"></b></div>
+    <div class="sp-metarow"><span data-i="cdMetaMktWinPoly">Polymarket, victoire</span><b class="num" id="cdMktWinPoly"></b></div>
+    <div class="sp-metarow"><span data-i="cdMetaMktWinKal">Kalshi, victoire</span><b class="num" id="cdMktWinKal"></b></div>
     <div class="sp-metarow"><span data-i="cdMetaPollWin">Sondages, victoire</span><b class="num" id="cdPolWin"></b></div>
     <div class="sp-metarow"><span data-i="cdMetaAvg">Moyenne premier tour</span><b class="num" id="cdAvg"></b></div>
     <p class="note" id="cdNote"></p>
@@ -109,11 +110,12 @@
     </div>
     <div class="sp-gap-title"><span id="cdGapLabel"></span><b class="num" id="cdGapVal"></b></div>
     <div class="sp-gapbar" id="cdGapbar">
-      <span class="base"></span><span class="fill" id="cdFill"></span>
-      <span class="tick-p" id="cdP"></span><span class="tick-m" id="cdM"></span>
-      <span class="lbl p num" id="cdPLbl"></span><span class="lbl m num" id="cdMLbl"></span>
+      <span class="base"></span>
+      <span class="tick-p" id="cdP"></span><span class="tick-m" id="cdM"></span><span class="tick-mk" id="cdMKal"></span>
+      <span class="lbl p num" id="cdPLbl"></span><span class="lbl m num" id="cdMLbl"></span><span class="lbl mk num" id="cdMKalLbl"></span>
     </div>
     <div class="sp-gapscale"><span>0</span><span>50</span><span>100</span></div>
+    <p class="sp-footnote" id="cdVenueFootnote" data-i="venueFootnote" hidden>* Ce marché ne cote pas ce candidat.</p>
   </div>
 </div>
 </div>

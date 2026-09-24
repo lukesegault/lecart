@@ -20,7 +20,20 @@
 <main class="legal" id="fr" lang="fr">
   <h1>Journal des modifications</h1>
   <p class="lede">Les évolutions notables du site, de la plus récente à la plus ancienne. Les données sont actualisées chaque jour ; seules les évolutions de fond figurent ici.</p>
-  <p class="lede">À des fins de recherche académique uniquement. Sources : sondages MieuxVoter/presidentielle2027 (licence MIT) ; prix de marché Polymarket, présentés comme données.</p>
+  <p class="lede">À des fins de recherche académique uniquement. Sources : sondages MieuxVoter/presidentielle2027 (licence MIT) ; prix de marché Polymarket et Kalshi, présentés comme données.</p>
+
+  <h2>24 septembre 2026</h2>
+  <ul>
+    <li>Plus aucune moyenne entre places de marché nulle part sur le site : chaque prix de Polymarket et de Kalshi reste distinct dans les données, le tableau, la page candidat et le graphique ; là où les deux places cotent le même événement, le titre et les pages affichent désormais un intervalle (« entre X % et Y % ») plutôt qu'un chiffre unique.</li>
+    <li>« Gagner » devient l'onglet par défaut partout : c'est le seul événement coté par les deux places. Sous « Accéder au second tour », la colonne Kalshi est masquée avec une note expliquant que Kalshi ne propose pas ce marché.</li>
+    <li>Volume et liquidité quotidiens ajoutés par place et par candidat (nouveau fichier <code>market_liquidity.csv</code>), affichés sous chaque colonne du tableau ; un discret repère « marché peu liquide » signale un volume cumulé sous un seuil documenté dans la Méthode.</li>
+    <li>Nouvelle section « Figurer sur le bulletin » : l'indicateur Kalshi de confirmation de candidature, distinct de la victoire et de la qualification.</li>
+  </ul>
+
+  <h2>23 septembre 2026</h2>
+  <ul>
+    <li>Kalshi ajouté comme seconde place de marché indépendante, aux côtés de Polymarket, pour le prix de victoire ; un échec de l'une des deux places n'interrompt plus la mise à jour du jour, elle conserve son dernier relevé, marqué comme tel.</li>
+  </ul>
 
   <h2>22 septembre 2026</h2>
   <ul>
@@ -51,7 +64,20 @@
 <main class="legal" id="en" lang="en">
   <h1>Changelog</h1>
   <p class="lede">Notable updates to the site, newest first. The data is refreshed every day; only substantive changes are listed here.</p>
-  <p class="lede">For academic research only. Sources: polls from MieuxVoter/presidentielle2027 (MIT licence); market prices from Polymarket, shown as data.</p>
+  <p class="lede">For academic research only. Sources: polls from MieuxVoter/presidentielle2027 (MIT licence); market prices from Polymarket and Kalshi, shown as data.</p>
+
+  <h2>24 September 2026</h2>
+  <ul>
+    <li>No blended market figure anywhere on the site any more: each Polymarket and Kalshi price stays distinct in the data, the table, the candidate page and the chart; where both venues price the same event, the headline and pages now show a range ("between X% and Y%") instead of a single figure.</li>
+    <li>"Win" becomes the default tab everywhere: it is the only event both venues price. Under "Reach the runoff", the Kalshi column is hidden with a note explaining that Kalshi has no such market.</li>
+    <li>Daily volume and liquidity added per venue and per candidate (new <code>market_liquidity.csv</code> file), shown under each table column; a discreet "thin market" mark flags cumulative volume under a threshold documented in the Method.</li>
+    <li>New "On the ballot" section: Kalshi's candidacy-confirmation indicator, distinct from winning and qualifying.</li>
+  </ul>
+
+  <h2>23 September 2026</h2>
+  <ul>
+    <li>Kalshi added as a second, independent market venue alongside Polymarket for the winner price; one venue failing no longer stops the day's update, it keeps its last reading, marked as such.</li>
+  </ul>
 
   <h2>22 September 2026</h2>
   <ul>

@@ -1,4 +1,4 @@
-import hashlib, json, pathlib, re, shutil, urllib.error
+import csv, hashlib, json, pathlib, re, shutil, urllib.error
 
 import pytest
 
@@ -108,12 +108,14 @@ def test_parse_polls_drops_polls_older_than_the_window():
 
 
 def test_parse_event_and_missing_runoff_price():
-    win, stats = b.parse_event(market({"Marine Le Pen": 37.5, "Édouard Philippe": 23.5, "Someone Else": 5.0}))
+    win, stats, liq_win = b.parse_event(market({"Marine Le Pen": 37.5, "Édouard Philippe": 23.5, "Someone Else": 5.0}))
     assert win == {"Marine Le Pen": 37.5, "Édouard Philippe": 23.5, "Someone Else": 5.0} and stats["volume"] == 1000000
-    qual, _ = b.parse_event(market({"Marine Le Pen": 89.0}))                       # Philippe has no runoff market
-    cands = b.build_candidates_polymarket(win, qual)
+    assert liq_win["Marine Le Pen"] == {"volume": 5000, "liquidity": 2000}
+    qual, _, liq_qual = b.parse_event(market({"Marine Le Pen": 89.0}))             # Philippe has no runoff market
+    cands = b.build_candidates_polymarket(win, qual, liq_win, liq_qual)
     assert cands["Marine Le Pen"]["qual"] == 89.0 and cands["Édouard Philippe"]["qual"] == 0   # missing price 0
     assert "Someone Else" not in cands   # unknown name skipped (not in FAMILY)
+    assert cands["Marine Le Pen"]["volume"] == {"win": 5000, "qual": 5000} and cands["Édouard Philippe"]["volume"]["qual"] == 0
 
 
 def test_parse_event_rejects_an_empty_response():
@@ -139,14 +141,15 @@ def test_kalshi_markets_pages_through_the_cursor(monkeypatch):
 def test_kalshi_win_prices_parses_dollars_to_percent(monkeypatch):
     # volume_fp is per-market (like real Kalshi markets), so two markets at 250 contracts each sum to 500
     monkeypatch.setattr(b, "kalshi_markets", lambda series: kalshi_markets_page({"Marine Le Pen": 37.5, "Someone Else": 5.0}, volume_fp=250)["markets"])
-    win, stats = b.kalshi_win_prices()
+    win, stats, liq = b.kalshi_win_prices()
     assert win == {"Marine Le Pen": 37.5, "Someone Else": 5.0} and stats["volume"] == 500 and stats["sum"] == 42.5
+    assert liq["Marine Le Pen"] == {"volume": 250, "openInterest": 200}
 
 
 def test_kalshi_win_prices_applies_the_alias_table(monkeypatch):
     monkeypatch.setattr(b, "KALSHI_ALIASES", {"J.-L. Mélenchon": "Jean-Luc Mélenchon"})
     monkeypatch.setattr(b, "kalshi_markets", lambda series: kalshi_markets_page({"J.-L. Mélenchon": 12.0})["markets"])
-    win, _ = b.kalshi_win_prices()
+    win, _, _ = b.kalshi_win_prices()
     assert win == {"Jean-Luc Mélenchon": 12.0}
 
 
@@ -156,11 +159,83 @@ def test_kalshi_win_prices_rejects_a_response_with_no_priced_market(monkeypatch)
         b.kalshi_win_prices()
 
 
+def test_kalshi_ballot_prices_uses_the_ballot_series(monkeypatch):
+    seen = []
+    monkeypatch.setattr(b, "kalshi_markets", lambda series: seen.append(series) or kalshi_markets_page({"Marine Le Pen": 99.0})["markets"])
+    price, _, _ = b.kalshi_ballot_prices()
+    assert seen == [b.KALSHI_BALLOT_SERIES] and price == {"Marine Le Pen": 99.0}
+
+
 def test_build_candidates_kalshi_has_no_qual_field():
     # Kalshi's KXFRPRESBALLOT is candidacy confirmation, not runoff qualification (see the KALSHI_BASE comment):
     # Kalshi candidates never carry a "qual" key, unlike Polymarket's.
-    cands = b.build_candidates_kalshi({"Marine Le Pen": 38.0, "Someone Else": 1.0})
-    assert cands == {"Marine Le Pen": {"win": 38.0}}   # unknown name skipped, no "qual" key present
+    liq = {"Marine Le Pen": {"volume": 400, "openInterest": 150}, "Someone Else": {"volume": 1, "openInterest": 1}}
+    cands = b.build_candidates_kalshi({"Marine Le Pen": 38.0, "Someone Else": 1.0}, liq)
+    assert cands == {"Marine Le Pen": {"win": 38.0, "volume": {"win": 400}, "liquidity": {"win": 150}}}   # unknown name skipped, no "qual" key
+
+
+def test_build_ballot_keeps_only_family_names():
+    liq = {"Marine Le Pen": {"volume": 10, "openInterest": 5}, "Someone Else": {"volume": 1, "openInterest": 1}}
+    ballot = b.build_ballot({"Marine Le Pen": 95.0, "Someone Else": 3.0}, liq)
+    assert ballot == {"Marine Le Pen": {"price": 95.0, "volume": 10, "liquidity": 5}}
+
+
+def test_thin_flags_uses_the_documented_threshold():
+    assert b.thin_flags(b.THIN_MARKET_VOLUME - 1) == {"win": True}
+    assert b.thin_flags(b.THIN_MARKET_VOLUME) == {"win": False}
+    assert b.thin_flags(b.THIN_MARKET_VOLUME + 1, b.THIN_MARKET_VOLUME - 1) == {"win": False, "qual": True}
+
+
+# ---- headline: range across venues, never a blended figure -----------------------------------
+
+def _headline_data(candidates, poll_win):
+    return {"sim": {"mid": {c: {"win": p} for c, p in poll_win.items()}}, "markets": {"candidates": candidates}, "updated": "2026-09-24"}
+
+
+def test_headline_picks_the_largest_single_venue_gap_never_a_mean():
+    # Marine Le Pen: polymarket gap 10, kalshi gap 4 (mean would be 7, still less than Attal's single-venue gap)
+    data = _headline_data([
+        {"c": "Marine Le Pen", "f": "far-right", "venues": {"polymarket": {"win": 40.0}, "kalshi": {"win": 34.0}}},
+        {"c": "Gabriel Attal", "f": "centre", "venues": {"polymarket": {"win": 25.0}}},
+    ], {"Marine Le Pen": 30.0, "Gabriel Attal": 5.0})
+    hl = b.headline(data)
+    assert hl["name"] == "Gabriel Attal" and hl["venues"] == {"polymarket": 25.0}   # single-venue gap of 20 wins
+
+
+def test_headline_range_names_every_venue_that_prices_the_candidate():
+    data = _headline_data([{"c": "Marine Le Pen", "f": "far-right", "venues": {"polymarket": {"win": 40.0}, "kalshi": {"win": 34.0}}}],
+                           {"Marine Le Pen": 30.0})
+    hl = b.headline(data)
+    assert hl["name"] == "Marine Le Pen" and hl["venues"] == {"polymarket": 40.0, "kalshi": 34.0}
+
+
+def test_fr_headline_sentence_uses_a_range_for_two_venues_and_names_a_single_venue():
+    fr = b.french_strings()
+    range_sentence = b.fr_headline_sentence(fr, {"name": "Marine Le Pen", "poll": 86.0, "venues": {"polymarket": 37.4, "kalshi": 39.0}})
+    assert "37" in range_sentence and "39" in range_sentence and "entre" in range_sentence
+    single_sentence = b.fr_headline_sentence(fr, {"name": "Marine Le Pen", "poll": 86.0, "venues": {"kalshi": 37.0}})
+    assert "Kalshi" in single_sentence and "37" in single_sentence
+
+
+# ---- "on the ballot" (Kalshi KXFRPRESBALLOT), a separate indicator ----------------------------
+
+def test_fetch_ballot_returns_candidates_and_info(monkeypatch):
+    monkeypatch.setattr(b, "kalshi_markets", lambda series: kalshi_markets_page({"Marine Le Pen": 99.0}, volume_fp=300)["markets"])
+    candidates, info = b.fetch_ballot(None)
+    assert candidates == {"Marine Le Pen": {"price": 99.0, "volume": 300, "liquidity": 200}}
+    assert info["stale"] is False and info["volume"] == 300
+
+
+def test_fetch_ballot_does_not_apply_the_single_winner_sum_check(monkeypatch):
+    # unlike win/qual, "on the ballot" prices are independent per candidate and routinely sum far past 100%
+    monkeypatch.setattr(b, "kalshi_markets", lambda series: kalshi_markets_page({"Marine Le Pen": 92.0, "Jean-Luc Mélenchon": 87.0, "Éric Zemmour": 81.0})["markets"])
+    candidates, info = b.fetch_ballot(None)
+    assert set(candidates) == {"Marine Le Pen", "Jean-Luc Mélenchon", "Éric Zemmour"} and info["stale"] is False
+
+
+def test_fetch_ballot_returns_none_on_failure(monkeypatch):
+    monkeypatch.setattr(b, "kalshi_markets", lambda series: (_ for _ in ()).throw(ValueError("down")))
+    assert b.fetch_ballot(None) is None
 
 
 def test_kalshi_candlestick_prices_falls_back_to_bid_ask_midpoint_on_a_quiet_day(monkeypatch):
@@ -172,19 +247,20 @@ def test_kalshi_candlestick_prices_falls_back_to_bid_ask_midpoint_on_a_quiet_day
 
 # ---- merging venues -------------------------------------------------------------------------
 
-def test_merge_candidates_means_the_venues_a_candidate_is_priced_on():
+def test_merge_candidates_never_blends_keeps_each_venues_own_price():
     # merge_candidates trusts its input to already be FAMILY-filtered (build_candidates_kalshi/_polymarket do that);
-    # both names here must be real FAMILY entries
+    # both names here must be real FAMILY entries. No blended figure is computed: each venue's own price survives
+    # unmixed in `venues`, and there is no top-level "win"/"qual" on the row at all.
     merged = b.merge_candidates({"polymarket": {"Marine Le Pen": {"win": 36.0, "qual": 89.0}},
                                   "kalshi": {"Marine Le Pen": {"win": 38.0}, "Jordan Bardella": {"win": 5.0}}})
     by_name = {c["c"]: c for c in merged}
-    assert by_name["Marine Le Pen"]["win"] == 37.0 and by_name["Marine Le Pen"]["qual"] == 89.0   # mean of 36 and 38
-    assert set(by_name["Marine Le Pen"]["venues"]) == {"polymarket", "kalshi"}
+    assert by_name["Marine Le Pen"]["venues"] == {"polymarket": {"win": 36.0, "qual": 89.0}, "kalshi": {"win": 38.0}}
+    assert "win" not in by_name["Marine Le Pen"] and "qual" not in by_name["Marine Le Pen"]
 
 
 def test_merge_candidates_handles_a_candidate_on_one_venue_only():
     merged = b.merge_candidates({"polymarket": {}, "kalshi": {"Marine Le Pen": {"win": 38.0}}})
-    assert merged == [{"c": "Marine Le Pen", "f": b.FAMILY["Marine Le Pen"], "win": 38.0, "qual": 0, "venues": {"kalshi": {"win": 38.0}}}]
+    assert merged == [{"c": "Marine Le Pen", "f": b.FAMILY["Marine Le Pen"], "venues": {"kalshi": {"win": 38.0}}}]
 
 
 # ---- election-silence period --------------------------------------------------------------
@@ -221,7 +297,8 @@ def test_config_json_is_the_live_config():
 
 
 def blackout_fr():
-    hl = {"name": "Marine Le Pen", "poll": 85.0, "market": 38.0, "updated": "2027-04-17", "figs": {"upd": "17 avril 2027", "year": "2027", "snap": "x", "n": "1", "from": "x", "to": "x"}}
+    hl = {"name": "Marine Le Pen", "poll": 85.0, "venues": {"polymarket": 38.0, "kalshi": 39.0}, "updated": "2027-04-17",
+          "figs": {"upd": "17 avril 2027", "year": "2027", "snap": "x", "n": "1", "from": "x", "to": "x", "thin": "20 000"}}
     fr = {k: b.fill_figures(v, hl["figs"]) for k, v in b.french_strings().items() if isinstance(v, str)}
     return fr, hl
 
@@ -306,15 +383,27 @@ def test_get_gives_up_and_does_not_retry_client_errors(monkeypatch):
 def sha(path): return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-FILES = ("data.json", "index.html", "candidat.html", "second-tour.html", "og-image.png", "data/market_history.csv", "data/polls_average.csv")
+FILES = ("data.json", "index.html", "candidat.html", "second-tour.html", "og-image.png",
+         "data/market_history.csv", "data/market_liquidity.csv", "data/polls_average.csv")
 
 
 def default_polymarket(names):
-    return lambda slug: ({n: 100 / len(names) for n in names}, {"volume": 123456, "sum": 100.0})
+    win = round(100 / len(names), 1)   # real market_prices()/kalshi_win_prices() always round to 1 decimal
+    liq = {n: {"volume": 5000, "liquidity": 2000} for n in names}
+    return lambda slug: ({n: win for n in names}, {"volume": 123456, "liquidity": 45678, "sum": round(win * len(names), 1)}, liq)
 
 
 def default_kalshi(names):
-    return lambda: ({n: 100 / len(names) for n in names}, {"volume": 65432, "sum": 100.0})
+    win = round(100 / len(names), 1)
+    liq = {n: {"volume": 4000, "openInterest": 1500} for n in names}
+    return lambda: ({n: win for n in names}, {"volume": 65432, "liquidity": 22222, "sum": round(win * len(names), 1)}, liq)
+
+
+def no_ballot():
+    """The default sandbox has no KXFRPRESBALLOT fixture data, so fetch_ballot() fails gracefully (caught, logged,
+    "ballot" simply absent from markets) exactly as a real Kalshi outage would; tests that care about "on the
+    ballot" override b.kalshi_ballot_prices themselves."""
+    raise ValueError("no ballot fixture")
 
 
 @pytest.fixture
@@ -323,9 +412,12 @@ def sandbox(tmp_path, monkeypatch):
     (override b.market_prices / b.kalshi_win_prices in a test for non-default behaviour, e.g. a failing venue)."""
     root = pathlib.Path(b.ROOT)
     for rel in FILES + ("i18n/fr.json",):
-        (tmp_path / rel).parent.mkdir(parents=True, exist_ok=True); shutil.copy(root / rel, tmp_path / rel)
+        (tmp_path / rel).parent.mkdir(parents=True, exist_ok=True)
+        if (root / rel).exists(): shutil.copy(root / rel, tmp_path / rel)
+        else: (tmp_path / rel).write_text("", encoding="utf-8")
     for name, rel in (("ROOT", ""), ("INDEX", "index.html"), ("CANDIDAT", "candidat.html"), ("SECOND_TOUR", "second-tour.html"),
-                      ("OG_IMAGE", "og-image.png"), ("HISTORY", "data/market_history.csv"), ("POLLS_AVERAGE", "data/polls_average.csv")):
+                      ("OG_IMAGE", "og-image.png"), ("HISTORY", "data/market_history.csv"),
+                      ("LIQUIDITY", "data/market_liquidity.csv"), ("POLLS_AVERAGE", "data/polls_average.csv")):
         monkeypatch.setattr(b, name, tmp_path / rel if rel else tmp_path)
     today = b.datetime.date.today()
     fake = [dict(p, end=(today - b.datetime.timedelta(days=i)).isoformat()) for i, p in enumerate(POLLS)]
@@ -336,12 +428,21 @@ def sandbox(tmp_path, monkeypatch):
     # candidate's per-venue history so each test starts from "neither venue has a previous snapshot" and opts in
     # to a previous snapshot explicitly (an initial b.run() call) when that's the scenario it wants to cover.
     prev["markets"]["venues"] = {}
+    prev["markets"].pop("ballot", None)
     for c in prev["markets"]["candidates"]: c["venues"] = {}
     (tmp_path / "data.json").write_text(json.dumps(prev), encoding="utf-8")
+    # same hermeticity concern for the liquidity CSV: drop any rows already dated "today" (e.g. from a real run of
+    # build_data.py earlier today) so a test's own run() is the only source of today's rows, including for the
+    # ballot market, which liquidity_with_today() only replaces when a fresh ballot fetch actually happened.
+    liq_path = tmp_path / "data/market_liquidity.csv"
+    liq_rows = [r for r in csv.DictReader(liq_path.open(newline="", encoding="utf-8")) if r["date"] != today.isoformat()] if liq_path.exists() else []
+    with liq_path.open("w", newline="", encoding="utf-8") as fh:
+        w = csv.DictWriter(fh, fieldnames=["date", "venue", "candidate", "market", "volume", "liquidity"]); w.writeheader(); w.writerows(liq_rows)
     monkeypatch.setattr(b, "load_polls", lambda: (fake * 14, PAIRS, prev["trend"], history))   # 42 polls: within 20% of yesterday's 50
     names = [c["c"] for c in prev["markets"]["candidates"]]
     monkeypatch.setattr(b, "market_prices", default_polymarket(names))
     monkeypatch.setattr(b, "kalshi_win_prices", default_kalshi(names))
+    monkeypatch.setattr(b, "kalshi_ballot_prices", no_ballot)
     return tmp_path, names
 
 
@@ -387,9 +488,13 @@ def test_successful_run_writes_everything_and_is_idempotent(sandbox, monkeypatch
     assert d["updated"] == b.datetime.date.today().isoformat()
     assert d["markets"]["venues"]["polymarket"]["volume"]["win"] == 123456
     assert d["markets"]["venues"]["kalshi"]["volume"]["win"] == 65432
+    assert d["markets"]["venues"]["polymarket"]["thin"] == {"win": False, "qual": False}   # 123456/65432 > THIN_MARKET_VOLUME
+    assert "ballot" not in d["markets"]   # the sandbox's Kalshi ballot fetch has no fixture, so it's simply absent
     by_name = {c["c"]: c for c in d["markets"]["candidates"]}
-    # both venue mocks split 100% evenly across all `names`, so each candidate's mean win is 100 / len(names)
-    assert by_name[names[0]]["win"] == round(100 / len(names), 1) and set(by_name[names[0]]["venues"]) == {"polymarket", "kalshi"}
+    # no blended figure anywhere: each venue keeps its own number, and there is no top-level win/qual on the row
+    row = by_name[names[0]]
+    assert "win" not in row and "qual" not in row
+    assert row["venues"]["polymarket"]["win"] == round(100 / len(names), 1) == row["venues"]["kalshi"]["win"]
     assert d["pairs"] == PAIRS   # written verbatim by run(), same as pairs_of() computes
     assert f'name="data-version" content="{d["updated"]}"' in (root / "index.html").read_text(encoding="utf-8")
     assert f'name="data-version" content="{d["updated"]}"' in (root / "candidat.html").read_text(encoding="utf-8")
@@ -397,8 +502,14 @@ def test_successful_run_writes_everything_and_is_idempotent(sandbox, monkeypatch
     hist = (root / "data/market_history.csv").read_text(encoding="utf-8").splitlines()
     assert hist[0] == "date,candidate,venue,win,qual"
     assert sum(1 for r in hist if r.startswith(f"{d['updated']},") and ",kalshi," in r) == len(names)
+    liq = (root / "data/market_liquidity.csv").read_text(encoding="utf-8").splitlines()
+    assert liq[0] == "date,venue,candidate,market,volume,liquidity"
+    # one liquidity row per (venue, candidate, market): polymarket has win+qual, kalshi has win only
+    assert sum(1 for r in liq if r.startswith(f"{d['updated']},polymarket,")) == 2 * len(names)
+    assert sum(1 for r in liq if r.startswith(f"{d['updated']},kalshi,")) == len(names)
     b.run()   # a second run the same day does not duplicate that day's history rows
     assert (root / "data/market_history.csv").read_text(encoding="utf-8").splitlines() == hist
+    assert (root / "data/market_liquidity.csv").read_text(encoding="utf-8").splitlines() == liq
 
 
 def test_run_during_blackout_publishes_the_legal_notice_not_the_candidate(sandbox, monkeypatch):
