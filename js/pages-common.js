@@ -19,7 +19,8 @@ const Lecart = (() => {
   const figures = DATA => {
     const ends = DATA.polls.map(p => p.end).sort(), lo = ends[0], hi = ends[ends.length - 1], mk = DATA.markets;
     const from = lo.slice(0, 4) === hi.slice(0, 4) ? longDate(lo).replace(/ \d{4}$/, "") : longDate(lo);
-    return { upd: longDate(DATA.updated), year: DATA.updated.slice(0, 4), snap: longDate(mk.snapshot), n: DATA.polls.length, from, to: longDate(hi) };
+    const thin = (mk.thinThreshold || 0).toLocaleString(lang === "fr" ? "fr-FR" : "en-US");
+    return { upd: longDate(DATA.updated), year: DATA.updated.slice(0, 4), snap: longDate(mk.snapshot), n: DATA.polls.length, from, to: longDate(hi), thin };
   };
   const fill = (s, figs) => s.replace(/\{\{(\w+)\}\}/g, (_, k) => figs[k]);
   // Aggregated GoatCounter event (cookie-free), same convention as js/app.js.

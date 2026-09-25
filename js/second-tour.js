@@ -38,8 +38,8 @@
       const [a, b] = key.split("|"), [shareA, n] = DATA.pairs[key];
       const flip = ref != null && a !== ref;   // put the reference candidate second (right) in every row
       const left = flip ? a : b, right = flip ? b : a, shareLeft = flip ? shareA : 100 - shareA, shareRight = 100 - shareLeft;
-      const m = MARKET.find(x => x.c === left), s = DATA.sim.mid[left];
-      return { left, right, shareLeft, shareRight, n, win: m ? m.win : null, sim: s ? s.win : null };
+      const m = MARKET.find(x => x.c === left), s = DATA.sim.mid[left], v = m ? m.venues : {};
+      return { left, right, shareLeft, shareRight, n, winPoly: v.polymarket ? v.polymarket.win : null, winKal: v.kalshi ? v.kalshi.win : null, sim: s ? s.win : null };
     }).sort((x, y) => Math.max(y.shareLeft, y.shareRight) - Math.max(x.shareLeft, x.shareRight));
   }
 
@@ -73,7 +73,10 @@
         `</span>` +
         `<span class="sp-pair-n num">${r.n}</span>` +
         `<span class="sp-pair-sim num">${r.sim != null ? num(r.sim) : "–"}</span>` +
-        `<span class="sp-pair-win num">${r.win != null ? num(r.win) : "–"}</span>` +
+        `<span class="sp-pair-win">` +
+        `<span class="pv poly num">${t("ovColPoly")} ${r.winPoly != null ? num(r.winPoly) : " " + t("venueFootnoteMark")}</span>` +
+        `<span class="pv kal num">${t("ovColKalshi")} ${r.winKal != null ? num(r.winKal) : " " + t("venueFootnoteMark")}</span>` +
+        `</span>` +
         `</div>`;
     });
     document.getElementById("rtBoard").innerHTML = h;

@@ -34,13 +34,23 @@ QUAL_SLUG = "next-french-presidential-election-who-will-advance-to-the-2nd-round
 # despite Kalshi's Data Terms of Use restricting redistribution (see CLAUDE.md for the record of that decision).
 KALSHI_BASE = "https://external-api.kalshi.com/trade-api/v2"
 KALSHI_WIN_SERIES = "KXFRENCHPRES"
+# KXFRPRESBALLOT resolves on official candidacy confirmation for the first round, a third question distinct from
+# both "wins the election" and "qualifies for the runoff": it is shown as its own small "on the ballot" indicator
+# (see build_ballot()), never merged into win or qual.
+KALSHI_BALLOT_SERIES = "KXFRPRESBALLOT"
 KALSHI_ALIASES = {}   # {Kalshi yes_sub_title: our canonical FAMILY name}, for when the two spellings drift apart
+# A market's lifetime volume below this ($) gets the "thin market" flag (see thin_flags()): $20,000 is a round,
+# conservative figure at which a single order of ordinary size can move the price several points, so a thinly
+# traded market's price is less informative than the same price on a deep one. Documented in the Method's
+# "Liquidité" section; keep the two in step.
+THIN_MARKET_VOLUME = 20000
 FIRST_ROUND_WINDOW_DAYS = 60   # polls used for the simulation
 TREND_START = "2025-09-01"
 SITE_URL = "https://lukesegault.github.io/lecart/"
 INDEX = ROOT / "index.html"
 CANDIDAT = ROOT / "candidat.html"
 SECOND_TOUR = ROOT / "second-tour.html"
+NOTES_PAGE = ROOT / "notes.html"
 OG_IMAGE = ROOT / "og-image.png"
 CONFIG = ROOT / "config.json"
 SIM_RUNS = 20000
@@ -63,6 +73,7 @@ WEEKLY_CANDIDATES = TREND_CANDIDATES   # polls vs markets chart: same roster as 
 WEEKLY_WINDOW_DAYS = 30        # polls feeding each weekly poll-implied win probability
 HISTORY = ROOT / "data" / "market_history.csv"
 POLLS_AVERAGE = ROOT / "data" / "polls_average.csv"
+LIQUIDITY = ROOT / "data" / "market_liquidity.csv"
 
 def get(url, tries=4, pause=2.0):
     """GET with retries and exponential backoff (2 s, 4 s, 8 s) on network errors, timeouts, 429 and 5xx."""
@@ -135,8 +146,9 @@ def monday(iso):
 
 def weekly_series(history, market_rows, today=None):
     """Weekly (Monday-start) series per WEEKLY_CANDIDATES, from the first poll (or market day, if earlier) to the last market day.
-    market: for each week, the mean of the venues' own weekly averages (each venue counts once, not once per day it
-    happened to be quoted); venues: each venue's own weekly average, for the chart's band between them.
+    venues: each venue's own weekly average (each venue counts once, not once per day it happened to be quoted);
+    no blended figure across venues is computed anywhere in this file, so there is no single "market" line here,
+    only each venue's own.
     poll: poll-implied win probability, the same Monte Carlo as the rest of the page (simulate(), medium uncertainty, seed 2027) run on the
     first-round polls that ended in the WEEKLY_WINDOW_DAYS days up to the end of the week, with the runoff polls of that same window;
     None when no poll ended in that window (or the candidate is in none of them)."""
@@ -164,11 +176,7 @@ def weekly_series(history, market_rows, today=None):
     series = {}
     for c in WEEKLY_CANDIDATES:
         venues = {v: [avg(market[c][v].get(w)) for w in weeks] for v in market[c]}
-        blended = []
-        for i in range(len(weeks)):
-            vals = [venues[v][i] for v in venues if venues[v][i] is not None]
-            blended.append(round(mean(vals), 1) if vals else None)
-        series[c] = {"poll": poll[c], "market": blended, "venues": venues}
+        series[c] = {"poll": poll[c], "venues": venues}
     return {"weeks": [w.isoformat() for w in weeks], "windowDays": WEEKLY_WINDOW_DAYS, "uncertainty": "mid", "runs": SIM_RUNS,
             "series": series}
 
@@ -203,25 +211,51 @@ def history_with_today(rows, snapshot, venue_candidates):
            for venue, prices in venue_candidates.items() for name, p in prices.items()]
     return kept + new
 
+def read_liquidity_rows():
+    """Rows of data/market_liquidity.csv as dicts of strings (date, venue, candidate, market, volume, liquidity)."""
+    if not LIQUIDITY.exists(): return []
+    with LIQUIDITY.open(newline="", encoding="utf-8") as fh: return list(csv.DictReader(fh))
+
+def liquidity_with_today(rows, snapshot, venue_candidates, ballot_candidates=None):
+    """The liquidity rows with today's figures in place of any earlier rows of the same (date, venue, market) (a
+    second run the same day does not duplicate). venue_candidates: {venue: {name: {..., volume: {market: $},
+    liquidity: {market: $}}}}, only venues that actually produced fresh figures this run. One row per (venue,
+    candidate, market): `market` is "win", "qual" or (from ballot_candidates, Kalshi's KXFRPRESBALLOT) "ballot",
+    each replaced independently of the others so one failing today doesn't discard another's fresh row."""
+    def stale(r):
+        if r["date"] != snapshot: return False
+        if r["market"] == "ballot": return r["venue"] == "kalshi" and bool(ballot_candidates)
+        return r["venue"] in venue_candidates
+    kept = [r for r in rows if not stale(r)]
+    new = [{"date": snapshot, "venue": venue, "candidate": name, "market": mkt, "volume": str(v), "liquidity": str(p.get("liquidity", {}).get(mkt, ""))}
+           for venue, prices in venue_candidates.items() for name, p in prices.items() for mkt, v in (p.get("volume") or {}).items()]
+    if ballot_candidates:
+        new += [{"date": snapshot, "venue": "kalshi", "candidate": name, "market": "ballot",
+                  "volume": str(p["volume"]), "liquidity": str(p["liquidity"])} for name, p in ballot_candidates.items()]
+    return kept + new
+
 def market_prices(slug):
-    """Yes prices (%) per candidate, plus the event's traded volume ($) and the sum of all its Yes prices (%)."""
+    """Yes prices (%) per candidate, the event's traded volume ($) and the sum of all its Yes prices (%), and each
+    candidate's own volume/liquidity ($, from the Gamma API's per-market volumeNum/liquidityNum)."""
     return parse_event(json.loads(get(GAMMA.format(slug=slug))), slug)
 
 def parse_event(events, slug=""):
     if not events:
         raise ValueError(f"no event returned for slug {slug}")
-    out = {}
+    out, liq = {}, {}
     for m in events[0]["markets"]:
         name = m.get("groupItemTitle") or m.get("question")
         prices = json.loads(m.get("outcomePrices") or "[]")
         outcomes = json.loads(m.get("outcomes") or '["Yes","No"]')
         if name and prices and outcomes[0] == "Yes":
             out[name] = round(100 * float(prices[0]), 1)   # price of "Yes"
+            liq[name] = {"volume": round(float(m.get("volumeNum") or 0)), "liquidity": round(float(m.get("liquidityNum") or 0))}
     if not out:
         raise ValueError(f"no usable markets for slug {slug}")
     volume = float(events[0].get("volume") or 0) or sum(float(m.get("volumeNum") or 0) for m in events[0]["markets"])
+    liquidity = sum(v["liquidity"] for v in liq.values())
     print(f"{slug}: {len(out)} markets, volume ${volume:,.0f}, prices add up to {sum(out.values()):.0f}%:", ", ".join(f"{k}={v}" for k, v in out.items()))
-    return out, {"volume": round(volume), "sum": round(sum(out.values()), 1)}
+    return out, {"volume": round(volume), "liquidity": round(liquidity), "sum": round(sum(out.values()), 1)}, liq
 
 def kalshi_get(path, **params):
     qs = urllib.parse.urlencode({k: v for k, v in params.items() if v is not None})
@@ -238,20 +272,31 @@ def kalshi_markets(series_ticker):
 
 def kalshi_win_prices():
     """Yes prices (%) per candidate from Kalshi's KXFRENCHPRES winner markets, plus traded volume ($, approximate:
-    Kalshi's volume_fp is a contract count, and these contracts have $1 notional, so count and dollars coincide)
-    and the sum of all Yes prices (%, same sanity check as Polymarket's)."""
-    markets = kalshi_markets(KALSHI_WIN_SERIES)
-    out, volume = {}, 0.0
+    Kalshi's volume_fp is a contract count, and these contracts have $1 notional, so count and dollars coincide),
+    the sum of all Yes prices (%, same sanity check as Polymarket's), and each candidate's own volume/open interest."""
+    return _kalshi_series_prices(KALSHI_WIN_SERIES)
+
+def kalshi_ballot_prices():
+    """Yes prices (%) per candidate from Kalshi's KXFRPRESBALLOT markets: not a qualifying/runoff indicator (see the
+    KALSHI_BALLOT_SERIES comment), just "is this person an official candidate", shown in its own small section."""
+    return _kalshi_series_prices(KALSHI_BALLOT_SERIES)
+
+def _kalshi_series_prices(series_ticker):
+    markets = kalshi_markets(series_ticker)
+    out, liq, volume = {}, {}, 0.0
     for m in markets:
         price = m.get("last_price_dollars")
         if price is None: continue
         name = KALSHI_ALIASES.get(m["yes_sub_title"], m["yes_sub_title"])
         out[name] = round(100 * float(price), 1)
-        volume += float(m.get("volume_fp") or 0)
-    if not out: raise ValueError(f"no usable Kalshi markets for series {KALSHI_WIN_SERIES}")
-    print(f"Kalshi {KALSHI_WIN_SERIES}: {len(out)} markets, volume ${volume:,.0f}, prices add up to {sum(out.values()):.0f}%:",
+        v = float(m.get("volume_fp") or 0)
+        liq[name] = {"volume": round(v), "openInterest": round(float(m.get("open_interest_fp") or 0))}
+        volume += v
+    if not out: raise ValueError(f"no usable Kalshi markets for series {series_ticker}")
+    open_interest = sum(v["openInterest"] for v in liq.values())
+    print(f"Kalshi {series_ticker}: {len(out)} markets, volume ${volume:,.0f}, prices add up to {sum(out.values()):.0f}%:",
           ", ".join(f"{k}={v}" for k, v in out.items()))
-    return out, {"volume": round(volume), "sum": round(sum(out.values()), 1)}
+    return out, {"volume": round(volume), "liquidity": round(open_interest), "sum": round(sum(out.values()), 1)}, liq
 
 def kalshi_candlestick_prices(series_ticker, ticker, start, end):
     """{ISO date: win %} daily closes for one Kalshi market, from its candlesticks. A day with no trade has no
@@ -274,38 +319,56 @@ def kalshi_candlestick_prices(series_ticker, ticker, start, end):
 # simulate() is the only implementation of the poll-to-probability Monte Carlo: build_data.py runs it for every view
 # (see page_views()) and stores the results in data.json; the page just displays them.
 
-def build_candidates_polymarket(win, qual):
-    """{name: {win, qual}} for every Polymarket-priced name we have a political family for. A missing runoff price counts as 0."""
-    return {n: {"win": win[n], "qual": qual.get(n, 0)} for n in win if n in FAMILY}
+def build_candidates_polymarket(win, qual, liq_win, liq_qual):
+    """{name: {win, qual, volume, liquidity}} for every Polymarket-priced name we have a political family for.
+    A missing runoff price counts as 0; volume/liquidity are each {win, qual} ($, 0 for a market that didn't price
+    this candidate)."""
+    return {n: {"win": win[n], "qual": qual.get(n, 0),
+                "volume": {"win": liq_win[n]["volume"], "qual": liq_qual.get(n, {}).get("volume", 0)},
+                "liquidity": {"win": liq_win[n]["liquidity"], "qual": liq_qual.get(n, {}).get("liquidity", 0)}}
+            for n in win if n in FAMILY}
 
-def build_candidates_kalshi(win):
-    """{name: {win}} for every Kalshi-priced name we have a political family for. Winner price only: KXFRPRESBALLOT
-    is not a qualifying/runoff market (see the KALSHI_BASE comment), so Kalshi never supplies `qual`."""
-    return {n: {"win": win[n]} for n in win if n in FAMILY}
+def build_candidates_kalshi(win, liq_win):
+    """{name: {win, volume, liquidity}} for every Kalshi-priced name we have a political family for. Winner price
+    only: KXFRPRESBALLOT is not a qualifying/runoff market (see the KALSHI_BASE comment), so Kalshi never supplies
+    `qual` here (its own price lives in `markets.ballot`, built separately by build_ballot())."""
+    return {n: {"win": win[n], "volume": {"win": liq_win[n]["volume"]}, "liquidity": {"win": liq_win[n]["openInterest"]}}
+            for n in win if n in FAMILY}
+
+def build_ballot(price, liq):
+    """{name: {price, volume, liquidity}} for every Kalshi KXFRPRESBALLOT-priced name we have a political family
+    for: "is this person an official candidate", never merged with win or qual (see KALSHI_BALLOT_SERIES)."""
+    return {n: {"price": price[n], "volume": liq[n]["volume"], "liquidity": liq[n]["openInterest"]} for n in price if n in FAMILY}
 
 def merge_candidates(venue_prices):
-    """venue_prices: {venue: {name: {win[, qual]}}}, one entry per venue that produced usable prices this run.
-    One output row per candidate priced by at least one venue: `win` is the mean across the venues that priced it
-    (a candidate on a single venue just gets that venue's price), `qual` is Polymarket's, or 0 if Polymarket didn't
-    price this candidate either. `venues` keeps each venue's own number, for the per-venue display and the
-    'Écart entre places de marché' section."""
+    """venue_prices: {venue: {name: {win[, qual], volume, liquidity}}}, one entry per venue that produced usable
+    prices this run. One output row per candidate priced by at least one venue. No blended figure is computed here
+    or anywhere else in this file: `venues` carries each venue's own, unmixed numbers, and every consumer (the
+    page, the CSVs, the headline) reads a specific venue's own price, never a mean across venues."""
     names = sorted({n for prices in venue_prices.values() for n in prices})
-    out = []
-    for n in names:
-        by_venue = {v: prices[n] for v, prices in venue_prices.items() if n in prices}
-        win = round(mean(p["win"] for p in by_venue.values()), 1)
-        qual = by_venue.get("polymarket", {}).get("qual", 0)
-        out.append({"c": n, "f": FAMILY[n], "win": win, "qual": qual, "venues": by_venue})
-    return out
+    return [{"c": n, "f": FAMILY[n], "venues": {v: prices[n] for v, prices in venue_prices.items() if n in prices}} for n in names]
 
-def validate_venue(prices, win_sum, previous_markets, venue, label):
-    """Reasons not to trust `prices` (one venue, {name: {win[, qual]}}) this run (empty: fine). previous_markets is
-    yesterday's data["markets"] (or None); a candidate that venue priced yesterday and doesn't today is suspect."""
+def thin_flags(win_volume, qual_volume=None):
+    """{"win": bool[, "qual": bool]}: whether this venue's lifetime volume for that market as a whole is below
+    THIN_MARKET_VOLUME, i.e. every price it quotes should carry the discreet "thin market" flag."""
+    flags = {"win": win_volume < THIN_MARKET_VOLUME}
+    if qual_volume is not None: flags["qual"] = qual_volume < THIN_MARKET_VOLUME
+    return flags
+
+PRICE_KEYS = ("win", "qual", "price")   # keys of `prices[name]` that are 0-100 prices, as opposed to volume/liquidity
+
+def validate_venue(prices, win_sum, previous_markets, venue, label, check_sum=True):
+    """Reasons not to trust `prices` (one venue, {name: {win[, qual], volume, liquidity}}) this run (empty: fine).
+    previous_markets is yesterday's data["markets"] (or None); a candidate that venue priced yesterday and doesn't
+    today is suspect. check_sum is False for the "on the ballot" indicator (see fetch_ballot()): unlike win/qual,
+    it isn't a single-winner market, so its prices are independent and have no reason to sum near 100%."""
     bad = []
     for name, p in prices.items():
-        for k, v in p.items():
+        for k in PRICE_KEYS:
+            if k not in p: continue
+            v = p[k]
             if not 0 <= v <= 100: bad.append(f"{label}: price out of range: {name} {k} = {v}")
-    if not 85 <= win_sum <= 115: bad.append(f"{label}: winner prices add up to {win_sum:.1f}%, outside 85-115%")
+    if check_sum and not 85 <= win_sum <= 115: bad.append(f"{label}: winner prices add up to {win_sum:.1f}%, outside 85-115%")
     if previous_markets:
         prev_names = {c["c"] for c in previous_markets.get("candidates", []) if venue in c.get("venues", {})}
         gone = sorted(prev_names - set(prices))
@@ -403,18 +466,87 @@ def slim_polls(polls):
              "v": {c: p["v"][c] for c in TABLE_CANDIDATES if c in p["v"]}} for p in polls]
 
 def headline(data):
-    """Largest win gap between the poll simulation and the markets (same rule as renderSpot())."""
+    """The candidate with the single largest win-probability gap between one venue's own price and the poll
+    simulation (never a blended figure: each venue's gap against the polls is judged on its own, and the largest
+    of those, across every venue and candidate, wins). `venues` carries every venue that prices that candidate's
+    win event, for a range headline ("between X% and Y%") when more than one does, or a named single venue when
+    only one does (see fr_headline_sentence() / js/index.js's mirror of this)."""
     sim = data["sim"]["mid"]
-    rows = [{"c": m["c"], "market": m["win"], "poll": sim[m["c"]]["win"] if m["c"] in sim else None}
-            for m in data["markets"]["candidates"]]
-    rows.sort(key=lambda r: max(r["market"], r["poll"] or 0), reverse=True)
-    rows = [r for r in rows if r["poll"] is not None]
-    rows.sort(key=lambda r: abs(r["market"] - r["poll"]), reverse=True)
-    top = rows[0]
-    return {"name": top["c"], "poll": top["poll"], "market": top["market"], "updated": data["updated"]}
+    best = None
+    for m in data["markets"]["candidates"]:
+        poll = sim[m["c"]]["win"] if m["c"] in sim else None
+        if poll is None: continue
+        for venue, p in m["venues"].items():
+            gap = abs(p["win"] - poll)
+            if best is None or gap > best[0]:
+                best = (gap, m["c"], poll, {v: pv["win"] for v, pv in m["venues"].items()})
+    _, name, poll, venues = best
+    return {"name": name, "poll": poll, "venues": venues, "updated": data["updated"]}
+
+VOWEL_SOUNDS = "AEIOUYÀÂÉÈÊËÎÏÔÙÛÜ"
+
+def elide_de(name):
+    """French "de {name}", elided to "d'{name}" before a vowel sound (Éric, Édouard, Olivier...)."""
+    return ("d'" if name[0].upper() in VOWEL_SOUNDS else "de ") + name
+
+def signed_pts(x):
+    """Whole-point gap, signed, "pts" kept unlocalised (same convention as js/over-time-chart.js's dvSigned):
+    "0 pts" for a gap that rounds to zero, never a bare "+0"."""
+    r = round(x)
+    sign = "+" if r > 0 else "−" if r < 0 else ""
+    return f"{sign}{abs(r)}{NB}pts"
+
+def largest_divergences(data, n=3):
+    """The `n` candidates with the largest gap between one venue's own win price and the poll simulation, one row
+    per candidate (never a mean across venues: each candidate's own largest venue gap is used, same rule as
+    headline()). Each row is that candidate's single most-divergent venue, so a candidate never appears twice."""
+    sim = data["sim"]["mid"]
+    rows = []
+    for m in data["markets"]["candidates"]:
+        poll = sim.get(m["c"], {}).get("win")
+        if poll is None: continue
+        venue, market = max(((v, p["win"]) for v, p in m["venues"].items()), key=lambda vp: abs(vp[1] - poll))
+        rows.append({"c": m["c"], "f": m["f"], "venue": venue, "market": market, "poll": poll, "gap": market - poll})
+    rows.sort(key=lambda r: abs(r["gap"]), reverse=True)
+    return rows[:n]
+
+def largest_venue_gap(data):
+    """The one candidate where Polymarket and Kalshi disagree most (both must price them); None if fewer than
+    one candidate is priced by both."""
+    rows = [{"c": m["c"], "poly": m["venues"]["polymarket"]["win"], "kal": m["venues"]["kalshi"]["win"],
+             "gap": m["venues"]["polymarket"]["win"] - m["venues"]["kalshi"]["win"]}
+            for m in data["markets"]["candidates"] if "polymarket" in m["venues"] and "kalshi" in m["venues"]]
+    return max(rows, key=lambda r: abs(r["gap"])) if rows else None
+
+def generated_notes(data, fr, en):
+    """Short, template-generated sentences that replace hand-written analysis of the current numbers: the
+    largest poll/market divergences and the largest venue-vs-venue disagreement, in both languages. Structural
+    (never names a candidate or figure that isn't read straight from data.json this run)."""
+    notes = {"divergences": [], "venueGapLead": None}
+    for r in largest_divergences(data):
+        venue_name = {"polymarket": "Polymarket", "kalshi": "Kalshi"}[r["venue"]]
+        notes["divergences"].append({
+            "fr": fr["divergenceItem"].replace("{name}", r["c"]).replace("{venue}", venue_name)
+                    .replace("{market}", fr_pct(r["market"])).replace("{poll}", fr_pct(r["poll"])).replace("{gap}", signed_pts(r["gap"])),
+            "en": en["divergenceItem"].replace("{name}", r["c"]).replace("{venue}", venue_name)
+                    .replace("{market}", en_pct(r["market"])).replace("{poll}", en_pct(r["poll"])).replace("{gap}", signed_pts(r["gap"])),
+        })
+    vg = largest_venue_gap(data)
+    if vg:
+        notes["venueGapLead"] = {
+            "fr": fr["venueGapLead"].replace("{deName}", elide_de(vg["c"])).replace("{poly}", fr_pct(vg["poly"]))
+                    .replace("{kal}", fr_pct(vg["kal"])).replace("{gap}", signed_pts(vg["gap"])),
+            "en": en["venueGapLead"].replace("{name}", vg["c"]).replace("{poly}", en_pct(vg["poly"]))
+                    .replace("{kal}", en_pct(vg["kal"])).replace("{gap}", signed_pts(vg["gap"])),
+        }
+    return notes
 
 def fr_pct(x):
     return "<1" + NB + "%" if 0 < x < 1 else f"{math.floor(x + 0.5)}{NB}%"
+
+def en_pct(x):
+    """Same rounding as fr_pct(), no nbsp: English has no rule requiring one before a unit sign."""
+    return "<1%" if 0 < x < 1 else f"{math.floor(x + 0.5)}%"
 
 def fr_date(iso):
     d = datetime.date.fromisoformat(iso)
@@ -427,7 +559,7 @@ def fr_figures(data):
     mk = data["markets"]
     return {"upd": fr_date(data["updated"]), "snap": fr_date(mk["snapshot"]), "n": str(len(data["polls"])),
             "from": f"{'1er' if lo.day == 1 else lo.day} {FR_MONTHS[lo.month - 1]}" + (f" {lo.year}" if lo.year != hi.year else ""),
-            "to": fr_date(hi.isoformat()), "year": data["updated"][:4]}
+            "to": fr_date(hi.isoformat()), "year": data["updated"][:4], "thin": f"{mk.get('thinThreshold', THIN_MARKET_VOLUME):,}".replace(",", NB)}
 
 def fill_figures(text, figs):
     return re.sub(r"\{\{(\w+)\}\}", lambda m: figs[m.group(1)], text)
@@ -435,6 +567,12 @@ def fill_figures(text, figs):
 def french_strings():
     """The French strings of the page (i18n/fr.json): plain strings, plus lists and objects the static layer ignores."""
     return json.loads((ROOT / "i18n" / "fr.json").read_text(encoding="utf-8"))
+
+def english_strings():
+    """The English strings of the page (i18n/en.json), for the handful of generated notes that are rendered once
+    here in both languages and stored in data.json (divergences, the venue-gap lead) rather than re-templated
+    client-side: they don't depend on any page toggle, unlike the headline, so one render per day is enough."""
+    return json.loads((ROOT / "i18n" / "en.json").read_text(encoding="utf-8"))
 
 def fill(page, pattern, text):
     page, n = re.subn(pattern, lambda m: m.group(1) + text + m.group(3), page, flags=re.S)
@@ -445,10 +583,19 @@ def attr(s):
     return s.replace("&", "&amp;").replace('"', "&quot;").replace("<", "&lt;")
 
 def fr_headline_sentence(fr, hl):
-    """The same sentence js/index.js builds client-side (tf("headline", {n,m,p,v})), for the static layer and the meta description."""
-    sentence = (fr["headline"].replace("{n}", hl["name"]).replace("{m}", fr_pct(hl["market"]))
-                .replace("{p}", fr_pct(hl["poll"])).replace("{v}", fr["verbW"]))
-    if re.search(r"\{\w+\}", sentence): raise ValueError("headline uses placeholders other than {n}, {m}, {p}, {v}")
+    """The same sentence js/index.js builds client-side, for the static layer and the meta description. A range
+    ("entre X% et Y%") when more than one venue prices the headline candidate's win event, a single venue named
+    explicitly when only one does: never a figure blended across venues."""
+    venues = hl["venues"]
+    if len(venues) > 1:
+        lo, hi = min(venues.values()), max(venues.values())
+        sentence = (fr["headlineRange"].replace("{n}", hl["name"]).replace("{lo}", fr_pct(lo)).replace("{hi}", fr_pct(hi))
+                    .replace("{p}", fr_pct(hl["poll"])).replace("{v}", fr["verbW"]))
+    else:
+        venue, m = next(iter(venues.items()))
+        sentence = (fr["headlineSingle"].replace("{venue}", fr[f"venue{venue.capitalize()}"]).replace("{n}", hl["name"])
+                    .replace("{m}", fr_pct(m)).replace("{p}", fr_pct(hl["poll"])).replace("{v}", fr["verbW"]))
+    if re.search(r"\{\w+\}", sentence): raise ValueError("headline uses an unfilled placeholder")
     return sentence
 
 def toggle_blackout_markup(region, blackout):
@@ -478,7 +625,8 @@ def meta_html(page, fr, hl, blackout=False):
     if blackout:
         desc = alt = fr["blackoutMeta"]
     else:
-        figs = f"{hl['name']}, {fr_pct(hl['poll'])} dans les sondages contre {fr_pct(hl['market'])} sur les marchés"
+        mkt_txt = " / ".join(f"{fr[f'venue{v.capitalize()}']} {fr_pct(p)}" for v, p in hl["venues"].items())
+        figs = f"{hl['name']}, {fr_pct(hl['poll'])} dans les sondages contre {mkt_txt} sur les marchés"
         desc = f"{fr_headline_sentence(fr, hl)} {fr['dek']}"
         alt = f"{figs} ({fr_date(hl['updated'])})"
     img = SITE_URL + OG_IMAGE.name
@@ -523,22 +671,29 @@ def write_og_image(hl, path):
     ax.text(1120, 72, "Présidentielle 2027", fontsize=20, color=MUTED, va="center", ha="right")
     ax.text(80, 168, "Le plus grand écart, chances de victoire", fontsize=21, color=MUTED, va="center")
     ax.text(80, 236, hl["name"], fontsize=52, fontweight="bold", color=INK, va="center")
-    # 0-100 scale with both pins, as in the page's spotlight
+    # 0-100 scale: the poll pin, and one diamond per venue that prices this candidate (never a single blended
+    # market pin) -- a dumbbell between them when there are two, a lone diamond named after its venue when one.
     x0, x1, y = 110, 1090, 470
     px = lambda v: x0 + v / 100 * (x1 - x0)
-    xp, xm = px(hl["poll"]), px(hl["market"])
+    xp = px(hl["poll"])
+    venue_x = {v: px(p) for v, p in hl["venues"].items()}
     ax.plot([x0, x1], [y, y], color=RULE, lw=3, solid_capstyle="round")
-    ax.plot([xp, xm], [y, y], color=FAINT, lw=9, solid_capstyle="round", alpha=.55)
+    if len(venue_x) > 1:
+        vx = sorted(venue_x.values())
+        ax.plot([vx[0], vx[-1]], [y, y], color=FAINT, lw=9, solid_capstyle="round", alpha=.55)
     ax.plot(xp, y, "o", ms=24, color=POLL, mec=BG, mew=3)
-    ax.plot(xm, y, "D", ms=19, color=MARKET, mec=BG, mew=3)
+    for vx in venue_x.values(): ax.plot(vx, y, "D", ms=19, color=MARKET, mec=BG, mew=3)
     lo_c, hi_c = 150, 1050   # keep the label centres inside the canvas
-    cp, cm = min(max(xp, lo_c), hi_c), min(max(xm, lo_c), hi_c)
-    if abs(cp - cm) < 300:   # small gap: spread the two labels apart, around the midpoint, instead of overlapping them
-        mid = min(max((cp + cm) / 2, lo_c + 150), hi_c - 150)
-        cp, cm = (mid - 150, mid + 150) if xp <= xm else (mid + 150, mid - 150)
-    for lx, val, label, col in ((cp, hl["poll"], "sondages", POLL), (cm, hl["market"], "marchés", MARKET)):
-        ax.text(lx, 352, fr_pct(val), fontsize=52, fontweight="bold", color=col, ha="center", va="center")
-        ax.text(lx, 405, label, fontsize=21, color=MUTED, ha="center", va="center")
+    clamp = lambda x: min(max(x, lo_c), hi_c)
+    labels = [(clamp(xp), hl["poll"], "sondages", POLL)]
+    labels += [(clamp(vx), hl["venues"][v], v.capitalize(), MARKET) for v, vx in venue_x.items()]
+    labels.sort(key=lambda t: t[0])
+    for i in range(1, len(labels)):   # spread overlapping label centres apart along the axis
+        if labels[i][0] - labels[i - 1][0] < 220:
+            labels[i] = (labels[i - 1][0] + 220,) + labels[i][1:]
+    for lx, val, label, col in labels:
+        ax.text(lx, 352, fr_pct(val), fontsize=44 if len(labels) > 2 else 52, fontweight="bold", color=col, ha="center", va="center")
+        ax.text(lx, 405, label, fontsize=19, color=MUTED, ha="center", va="center")
     for v in (0, 50, 100):
         ax.text(px(v), 522, str(v), fontsize=17, color=FAINT, ha="center", va="center")
     ax.plot([80, 1120], [566, 566], color=RULE, lw=2)
@@ -573,13 +728,16 @@ def restamp_version(path, updated):
     page = fill(page, r'(<meta name="data-version" content=")([^"]*)(")', updated)
     return page.replace("\n", eol)
 
-def build_outputs(data, history_rows, history, tmp):
+def build_outputs(data, history_rows, history, liquidity_rows, tmp):
     """Everything main() publishes, written into the temporary folder `tmp`: {final path: temporary path}."""
     hl = headline(data)
     hl["figs"] = fr_figures(data)
     fr = {k: fill_figures(v, hl["figs"]) for k, v in french_strings().items() if isinstance(v, str)}
+    en = {k: v for k, v in english_strings().items() if isinstance(v, str)}
+    data["notes"] = generated_notes(data, fr, en)
     blackout = in_blackout(load_config())
-    print(f"Headline: {hl['name']}, polls {hl['poll']:.1f}%, markets {hl['market']:.1f}%"
+    mkt_txt = ", ".join(f"{v} {p:.1f}%" for v, p in hl["venues"].items())
+    print(f"Headline: {hl['name']}, polls {hl['poll']:.1f}%, markets {mkt_txt}"
           + (" -- election-silence period active: the homepage shows the legal notice instead" if blackout else ""))
     out = {}
     def stage(final, text=None, writer=None):
@@ -590,10 +748,13 @@ def build_outputs(data, history_rows, history, tmp):
     stage(ROOT / "data.json", json.dumps(data, ensure_ascii=False, separators=(",", ":")))
     stage(HISTORY, csv_text(["date", "candidate", "venue", "win", "qual"],
                              [[r["date"], r["candidate"], r["venue"], r["win"], r["qual"]] for r in history_rows], "\r\n"))
+    stage(LIQUIDITY, csv_text(["date", "venue", "candidate", "market", "volume", "liquidity"],
+                               [[r["date"], r["venue"], r["candidate"], r["market"], r["volume"], r["liquidity"]] for r in liquidity_rows], "\r\n"))
     stage(POLLS_AVERAGE, csv_text(["week", "candidate", "average", "scenarios"], polls_average_rows(history)))
     stage(INDEX, render_index(hl, fr, blackout))
     stage(CANDIDAT, restamp_version(CANDIDAT, hl["updated"]))
     stage(SECOND_TOUR, restamp_version(SECOND_TOUR, hl["updated"]))
+    stage(NOTES_PAGE, restamp_version(NOTES_PAGE, hl["updated"]))
     stage(OG_IMAGE, writer=lambda t: write_blackout_image(fr, t) if blackout else write_og_image(hl, t))
     return out
 
@@ -601,15 +762,18 @@ def fetch_venue_polymarket(previous_markets):
     """(candidates, venue info) for Polymarket this run, or None if the fetch or its sanity checks failed."""
     label = "Polymarket"
     try:
-        (win, win_stats), (qual, qual_stats) = market_prices(WIN_SLUG), market_prices(QUAL_SLUG)
+        (win, win_stats, liq_win), (qual, qual_stats, liq_qual) = market_prices(WIN_SLUG), market_prices(QUAL_SLUG)
         print("Unmatched market names (not in FAMILY):", [n for n in win if n not in FAMILY])
         print("FAMILY names with no market:", [n for n in FAMILY if n not in win])
-        candidates = build_candidates_polymarket(win, qual)
+        candidates = build_candidates_polymarket(win, qual, liq_win, liq_qual)
         if not candidates: raise ValueError("no market name matched FAMILY")
         problems = validate_venue(candidates, win_stats["sum"], previous_markets, "polymarket", label)
         if problems: raise ValueError("; ".join(problems))
         info = {"snapshot": datetime.date.today().isoformat(), "stale": False,
-                "volume": {"win": win_stats["volume"], "qual": qual_stats["volume"]}, "winSum": win_stats["sum"], "qualSum": qual_stats["sum"]}
+                "volume": {"win": win_stats["volume"], "qual": qual_stats["volume"]},
+                "liquidity": {"win": win_stats["liquidity"], "qual": qual_stats["liquidity"]},
+                "winSum": win_stats["sum"], "qualSum": qual_stats["sum"],
+                "thin": thin_flags(win_stats["volume"], qual_stats["volume"])}
         return candidates, info
     except Exception as e:
         print(f"{label} fetch failed, marking stale:", e)
@@ -619,12 +783,31 @@ def fetch_venue_kalshi(previous_markets):
     """(candidates, venue info) for Kalshi this run, or None if the fetch or its sanity checks failed."""
     label = "Kalshi"
     try:
-        win, stats = kalshi_win_prices()
-        candidates = build_candidates_kalshi(win)
+        win, stats, liq_win = kalshi_win_prices()
+        candidates = build_candidates_kalshi(win, liq_win)
         if not candidates: raise ValueError("no Kalshi market matched FAMILY")
         problems = validate_venue(candidates, stats["sum"], previous_markets, "kalshi", label)
         if problems: raise ValueError("; ".join(problems))
-        info = {"snapshot": datetime.date.today().isoformat(), "stale": False, "volume": {"win": stats["volume"]}, "winSum": stats["sum"]}
+        info = {"snapshot": datetime.date.today().isoformat(), "stale": False, "volume": {"win": stats["volume"]},
+                "liquidity": {"win": stats["liquidity"]}, "winSum": stats["sum"], "thin": thin_flags(stats["volume"])}
+        return candidates, info
+    except Exception as e:
+        print(f"{label} fetch failed, marking stale:", e)
+        return None
+
+def fetch_ballot(previous_ballot):
+    """(candidates, ballot info) for Kalshi's KXFRPRESBALLOT this run, or None if the fetch or its sanity check
+    failed. Independent of the win/qual venues: a failure here never affects them or aborts the run, it just
+    leaves the "on the ballot" section stale or (if there is no previous snapshot either) absent."""
+    label = "Kalshi (on-the-ballot)"
+    try:
+        price, stats, liq = kalshi_ballot_prices()
+        candidates = build_ballot(price, liq)
+        if not candidates: raise ValueError("no Kalshi ballot market matched FAMILY")
+        problems = validate_venue(candidates, stats["sum"], None, "ballot", label, check_sum=False)
+        if problems: raise ValueError("; ".join(problems))
+        info = {"snapshot": datetime.date.today().isoformat(), "stale": False, "volume": stats["volume"],
+                "liquidity": stats["liquidity"], "sum": stats["sum"], "thin": thin_flags(stats["volume"])["win"]}
         return candidates, info
     except Exception as e:
         print(f"{label} fetch failed, marking stale:", e)
@@ -642,6 +825,7 @@ def run(reuse_markets=False):
     previous_markets = previous.get("markets") or {}
     polls, pairs, trend, history = load_polls()
     history_rows = read_history_rows()
+    liquidity_rows = read_liquidity_rows()
 
     # Each venue is fetched and validated independently; one failing keeps the other and falls back to that venue's
     # own previous snapshot, marked stale, rather than aborting the whole run. --reuse-markets only forces this
@@ -661,8 +845,22 @@ def run(reuse_markets=False):
         print("VALIDATION FAILED, nothing was written:\n  - no venue (Polymarket or Kalshi) produced usable prices, "
               "and no previous snapshot to fall back to", file=sys.stderr)
         raise SystemExit(1)
-    markets = {"snapshot": today, "source": ", ".join(v.capitalize() for v in venues), "candidates": merge_candidates(effective_prices), "venues": venues}
+    markets = {"snapshot": today, "source": ", ".join(v.capitalize() for v in venues), "candidates": merge_candidates(effective_prices),
+               "venues": venues, "thinThreshold": THIN_MARKET_VOLUME}
+
+    # "On the ballot" (Kalshi KXFRPRESBALLOT): independent of win/qual, a separate small indicator (see fetch_ballot()).
+    ballot_result = fetch_ballot(previous_markets.get("ballot"))
+    ballot_candidates = None
+    if ballot_result:
+        ballot_candidates, ballot_info = ballot_result
+        markets["ballot"] = {**ballot_info, "candidates": [{"c": n, **p} for n, p in sorted(ballot_candidates.items())]}
+    elif previous_markets.get("ballot"):
+        markets["ballot"] = dict(previous_markets["ballot"], stale=True)
+        print(f"Kalshi (on-the-ballot): no fresh data, reusing the snapshot of {markets['ballot']['snapshot']} (marked stale)")
+
     if venue_candidates: history_rows = history_with_today(history_rows, today, venue_candidates)
+    if venue_candidates or ballot_candidates:
+        liquidity_rows = liquidity_with_today(liquidity_rows, today, venue_candidates, ballot_candidates)
 
     weekly = weekly_series(history, history_rows)
     sim, avg = page_views(polls, pairs)
@@ -672,7 +870,7 @@ def run(reuse_markets=False):
         print("VALIDATION FAILED, nothing was written:", *problems, sep="\n  - ", file=sys.stderr)
         raise SystemExit(1)
     with tempfile.TemporaryDirectory(dir=ROOT) as tmp:
-        staged = build_outputs(data, history_rows, history, tmp)
+        staged = build_outputs(data, history_rows, history, liquidity_rows, tmp)
         for final, t in staged.items(): os.replace(t, final)
     print(f"OK: {len(polls)} polls, {len(markets['candidates'])} market candidates across {', '.join(venues)}, {len(staged)} files written")
 

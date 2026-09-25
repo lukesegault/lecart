@@ -1,6 +1,7 @@
 // Shared "markets and polls over time" chart: market vs. poll-implied chance of winning, week by week,
 // used on index.html (candidate selector) and candidat.html (locked to the page's candidate, selector navigates).
-// Data only (DATA.weekly, data/events.json); no simulation here — see CLAUDE.md.
+// Data only (DATA.weekly, data/events.json); no simulation here — see CLAUDE.md. Two market lines, one per venue
+// (Polymarket solid, Kalshi dashed): never a figure blended across venues, matching scripts/build_data.py.
 (function () {
   const { t, tf, track } = Lecart;
   const nb = Lecart.nb;
@@ -11,6 +12,8 @@
   // whole points, matching the headline sentence and the comparison board's gap column (Math.round, no decimal)
   const dvSigned = d => { const r = Math.round(d); return (r > 0 ? "+" : r < 0 ? "−" : "") + Math.abs(r) + nb + "pts" };
   const dvLastIdx = a => { for (let i = a.length - 1; i >= 0; i--) if (a[i] != null) return i; return -1 };
+  // one venue's gap, or two separated by "/" when they round to different whole-point values (never a mean)
+  const gapsText = gaps => [...new Set(gaps.map(g => dvSigned(g.gap)))].join(" / ");
   const pathOf = (s, x, y, gap) => { let d = "", prev = -1, last = null; s.forEach((v, i) => { if (v == null) return; d += (prev >= 0 && i - prev <= gap ? "L" : "M") + x(i).toFixed(1) + " " + y(v).toFixed(1) + " "; prev = i; last = i }); return { d, last } };
 
   // "mono" is a font-family value, not a colour: the exported PNG is a standalone SVG with no access to the
@@ -19,7 +22,8 @@
   const LIGHT_COL = { poll: "#111418", market: "#0FA37F", fill: "#E6F7F1", rule: "#EDEFEE", muted: "#8C9491", faint: "#C8CFCC", ink: "#111418", surface: "#FFFFFF", orange: "#F26B1D", mono: "'IBM Plex Mono',ui-monospace,monospace" };
 
   function chartSvg(o) {
-    const { W, H, weeks, poll, market, venues, col, interactive } = o, ml = 42, mr = 14, mt = 30, mb = 26, n = weeks.length;
+    const { W, H, weeks, poll, venues, col, interactive } = o, ml = 42, mr = 14, mt = 30, mb = 26, n = weeks.length;
+    const poly = (venues && venues.polymarket) || [], kal = (venues && venues.kalshi) || [];
     const t0 = dvTs(weeks[0]), t1 = dvTs(weeks[n - 1]), span = Math.max(1, t1 - t0), days = span / 864e5;
     const px = tt => ml + (tt - t0) / span * (W - ml - mr), x = i => px(dvTs(weeks[i]));
     const y = v => mt + (1 - v / 100) * (H - mt - mb);   // fixed 0-100: these are probabilities, not first-round scores
@@ -30,34 +34,30 @@
     const monthLab = (m, i) => { const [yy, mm] = m.split("-"); return t("months")[+mm - 1] + ((mm === "01" || i === 0) ? " " + yy.slice(2) : "") };
     if (days <= 45) weeks.forEach((w, i) => { const [, mm, dd] = w.split("-"); g += tick(x(i), (+dd) + " " + t("months")[+mm - 1]) });
     else { const d0 = new Date(t0); for (let k = 1; ; k++) { const dt = new Date(Date.UTC(d0.getUTCFullYear(), d0.getUTCMonth() + k, 1)); if (+dt > t1) break; const mo = dt.getUTCMonth() + 1; g += tick(px(+dt), (days <= 240 || mo % 2 === 1) ? monthLab(dt.getUTCFullYear() + "-" + String(mo).padStart(2, "0"), 1) : ""); } }
-    // the venue band: a thin fill between Polymarket's and Kalshi's own weekly averages, wherever both venues priced
-    // the same genuinely-consecutive run of weeks (same no-bridging rule as the poll/market gap below). Drawn first,
-    // under everything else, since it is secondary to the mean line the page's headline figures are built from.
+    // The venue band: a thin fill between Polymarket's and Kalshi's own weekly averages, wherever both priced the
+    // same genuinely-consecutive run of weeks. This is the ONLY shading the chart draws: a poll-vs-market gap fill
+    // was dropped when the chart moved from one blended market line to two (Polymarket, Kalshi) — two overlapping
+    // semi-transparent fills, one per venue, read as a muddy overlap rather than a legible gap, so instead the two
+    // venues' own values sit directly on the chart (solid vs dashed lines, both end-labelled) and the exact
+    // poll-vs-venue gaps are one hover away in the readout, without a fill trying to show two things at once.
     // MIN_RUN: a run of only 2 consecutive weeks has no curve shape to show (just two points), so at the kind of
-    // gaps this page has (poll or market sometimes silent for months), it rendered as an isolated, near-rectangular
+    // gaps this page has (either series sometimes silent for months), it rendered as an isolated, near-rectangular
     // block that read as a solid vertical band dropped over a stretch of otherwise-missing data, rather than as
     // shading that tracks the two lines. Requiring at least 3 consecutive weeks before shading a run drops those
     // blocks while keeping every run long enough to actually trace a gap.
     const MIN_RUN = 3;
-    if (venues && venues.polymarket && venues.kalshi) {
-      const a = venues.polymarket, b2 = venues.kalshi;
-      const V = a.map((v, i) => v == null || b2[i] == null ? null : i).filter(i => i != null);
+    if (poly.length && kal.length) {
+      const V = poly.map((v, i) => v == null || kal[i] == null ? null : i).filter(i => i != null);
       for (let k = 0; k < V.length;) { let e = k; while (e + 1 < V.length && V[e + 1] - V[e] <= 1) e++;
-        if (e - k + 1 >= MIN_RUN) { const fwd = [], back = []; for (let j = k; j <= e; j++) fwd.push(x(V[j]).toFixed(1) + " " + y(a[V[j]]).toFixed(1));
-          for (let i = V[e]; i >= V[k]; i--) back.push(x(i).toFixed(1) + " " + y(b2[i]).toFixed(1));
+        if (e - k + 1 >= MIN_RUN) { const fwd = [], back = []; for (let j = k; j <= e; j++) fwd.push(x(V[j]).toFixed(1) + " " + y(poly[V[j]]).toFixed(1));
+          for (let i = V[e]; i >= V[k]; i--) back.push(x(i).toFixed(1) + " " + y(kal[i]).toFixed(1));
           g += `<path d="M${fwd.join(" L")} L${back.join(" L")} Z" fill="${col.market}" fill-opacity="0.14" stroke="none"/>`; }
         k = e + 1; }
     }
-    // the shaded gap only ever covers weeks that are genuinely consecutive (no bridging): both series must have a
-    // value in every week of the run, so the tint never implies data that isn't there
-    const P = poll.map((v, i) => v == null || market[i] == null ? null : i).filter(i => i != null);
-    for (let k = 0; k < P.length;) { let e = k; while (e + 1 < P.length && P[e + 1] - P[e] <= 1) e++;
-      if (e - k + 1 >= MIN_RUN) { const fwd = [], back = []; for (let j = k; j <= e; j++) fwd.push(x(P[j]).toFixed(1) + " " + y(poll[P[j]]).toFixed(1));
-        for (let i = P[e]; i >= P[k]; i--) if (market[i] != null) back.push(x(i).toFixed(1) + " " + y(market[i]).toFixed(1));
-        if (back.length) g += `<path d="M${fwd.join(" L")} L${back.join(" L")} Z" fill="${col.fill}" stroke="none"/>`; }
-      k = e + 1; }
-    const M = pathOf(market, x, y, 2), Pp = pathOf(poll, x, y, 1);
-    g += `<path d="${M.d}" fill="none" stroke="${col.market}" stroke-width="2.25" stroke-linejoin="round" stroke-linecap="round"/><path d="${Pp.d}" fill="none" stroke="${col.poll}" stroke-width="1.75" stroke-linejoin="round" stroke-linecap="round"/>`;
+    const Mp = pathOf(poly, x, y, 2), Mk = pathOf(kal, x, y, 2), Pp = pathOf(poll, x, y, 1);
+    g += `<path d="${Mp.d}" fill="none" stroke="${col.market}" stroke-width="2.25" stroke-linejoin="round" stroke-linecap="round"/>`;
+    g += `<path d="${Mk.d}" fill="none" stroke="${col.market}" stroke-width="2.25" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="6 4"/>`;
+    g += `<path d="${Pp.d}" fill="none" stroke="${col.poll}" stroke-width="1.75" stroke-linejoin="round" stroke-linecap="round"/>`;
     // small square markers on the poll line for isolated single-week points, which would otherwise be invisible
     // (a lone point has no line to it). Not drawn at the very last point: the end label right next to it already
     // marks "latest value", and a marker there just sits against the label like a stray trailing glyph.
@@ -69,7 +69,8 @@
     // doesn't apply, and it has shown as a visible stray mark in some fonts/browsers when set as raw SVG text.
     const svgPct = v => Lecart.pct(v).replace(/ /g, " ");
     let ends = [];
-    if (M.last != null) ends.push({ x: x(M.last), y: y(market[M.last]), color: col.market, name: t("legMarket"), value: svgPct(market[M.last]) });
+    if (Mp.last != null) ends.push({ x: x(Mp.last), y: y(poly[Mp.last]), color: col.market, name: t("venuePolymarket"), value: svgPct(poly[Mp.last]) });
+    if (Mk.last != null) ends.push({ x: x(Mk.last), y: y(kal[Mk.last]), color: col.market, name: t("venueKalshi"), value: svgPct(kal[Mk.last]) });
     if (Pp.last != null) ends.push({ x: x(Pp.last), y: y(poll[Pp.last]), color: col.poll, name: t("legPolls"), value: svgPct(poll[Pp.last]) });
     ends.sort((a, b) => a.y - b.y);
     for (let i = 1; i < ends.length; i++) if (ends[i].y - ends[i - 1].y < 13) ends[i].y = ends[i - 1].y + 13;
@@ -84,10 +85,16 @@
     return { svg: g, geo: { W, H, ml, mr, mt, mb, x, y, n } };
   }
 
-  function summary(D) {
-    const im = dvLastIdx(D.market), ip = dvLastIdx(D.poll);
-    let ib = D.weeks.length - 1; while (ib >= 0 && (D.market[ib] == null || D.poll[ib] == null)) ib--;
-    return { im, ip, m: im < 0 ? null : D.market[im], p: ip < 0 ? null : D.poll[ip], mw: im < 0 ? "" : D.weeks[im], pw: ip < 0 ? "" : D.weeks[ip], gap: ib < 0 ? null : D.market[ib] - D.poll[ib] };
+  // The most recent week where the poll and at least one venue both have a value: `gaps`, one entry per venue that
+  // priced that week (never a mean of them), each {venue, gap}.
+  function lastGap(D) {
+    const venues = D.venues || {};
+    for (let i = D.weeks.length - 1; i >= 0; i--) {
+      if (D.poll[i] == null) continue;
+      const gaps = Object.keys(venues).filter(v => venues[v][i] != null).map(v => ({ venue: v, gap: venues[v][i] - D.poll[i] }));
+      if (gaps.length) return { i, w: D.weeks[i], gaps };
+    }
+    return null;
   }
 
   /** Mounts the chart into #<elId>. opts: {DATA, EVENTS, candidates:[names], initial, lang, onNav(name)?}.
@@ -101,22 +108,33 @@
       const WK = opts.DATA.weekly; if (!WK || !WK.series[state.cand]) return null;
       const s = WK.series[state.cand], cut = dvTs(WK.weeks[WK.weeks.length - 1]) - DAYS[state.tf] * 864e5;
       const a = Math.max(0, WK.weeks.findIndex(w => dvTs(w) >= cut));
-      const venues = s.venues ? Object.fromEntries(Object.entries(s.venues).map(([v, arr]) => [v, arr.slice(a)])) : null;
-      return { weeks: WK.weeks.slice(a), poll: s.poll.slice(a), market: s.market.slice(a), venues };
+      const venues = s.venues ? Object.fromEntries(Object.entries(s.venues).map(([v, arr]) => [v, arr.slice(a)])) : {};
+      return { weeks: WK.weeks.slice(a), poll: s.poll.slice(a), venues };
     }
 
     function readout(idx, D) {
       const guide = root.querySelector("#otGuide"), dots = root.querySelector("#otDots"), out = root.querySelector(".sp-chart-readout");
       if (!guide) return;
-      if (idx == null) { guide.setAttribute("visibility", "hidden"); dots.innerHTML = "";
-        const S = summary(D); out.innerHTML = S.m == null || S.p == null ? "" : tf("dvLast", { m: Lecart.pct1(S.m), mw: dvDate(S.mw), p: Lecart.pct1(S.p), pw: dvDate(S.pw) }); return; }
-      const G = root._otGeo, m = D.market[idx], p = D.poll[idx], xx = G.x(idx);
+      const poly = D.venues.polymarket, kal = D.venues.kalshi;
+      if (idx == null) {
+        guide.setAttribute("visibility", "hidden"); dots.innerHTML = "";
+        const parts = [];
+        const ip = dvLastIdx(D.poll); if (ip >= 0) parts.push(tf("dvValAt", { name: t("legPolls"), v: Lecart.pct1(D.poll[ip]), w: dvDate(D.weeks[ip]) }));
+        const im = poly ? dvLastIdx(poly) : -1; if (im >= 0) parts.push(tf("dvValAt", { name: t("venuePolymarket"), v: Lecart.pct1(poly[im]), w: dvDate(D.weeks[im]) }));
+        const ik = kal ? dvLastIdx(kal) : -1; if (ik >= 0) parts.push(tf("dvValAt", { name: t("venueKalshi"), v: Lecart.pct1(kal[ik]), w: dvDate(D.weeks[ik]) }));
+        out.innerHTML = parts.length ? t("dvLatest") + (Lecart.lang === "fr" ? " : " : ": ") + parts.join(", ") + "." : "";
+        return;
+      }
+      const G = root._otGeo, p = D.poll[idx], mp = poly ? poly[idx] : null, mk = kal ? kal[idx] : null, xx = G.x(idx);
       guide.setAttribute("x1", xx); guide.setAttribute("x2", xx); guide.setAttribute("visibility", "visible");
-      dots.innerHTML = (m != null ? `<circle cx="${xx}" cy="${G.y(m)}" r="4.5" fill="var(--mint)" stroke="var(--surface)" stroke-width="2"/>` : "") + (p != null ? `<circle cx="${xx}" cy="${G.y(p)}" r="4.5" fill="var(--ink)" stroke="var(--surface)" stroke-width="2"/>` : "");
-      let line = tf("dvAt", { w: dvDate(D.weeks[idx]), m: m == null ? "–" : Lecart.pct1(m), p: p == null ? t("dvNoPoll") : Lecart.pct1(p), g: m != null && p != null ? dvSigned(m - p) : "–" });
-      const poly = D.venues && D.venues.polymarket ? D.venues.polymarket[idx] : null, kal = D.venues && D.venues.kalshi ? D.venues.kalshi[idx] : null;
-      if (poly != null && kal != null) line += " " + tf("dvAtVenues", { poly: Lecart.pct1(poly), kalshi: Lecart.pct1(kal) });
-      out.innerHTML = line;
+      dots.innerHTML = (mp != null ? `<circle cx="${xx}" cy="${G.y(mp)}" r="4.5" fill="var(--mint)" stroke="var(--surface)" stroke-width="2"/>` : "") +
+        (mk != null ? `<circle cx="${xx}" cy="${G.y(mk)}" r="4.5" fill="var(--mint)" stroke="var(--surface)" stroke-width="2"/>` : "") +
+        (p != null ? `<circle cx="${xx}" cy="${G.y(p)}" r="4.5" fill="var(--ink)" stroke="var(--surface)" stroke-width="2"/>` : "");
+      const parts = [];
+      if (p != null) parts.push(`<span class="lp">${xml(t("legPolls"))} ${Lecart.pct1(p)}</span>`);
+      if (mp != null) parts.push(`<span class="lm">${xml(t("venuePolymarket"))} ${Lecart.pct1(mp)}</span>`);
+      if (mk != null) parts.push(`<span class="lm">${xml(t("venueKalshi"))} ${Lecart.pct1(mk)}</span>`);
+      out.innerHTML = tf("dvWeekOf", { w: dvDate(D.weeks[idx]) }) + (Lecart.lang === "fr" ? " : " : ": ") + (parts.length ? parts.join(", ") : t("dvNoPoll")) + ".";
     }
 
     function eventNote(D) {
@@ -129,7 +147,7 @@
     function drawChart(D) {
       const box = root.querySelector(".sp-chart-box");
       const W = Math.max(280, Math.round(box.clientWidth) || 640), H = W < 520 ? 230 : 300;
-      const C = chartSvg({ W, H, weeks: D.weeks, poll: D.poll, market: D.market, venues: D.venues, events: EVENTS, col: PAGE_COL, interactive: true, lang: Lecart.lang });
+      const C = chartSvg({ W, H, weeks: D.weeks, poll: D.poll, venues: D.venues, events: EVENTS, col: PAGE_COL, interactive: true, lang: Lecart.lang });
       box.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${xml(tf("dvAria", { n: state.cand }))}">${C.svg}</svg>`;
       root._otGeo = C.geo; state.w = Math.round(box.clientWidth);
       const svg = box.querySelector("svg");
@@ -152,7 +170,8 @@
       const src = root.querySelector(".sp-chart-source");
       if (src) src.textContent = `${t("dvSrc")} ${t("dvAsOf")} ${dvDate(opts.DATA.updated)}.`;
       const pill = root.querySelector(".sp-chart-pill");
-      if (D) { const gap = summary(D).gap; pill.hidden = gap == null; if (gap != null) { pill.textContent = t("gapCol") + " " + dvSigned(gap); pill.classList.toggle("neg", gap < 0) } }
+      const lg = D ? lastGap(D) : null;
+      if (lg) { pill.hidden = false; pill.textContent = t("gapCol") + " " + gapsText(lg.gaps); pill.classList.toggle("neg", lg.gaps.every(g => g.gap < 0)); }
       else pill.hidden = true;
       const cTabs = root.querySelector(".sp-chart-cands");
       cTabs.setAttribute("aria-label", t("dvCand"));
@@ -203,15 +222,15 @@
         `</style>` : "";
       const EVENTS = (opts.EVENTS || []);
       const s = WK.series[cand], cut = dvTs(WK.weeks[WK.weeks.length - 1]) - DAYS[tfKey] * 864e5, a = Math.max(0, WK.weeks.findIndex(w => dvTs(w) >= cut));
-      const venues = s.venues ? Object.fromEntries(Object.entries(s.venues).map(([v, arr]) => [v, arr.slice(a)])) : null;
-      const Dx = { weeks: WK.weeks.slice(a), poll: s.poll.slice(a), market: s.market.slice(a), venues };
-      const chart = chartSvg({ W: cw - 24, H: ch, weeks: Dx.weeks, poll: Dx.poll, market: Dx.market, venues: Dx.venues, events: EVENTS, col: C, interactive: false, lang: Lecart.lang }).svg;
-      const Z = summary(Dx), gap = Z.gap, cardY = 150, legY = cardY + ch + 24 + 28;
-      let pillSvg = ""; if (gap != null) { const txt = xml(t("gapCol") + " " + dvSigned(gap)), w = txt.length * 9.6 + 30, neg = gap < 0;
-        pillSvg = `<rect x="${W - pad - w}" y="78" width="${w}" height="34" rx="0" fill="${neg ? "rgba(17,20,24,.08)" : C.fill}"/><text x="${W - pad - w / 2}" y="100" text-anchor="middle" font-family="${C.mono}" font-size="17" font-weight="700" fill="${neg ? C.ink : "#0B7A5F"}">${txt}</text>`; }
-      const legend = `<rect x="${pad}" y="${legY - 12}" width="18" height="8" fill="${C.market}" transform="rotate(45 ${pad + 9} ${legY - 8})"/><text x="${pad + 26}" y="${legY}" font-size="13" fill="${C.muted}">${xml(t("dvLegM"))}</text>` +
-        `<rect x="${pad + 260}" y="${legY - 13}" width="10" height="10" fill="${C.poll}"/><text x="${pad + 278}" y="${legY}" font-size="13" fill="${C.muted}">${xml(t("dvLegP"))}</text>` +
-        `<rect x="${pad + 560}" y="${legY - 13}" width="22" height="11" fill="${C.fill}" stroke="${C.market}"/><text x="${pad + 590}" y="${legY}" font-size="13" fill="${C.muted}">${xml(t("dvLegG"))}</text>`;
+      const venues = s.venues ? Object.fromEntries(Object.entries(s.venues).map(([v, arr]) => [v, arr.slice(a)])) : {};
+      const Dx = { weeks: WK.weeks.slice(a), poll: s.poll.slice(a), venues };
+      const chart = chartSvg({ W: cw - 24, H: ch, weeks: Dx.weeks, poll: Dx.poll, venues: Dx.venues, events: EVENTS, col: C, interactive: false, lang: Lecart.lang }).svg;
+      const lg = lastGap(Dx), cardY = 150, legY = cardY + ch + 24 + 28;
+      let pillSvg = ""; if (lg) { const txt = xml(t("gapCol") + " " + gapsText(lg.gaps)), w = txt.length * 8.6 + 30, neg = lg.gaps.every(g => g.gap < 0);
+        pillSvg = `<rect x="${W - pad - w}" y="78" width="${w}" height="34" rx="0" fill="${neg ? "rgba(17,20,24,.08)" : C.fill}"/><text x="${W - pad - w / 2}" y="100" text-anchor="middle" font-family="${C.mono}" font-size="15" font-weight="700" fill="${neg ? C.ink : "#0B7A5F"}">${txt}</text>`; }
+      const legend = `<rect x="${pad}" y="${legY - 12}" width="18" height="8" fill="${C.market}" transform="rotate(45 ${pad + 9} ${legY - 8})"/><text x="${pad + 26}" y="${legY}" font-size="13" fill="${C.muted}">${xml(t("dvLegPoly"))}</text>` +
+        `<line x1="${pad + 260}" y1="${legY - 8}" x2="${pad + 282}" y2="${legY - 8}" stroke="${C.market}" stroke-width="2.5" stroke-dasharray="6 4"/><text x="${pad + 290}" y="${legY}" font-size="13" fill="${C.muted}">${xml(t("dvLegKal"))}</text>` +
+        `<rect x="${pad + 560}" y="${legY - 13}" width="10" height="10" fill="${C.poll}"/><text x="${pad + 578}" y="${legY}" font-size="13" fill="${C.muted}">${xml(t("dvLegP"))}</text>`;
       const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" font-family="'IBM Plex Sans',Helvetica,Arial,sans-serif">${face}` +
         `<rect width="${W}" height="${H}" fill="#FFFFFF"/>` +
         `<circle cx="${pad + 6}" cy="${pad + 6}" r="5" fill="${C.poll}"/><rect x="${pad + 20}" y="${pad}" width="10" height="10" fill="${C.market}" transform="rotate(45 ${pad + 25} ${pad + 5})"/><text x="${pad + 40}" y="${pad + 10}" font-size="15" font-weight="700" letter-spacing="1" fill="${C.ink}">L'ÉCART</text>` +

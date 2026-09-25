@@ -45,19 +45,18 @@ Refresh the data (Python 3.12+):
 
 ```bash
 pip install -r requirements.txt
-python scripts/build_data.py                    # polls + Polymarket + everything below
-python scripts/build_data.py --reuse-markets    # where Polymarket is blocked (e.g. France): keeps the last market snapshot
+python scripts/build_data.py                    # polls + Polymarket + Kalshi + everything below
+python scripts/build_data.py --reuse-markets    # where Polymarket is blocked (e.g. France): keeps its last snapshot; Kalshi is still fetched fresh
 ```
 
 ## The daily pipeline
 
 `.github/workflows/update-data.yml` runs every day at 05:00 UTC (and on demand): tests, then `scripts/build_data.py`, then commits what changed.
 
-1. Downloads the poll CSV and the two Polymarket events (retrying with backoff on network errors, 429 and 5xx).
+1. Downloads the poll CSV and fetches two independent prediction-market venues: Polymarket (winner and runoff-qualification events, plus per-candidate volume/liquidity) and Kalshi (winner event and, separately, its candidacy-confirmation "on the ballot" indicator; per-candidate volume/open interest). Retries with backoff on network errors, 429 and 5xx. Each venue's price stands on its own everywhere downstream — the pipeline never computes a mean across venues.
 2. Runs the simulation for every view the page has (win/runoff × low/mid/high uncertainty) and the weekly series of the time chart.
-3. `validate()` refuses to publish if a price is outside 0-100, the winner prices do not add up to 85-115%, a candidate present yesterday has vanished,
-   or the poll count dropped by more than 20%. The reasons are printed and the run exits non-zero.
-4. Only when everything passed, `data.json`, both CSVs, the static text of `index.html`, the `data-version` meta of all three pages
+3. `validate_venue()` refuses to publish a venue's prices if one is outside 0-100, its winner prices do not add up to 85-115% (skipped for the ballot indicator, which isn't a single-winner market), or a candidate it priced yesterday has vanished; `validate_polls()` separately refuses to publish at all if the poll count dropped by more than 20%. One venue (or the ballot indicator) failing its own check falls back to its last snapshot, marked stale, rather than blocking the run — the run only aborts if neither win/qual venue has usable data. Reasons are printed and a genuine abort exits non-zero.
+4. Only when everything passed, `data.json`, all three CSVs (market prices, market liquidity, poll averages), the static text of `index.html`, the `data-version` meta of all three pages
    (the cache key of `data.json`/`i18n/*.json`) and `og-image.png` are replaced. Any earlier failure leaves yesterday's files untouched, and the workflow commits nothing.
 
 If `data.json` is more than two days old, the page shows a discreet notice that the data may be stale.
@@ -83,7 +82,8 @@ python scripts/check_site.py             # loads all three pages, clicks every c
 
 ## Content rules
 
-- Never link to Polymarket or encourage betting (not authorised in France): prices are data.
+- Never link to Polymarket or Kalshi, or encourage betting (Polymarket is not authorised in France): prices are data.
+- No blended figure across market venues, anywhere: each of Polymarket's and Kalshi's own prices stands on its own in the data, the page and the CSVs; where both price the same event, show both (or the range they bound), never a mean.
 - Every user-facing string exists in FR and EN. No em-dashes in page copy.
 - French poll law: polls may not be published the day before and the day of each round; enforced by the blackout
   switch above (`config.json`). Add a new election's periods there (and matching cron entries in

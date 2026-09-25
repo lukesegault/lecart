@@ -20,15 +20,24 @@
   }
 
   const MARKET = DATA.markets.candidates;
-  const state = { q: "qual", u: "mid" };
+  // "Gagner" is the default view everywhere: the only event both venues price (see js/index.js).
+  const state = { q: "win", u: "mid" };
   const num = x => Lecart.lang === "fr" ? x.toFixed(1).replace(".", ",") : x.toFixed(1);
   const WK_NAMES = Object.keys(DATA.weekly ? DATA.weekly.series : {});
+  const EM = " ", MARK = t("venueFootnoteMark");
 
+  // Never a blended figure: the candidate with the single largest gap between one venue's own win price and the
+  // poll simulation (same rule as js/index.js's headline(), mirrored here for the default candidate).
   function headline() {
-    const S = DATA.sim.mid;
-    const rows = MARKET.map(m => ({ c: m.c, market: m.win, poll: S[m.c] ? S[m.c].win : null })).filter(r => r.poll != null);
-    rows.sort((a, b) => Math.abs(b.market - b.poll) - Math.abs(a.market - a.poll));
-    return rows[0].c;
+    let best = null;
+    MARKET.forEach(m => {
+      const s = DATA.sim.mid[m.c]; if (!s) return;
+      Object.values(m.venues).forEach(p => {
+        const gap = Math.abs(p.win - s.win);
+        if (!best || gap > best.gap) best = { c: m.c, gap };
+      });
+    });
+    return best ? best.c : MARKET[0].c;
   }
 
   const params = new URLSearchParams(location.search);
@@ -95,47 +104,63 @@
     paintNote();
   }
 
+  function metaVal(v) { return v == null ? EM + MARK : num(v); }
+
   function render() {
     document.title = `L'Écart · ${NAME}`;
     const S = DATA.sim[state.u][NAME], avg = DATA.avg[NAME];
+    const v = cand.venues || {};
     document.getElementById("cdName").textContent = NAME;
     document.getElementById("cdFamily").textContent = t("fam")[cand.f] || cand.f;
-    document.getElementById("cdMktQual").textContent = num(cand.qual);
+    document.getElementById("cdMktQual").textContent = metaVal(v.polymarket ? v.polymarket.qual : null);
     document.getElementById("cdPolQual").textContent = S ? num(S.qual) : "–";
-    document.getElementById("cdMktWin").textContent = num(cand.win);
+    document.getElementById("cdMktWinPoly").textContent = metaVal(v.polymarket ? v.polymarket.win : null);
+    document.getElementById("cdMktWinKal").textContent = metaVal(v.kalshi ? v.kalshi.win : null);
     document.getElementById("cdPolWin").textContent = S ? num(S.win) : "–";
     document.getElementById("cdAvg").textContent = avg ? num(avg[0]) + (Lecart.lang === "fr" ? Lecart.nb + "%" : "%") : t("notPolled");
     const F = Lecart.figures(DATA);
     document.getElementById("cdSnap").textContent = Lecart.fill(t("spSnap"), F);
     document.getElementById("cdSources").textContent = Lecart.fill(t("spSources"), F);
 
-    const market = cand[state.q], poll = S ? S[state.q] : null;
-    const verb = state.q === "qual" ? t("verbQ") : t("verbW");
-    if (poll == null) {
-      document.getElementById("cdH1").textContent = `${NAME}. ${t("notPolled")}.`;
-      document.getElementById("cdNote").textContent = t("marketsOnly");
+    const qualMode = state.q === "qual";
+    const poly = v.polymarket ? v.polymarket[state.q] : null;
+    const kal = !qualMode && v.kalshi ? v.kalshi.win : null;
+    const poll = S ? S[state.q] : null;
+    const verb = qualMode ? t("verbQ") : t("verbW");
+    const missing = poly == null || (!qualMode && v.kalshi && kal == null);
+    document.getElementById("cdVenueFootnote").hidden = !missing;
+    if (poll == null || poly == null) {
+      document.getElementById("cdH1").textContent = `${NAME}. ${poll == null ? t("notPolled") : t("marketsOnly")}.`;
+      document.getElementById("cdNote").textContent = "";
+    } else if (!qualMode && kal != null) {
+      const lo = Math.min(poly, kal), hi = Math.max(poly, kal);
+      document.getElementById("cdH1").textContent = tf("headlineRange", { n: NAME, lo: Lecart.pct(lo), hi: Lecart.pct(hi), p: Lecart.pct(poll), v: verb });
+      document.getElementById("cdNote").textContent = tf("gapNote", { v: verb, d: Math.round(Math.abs(poly - poll)) });
     } else {
-      const ec = market - poll;
-      document.getElementById("cdH1").textContent = tf("headline", { n: NAME, m: Lecart.pct(market), p: Lecart.pct(poll), v: verb });
-      document.getElementById("cdNote").textContent = tf("gapNote", { v: verb, d: Math.abs(Math.round(ec)) });
+      const venueName = qualMode || !kal ? t("venuePolymarket") : t("venueKalshi");
+      document.getElementById("cdH1").textContent = tf("headlineSingle", { venue: venueName, n: NAME, m: Lecart.pct(poly), p: Lecart.pct(poll), v: verb });
+      document.getElementById("cdNote").textContent = tf("gapNote", { v: verb, d: Math.round(Math.abs(poly - poll)) });
     }
-    document.getElementById("cdGapLabel").textContent = t(state.q === "qual" ? "qual" : "win");
-    // whole points, matching the headline sentence and the over-time chart's gap badge
-    document.getElementById("cdGapVal").textContent = poll == null ? t("marketsOnly") : (market - poll >= 0 ? "+" : "−") + Math.round(Math.abs(market - poll));
+    document.getElementById("cdGapLabel").textContent = t(qualMode ? "qual" : "win");
+    // whole points, matching the headline sentence and the over-time chart's gap badge; one venue's gap, or two
+    // separated by "/" when both price this candidate, never a mean of the two
+    // round first, then sign the rounded value: a raw gap of, say, -0.3 must read "0", never "−0"
+    const gapOf = m => { if (m == null || poll == null) return null; const r = Math.round(m - poll); return (r > 0 ? "+" : r < 0 ? "−" : "") + Math.abs(r); };
+    const gaps = [gapOf(poly), !qualMode ? gapOf(kal) : null].filter(g => g != null);
+    document.getElementById("cdGapVal").textContent = gaps.length ? gaps.join(" / ") : t("marketsOnly");
     const bar = document.getElementById("cdGapbar");
-    if (poll == null) {
-      bar.querySelectorAll(".fill,.tick-p,.lbl.p").forEach(el => el.style.display = "none");
-      document.getElementById("cdM").style.left = market + "%";
-      document.getElementById("cdMLbl").style.left = market + "%";
-      document.getElementById("cdMLbl").textContent = num(market);
-    } else {
-      const lo = Math.min(poll, market), hi = Math.max(poll, market);
-      bar.querySelectorAll(".fill,.tick-p,.lbl.p").forEach(el => el.style.display = "");
-      document.getElementById("cdFill").style.left = lo + "%"; document.getElementById("cdFill").style.width = (hi - lo) + "%";
-      document.getElementById("cdP").style.left = poll + "%"; document.getElementById("cdM").style.left = market + "%";
-      document.getElementById("cdPLbl").style.left = poll + "%"; document.getElementById("cdPLbl").textContent = num(poll);
-      document.getElementById("cdMLbl").style.left = market + "%"; document.getElementById("cdMLbl").textContent = num(market);
-    }
+    const place = (elId, lblId, val, row) => {
+      const el = document.getElementById(elId), lbl = document.getElementById(lblId);
+      if (val == null) { el.style.display = "none"; lbl.style.display = "none"; return; }
+      el.style.display = ""; lbl.style.display = "";
+      el.style.left = val + "%"; lbl.style.left = val + "%"; lbl.style.top = row === 1 ? "44px" : ""; lbl.textContent = num(val);
+    };
+    // Polymarket and Kalshi sit on the same 0-100 scale and can land within a label-width of each other: when they
+    // do, Kalshi's label drops to a second row so the two numbers don't run together (e.g. "38" and "40" as "38040").
+    const crowded = poly != null && kal != null && Math.abs(poly - kal) < 6;
+    place("cdP", "cdPLbl", poll);
+    place("cdM", "cdMLbl", poly);
+    place("cdMKal", "cdMKalLbl", kal, crowded ? 1 : 0);
     document.getElementById("cdTrendLabel").textContent = t("cdTrendTitle");
     drawTrend();
   }

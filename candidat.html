@@ -76,8 +76,8 @@
   <div class="sp-ctl-group">
     <span class="sp-ctl-label" id="cd-q-label" data-i="chanceTo">Chances de</span>
     <div class="sp-tabs" id="cdQ" role="group" aria-labelledby="cd-q-label">
-      <button type="button" data-q="qual" aria-pressed="true" data-i="qual">Accéder au second tour</button>
-      <button type="button" data-q="win" aria-pressed="false" data-i="win">Gagner</button>
+      <button type="button" data-q="qual" aria-pressed="false" data-i="qual">Accéder au second tour</button>
+      <button type="button" data-q="win" aria-pressed="true" data-i="win">Gagner</button>
     </div>
   </div>
   <div class="sp-ctl-group">
@@ -94,9 +94,10 @@
   <div class="sp-rail">
     <h2 id="cdName"></h2>
     <div class="fam" id="cdFamily"></div>
-    <div class="sp-metarow"><span data-i="cdMetaMktQual">Marché, qualification</span><b class="num" id="cdMktQual"></b></div>
+    <div class="sp-metarow"><span data-i="cdMetaMktQualPoly">Polymarket, qualification</span><b class="num" id="cdMktQual"></b></div>
     <div class="sp-metarow"><span data-i="cdMetaPollQual">Sondages, qualification</span><b class="num" id="cdPolQual"></b></div>
-    <div class="sp-metarow"><span data-i="cdMetaMktWin">Marché, victoire</span><b class="num" id="cdMktWin"></b></div>
+    <div class="sp-metarow"><span data-i="cdMetaMktWinPoly">Polymarket, victoire</span><b class="num" id="cdMktWinPoly"></b></div>
+    <div class="sp-metarow"><span data-i="cdMetaMktWinKal">Kalshi, victoire</span><b class="num" id="cdMktWinKal"></b></div>
     <div class="sp-metarow"><span data-i="cdMetaPollWin">Sondages, victoire</span><b class="num" id="cdPolWin"></b></div>
     <div class="sp-metarow"><span data-i="cdMetaAvg">Moyenne premier tour</span><b class="num" id="cdAvg"></b></div>
     <p class="note" id="cdNote"></p>
@@ -109,11 +110,12 @@
     </div>
     <div class="sp-gap-title"><span id="cdGapLabel"></span><b class="num" id="cdGapVal"></b></div>
     <div class="sp-gapbar" id="cdGapbar">
-      <span class="base"></span><span class="fill" id="cdFill"></span>
-      <span class="tick-p" id="cdP"></span><span class="tick-m" id="cdM"></span>
-      <span class="lbl p num" id="cdPLbl"></span><span class="lbl m num" id="cdMLbl"></span>
+      <span class="base"></span>
+      <span class="tick-p" id="cdP"></span><span class="tick-m" id="cdM"></span><span class="tick-mk" id="cdMKal"></span>
+      <span class="lbl p num" id="cdPLbl"></span><span class="lbl m num" id="cdMLbl"></span><span class="lbl mk num" id="cdMKalLbl"></span>
     </div>
     <div class="sp-gapscale"><span>0</span><span>50</span><span>100</span></div>
+    <p class="sp-footnote" id="cdVenueFootnote" data-i="venueFootnote" hidden>* Ce marché ne cote pas ce candidat.</p>
   </div>
 </div>
 </div>
@@ -123,7 +125,7 @@
   <p class="sp-footnote" data-i="aboutOnly">À des fins de recherche académique uniquement. Ce site ne constitue ni une prévision, ni un conseil, ni une incitation à parier.</p>
   <p class="sp-footnote" style="margin-top:4px" data-i="dvSrc">Sources : sondages MieuxVoter/presidentielle2027 ; prix de marché Polymarket et Kalshi, présentés comme données.</p>
   <p style="margin-top:14px" data-i="foot">L'Écart est un projet de recherche académique indépendant. Il ne constitue pas une prévision, n'est affilié à aucun institut de sondage ni à aucune plateforme, et ne constitue pas une incitation à parier.</p>
-  <p class="flinks"><a href="mentions-legales.html" data-i="lnkLegal">Mentions légales</a> · <a href="confidentialite.html" data-i="lnkPriv">Confidentialité</a> · <a href="changelog.html" data-i="lnkChange">Journal des modifications</a> · <a href="#" id="optOut" data-i="optOut">Ne pas être compté</a><span id="optMsg" role="status"></span></p>
+  <p class="flinks"><a href="mentions-legales.html" data-i="lnkLegal">Mentions légales</a> · <a href="confidentialite.html" data-i="lnkPriv">Confidentialité</a> · <a href="changelog.html" data-i="lnkChange">Journal des modifications</a> · <a href="notes.html" data-i="lnkNotes">Notes</a> · <a href="#" id="optOut" data-i="optOut">Ne pas être compté</a><span id="optMsg" role="status"></span></p>
 </div></footer>
 
 <script src="analytics.js"></script>

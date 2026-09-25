@@ -21,15 +21,17 @@ def csv_rows(poll_id, end, tour, scores):
              "echantillon": "1000", "tour": tour, "candidat": c, "intentions": str(v)} for c, v in scores.items()]
 
 
-def market(names_prices):
+def market(names_prices, volume_num=5000, liquidity_num=2000):
     """A Polymarket-like response: one Yes/No market per name."""
-    return [{"markets": [{"groupItemTitle": n, "outcomePrices": f'["{p / 100}", "{1 - p / 100}"]', "outcomes": '["Yes", "No"]'}
+    return [{"markets": [{"groupItemTitle": n, "outcomePrices": f'["{p / 100}", "{1 - p / 100}"]', "outcomes": '["Yes", "No"]',
+                          "volumeNum": str(volume_num), "liquidityNum": str(liquidity_num)}
                          for n, p in names_prices.items()], "volume": "1000000"}]
 
 
-def kalshi_markets_page(names_prices, volume_fp=500, cursor=""):
+def kalshi_markets_page(names_prices, volume_fp=500, open_interest_fp=200, cursor=""):
     """A Kalshi GetMarkets-like response page: one market per name."""
-    return {"markets": [{"yes_sub_title": n, "last_price_dollars": f"{p / 100:.4f}", "volume_fp": str(volume_fp)}
+    return {"markets": [{"yes_sub_title": n, "last_price_dollars": f"{p / 100:.4f}", "volume_fp": str(volume_fp),
+                         "open_interest_fp": str(open_interest_fp)}
                         for n, p in names_prices.items()], "cursor": cursor}
 
 
