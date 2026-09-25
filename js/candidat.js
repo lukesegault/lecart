@@ -59,34 +59,39 @@
     return bestDiff < 24 * 864e5 * 30 ? best : -1;   // within ~30 days of that month's midpoint
   }
 
-  const trendState = { hov: null };
+  const trendState = { hov: null, w: 0 };
   function drawTrend() {
     const tr = (DATA.trend.series[NAME] || []).slice(), months = DATA.trend.months;
     const svg = document.getElementById("cdTrend"), wrap = document.getElementById("cdTrendWrap");
     let note = document.getElementById("cdTrendNote");
     const vals = tr.filter(v => v != null);
-    if (!vals.length) { wrap.innerHTML = `<p style="font:400 13px var(--sans);color:var(--muted)">${t("cdNoTrend")}</p>`; if (note) note.hidden = true; return; }
+    if (!vals.length) { wrap.innerHTML = `<p class="sp-footnote">${t("cdNoTrend")}</p>`; if (note) note.hidden = true; return; }
     const lo = 0, hi = Math.max(10, Math.ceil((Math.max(...vals) + 2) / 5) * 5);
-    const X = i => 34 + i / (tr.length - 1) * 496, Y = s => 172 - (s - lo) / (hi - lo) * 160;
+    // Drawn at the box's real pixel width (1 unit = 1px), so the axis text keeps its size on a phone instead of shrinking with a scaled viewBox.
+    const W = Math.max(280, Math.round(wrap.clientWidth) || 560), H = 200, R = W - 52;
+    svg.setAttribute("viewBox", `0 0 ${W} ${H}`); trendState.w = Math.round(wrap.clientWidth);
+    const X = i => 34 + i / (tr.length - 1) * (R - 34), Y = s => 172 - (s - lo) / (hi - lo) * 160;
     const { d: path, last: li } = pathOf(tr, X, Y);
     let g = "";
     const step = hi <= 20 ? 5 : 10;
-    for (let v = 0; v <= hi; v += step) { const y = Y(v); g += `<line x1="34" y1="${y.toFixed(1)}" x2="530" y2="${y.toFixed(1)}" stroke="var(--rule2)"/><text x="26" y="${(y + 3.5).toFixed(1)}" text-anchor="end" style="font:400 10px var(--sans);fill:var(--muted)">${v}%</text>`; }
+    for (let v = 0; v <= hi; v += step) { const y = Y(v); g += `<line x1="34" y1="${y.toFixed(1)}" x2="${R}" y2="${y.toFixed(1)}" stroke="var(--rule2)"/><text x="26" y="${(y + 4).toFixed(1)}" text-anchor="end" class="ax-y" fill="var(--muted)">${v}%</text>`; }
     g += `<path d="${path}" stroke="var(--ink)" stroke-width="1.6" fill="none" stroke-linejoin="round"/>`;
     if (li != null) { const ex = X(li), ey = Y(tr[li]);
       g += `<rect x="${(ex - 3).toFixed(1)}" y="${(ey - 3).toFixed(1)}" width="6" height="6" fill="var(--ink)"/>` +
-        `<text x="556" y="${(ey + 4).toFixed(1)}" text-anchor="end" style="font:600 11px var(--sans);fill:var(--ink)" class="num">${num(tr[li])}</text>`; }
-    g += `<line x1="34" y1="172" x2="530" y2="172" stroke="var(--ink)"/>`;
+        `<text x="${W - 4}" y="${(ey + 4.5).toFixed(1)}" text-anchor="end" class="end-v" fill="var(--ink)">${num(tr[li])}</text>`; }
+    g += `<line x1="34" y1="172" x2="${R}" y2="172" stroke="var(--ink)"/>`;
     const ml = i => t("months")[+months[i].split("-")[1] - 1] + " " + months[i].slice(2, 4);
-    [0, Math.round((tr.length - 1) / 3), Math.round((tr.length - 1) * 2 / 3), tr.length - 1].forEach((i, k) => {
-      const anchor = k === 0 ? "start" : k === 3 ? "end" : "middle";
-      g += `<text x="${X(i).toFixed(1)}" y="190" text-anchor="${anchor}" style="font:400 10px var(--sans);fill:var(--muted)">${ml(i)}</text>`;
+    // four month labels when there is room, three on a phone (tracked uppercase labels would touch)
+    const lastI = tr.length - 1, ticks = W < 520 ? [0, Math.round(lastI / 2), lastI] : [0, Math.round(lastI / 3), Math.round(lastI * 2 / 3), lastI];
+    ticks.forEach((i, k) => {
+      const anchor = k === 0 ? "start" : k === ticks.length - 1 ? "end" : "middle";
+      g += `<text x="${X(i).toFixed(1)}" y="190" text-anchor="${anchor}" class="ax-x" fill="var(--muted)">${ml(i)}</text>`;
     });
     // Real events (data/events.json) replace the old single "peak" annotation, same numbered-marker language as the chart above.
     const evPos = EVENTS.map(e => ({ e, i: nearestMonth(months, e.date) })).filter(p => p.i >= 0);
     evPos.forEach(({ e, i }, k) => { const ex = X(i), ey = Y(tr[i]) ;
       g += `<line x1="${ex.toFixed(1)}" y1="${(ey - 14).toFixed(1)}" x2="${ex.toFixed(1)}" y2="${ey.toFixed(1)}" stroke="var(--orange)" stroke-width="1" stroke-dasharray="2 3" stroke-opacity=".6"/>` +
-        `<g class="ctm" data-e="${k}" role="button" tabindex="0" aria-label="${e[Lecart.lang]}"><circle cx="${ex.toFixed(1)}" cy="${(ey - 20).toFixed(1)}" r="11" fill="transparent"/><circle cx="${ex.toFixed(1)}" cy="${(ey - 20).toFixed(1)}" r="7" fill="var(--surface)" stroke="var(--orange)" stroke-width="1.3"/><text x="${ex.toFixed(1)}" y="${(ey - 17).toFixed(1)}" text-anchor="middle" font-size="9" font-weight="700" fill="var(--orange)">${k + 1}</text></g>`;
+        `<g class="ctm" data-e="${k}" role="button" tabindex="0" aria-label="${e[Lecart.lang]}"><circle cx="${ex.toFixed(1)}" cy="${(ey - 20).toFixed(1)}" r="11" fill="transparent"/><circle cx="${ex.toFixed(1)}" cy="${(ey - 20).toFixed(1)}" r="8" fill="var(--surface)" stroke="var(--orange)" stroke-width="1.3"/><text x="${ex.toFixed(1)}" y="${(ey - 16).toFixed(1)}" text-anchor="middle" class="mk" fill="var(--orange)">${k + 1}</text></g>`;
     });
     svg.innerHTML = g;
     if (!note) { note = document.createElement("div"); note.className = "sp-chart-note"; note.id = "cdTrendNote"; wrap.after(note); }
@@ -164,6 +169,10 @@
     document.getElementById("cdTrendLabel").textContent = t("cdTrendTitle");
     drawTrend();
   }
+
+  // Redraw the first-round trend when its box changes width (rotation, resize), since it is drawn at real pixel width.
+  const trendWrap = document.getElementById("cdTrendWrap");
+  if (window.ResizeObserver) new ResizeObserver(() => { const w = Math.round(trendWrap.clientWidth); if (w && document.getElementById("cdTrend") && Math.abs(w - trendState.w) > 2) drawTrend(); }).observe(trendWrap);
 
   let chart = null;
   function mountChart() {

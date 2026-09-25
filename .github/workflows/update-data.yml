@@ -20,7 +20,7 @@ concurrency:
 jobs:
   update:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -33,6 +33,11 @@ jobs:
         run: python -m pytest -q
       - name: Build data
         run: python scripts/build_data.py
+      - name: Type audit
+        run: |
+          pip install -r requirements-dev.txt
+          python -m playwright install --with-deps chromium
+          python scripts/audit_type.py
       - name: Commit if data changed
         run: |
           git config user.name "lecart-bot"

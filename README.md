@@ -20,7 +20,8 @@ Three pages, sharp/mint design (Archivo + Instrument Serif):
 | Path | Role |
 | --- | --- |
 | `index.html`, `candidat.html`, `second-tour.html` | The three pages. `index.html`'s markup between `STATIC`/`META` markers is rewritten by the pipeline for crawlers (edit the copy in `i18n/fr.json`, not there); the other two just get their `data-version` meta restamped daily. |
-| `css/pages.css` | The site's only stylesheet. Design tokens (colours, fonts, spacing) are at the top. |
+| `css/type.css` | The type scale: font families, sizes and weights as CSS variables (the only place they are decided). |
+| `css/pages.css` | The site's stylesheet. Colour tokens at the top; every font comes from `css/type.css`. |
 | `js/pages-common.js` | Shared `Lecart` helpers: language, data/i18n fetch, figure filling, nav/footer, formatting. No simulation. |
 | `js/over-time-chart.js` | The market-vs-poll-implied-win-probability chart shared by index.html and candidat.html (candidate selector, 1M/3M/6M/All, PNG export). |
 | `js/index.js`, `js/candidat.js`, `js/second-tour.js` | Per-page rendering and interaction. No simulation. |
@@ -30,6 +31,7 @@ Three pages, sharp/mint design (Archivo + Instrument Serif):
 | `config.json` | Election-silence periods (see below). Read by both `js/pages-common.js` and `scripts/build_data.py`. |
 | `scripts/build_data.py` | The daily pipeline. `scripts/backfill_history.py` is the one-off that rebuilt the market history. |
 | `scripts/check_site.py` | Browser check (see below). `tests/` holds the pytest suite. |
+| `scripts/audit_type.py` | Typography audit: fails on more than 12 family/size/weight combinations, text under 11px, or anything off the `css/type.css` scale. Run by the workflow. |
 | `fonts/` | Self-hosted Schibsted Grotesk/Spectral (legal pages) and Archivo/Instrument Serif (the three pages). |
 | `analytics.js`, `changelog.html`, `confidentialite.html`, `mentions-legales.html`, `legal.css` | Cookie-free analytics with opt-out, legal pages. |
 
@@ -75,6 +77,7 @@ python -m pytest -q                      # simulation reference values, validati
 pip install -r requirements-dev.txt
 python -m playwright install chromium
 python scripts/check_site.py             # loads all three pages, clicks every control, FR/EN, 1280/390 px, light/dark, blackout mode, fails on console errors
+python scripts/audit_type.py            # typography audit: at most 12 family/size/weight combinations, nothing under 11px, all on the css/type.css scale
 ```
 
 `check_site.py` answers the analytics requests locally, so a check run is not counted. The simulation reference

@@ -66,16 +66,16 @@
       const rightWins = r.shareRight >= 50;
       h += `<div class="sp-pair-row" role="listitem"><span>` +
         `<span class="sp-pair-names">` +
-        `<a href="candidat.html?c=${encodeURIComponent(r.left)}" style="color:${!rightWins ? "var(--ink)" : "var(--muted2)"};font-weight:${!rightWins ? 700 : 500}">${r.left} <span class="num">${num(r.shareLeft)}</span></a>` +
-        `<a href="candidat.html?c=${encodeURIComponent(r.right)}" style="color:${rightWins ? "var(--ink)" : "var(--muted2)"};font-weight:${rightWins ? 700 : 500}"><span class="num">${num(r.shareRight)}</span> ${r.right}</a>` +
+        `<a${!rightWins ? ' class="win"' : ""} href="candidat.html?c=${encodeURIComponent(r.left)}">${r.left} <span class="num">${num(r.shareLeft)}</span></a>` +
+        `<a${rightWins ? ' class="win"' : ""} href="candidat.html?c=${encodeURIComponent(r.right)}"><span class="num">${num(r.shareRight)}</span> ${r.right}</a>` +
         `</span>` +
-        `<span class="sp-pair-split"><span style="width:${r.shareLeft}%;background:${!rightWins ? "var(--ink)" : "var(--faint)"}"></span><span style="width:${r.shareRight}%;background:${rightWins ? "var(--ink)" : "var(--faint)"}"></span></span>` +
+        `<span class="sp-pair-split"><span${!rightWins ? ' class="win"' : ""} style="width:${r.shareLeft}%"></span><span${rightWins ? ' class="win"' : ""} style="width:${r.shareRight}%"></span></span>` +
         `</span>` +
         `<span class="sp-pair-n num">${r.n}</span>` +
         `<span class="sp-pair-sim num">${r.sim != null ? num(r.sim) : "–"}</span>` +
         `<span class="sp-pair-win">` +
-        `<span class="pv poly num">${t("ovColPoly")} ${r.winPoly != null ? num(r.winPoly) : " " + t("venueFootnoteMark")}</span>` +
-        `<span class="pv kal num">${t("ovColKalshi")} ${r.winKal != null ? num(r.winKal) : " " + t("venueFootnoteMark")}</span>` +
+        `<span class="pv poly">${t("ovColPoly")} ${r.winPoly != null ? `<span class="num">${num(r.winPoly)}</span>` : " " + t("venueFootnoteMark")}</span>` +
+        `<span class="pv kal">${t("ovColKalshi")} ${r.winKal != null ? `<span class="num">${num(r.winKal)}</span>` : " " + t("venueFootnoteMark")}</span>` +
         `</span>` +
         `</div>`;
     });

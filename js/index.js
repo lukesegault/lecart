@@ -204,7 +204,7 @@
     const d = s => { const [y, m, dd] = s.split("-"); return dd + "/" + m };
     document.querySelector("#polltable tbody").innerHTML = DATA.polls.slice().reverse().map(p => {
       const f = v => v == null ? "–" : (Lecart.lang === "fr" ? String(v).replace(".", ",") : v);
-      return `<tr><td>${p.inst}</td><td>${p.for}</td><td>${d(p.start)} ${t("to")} ${d(p.end)}/${p.end.slice(0, 4)}</td><td>${p.n.toLocaleString(Lecart.lang === "fr" ? "fr-FR" : "en-GB")}</td><td>${f(p.v["Marine Le Pen"])}</td><td>${f(p.v["Édouard Philippe"])}</td><td>${f(p.v["Jean-Luc Mélenchon"])}</td></tr>`;
+      return `<tr><td>${p.inst}</td><td>${p.for}</td><td>${d(p.start)} ${t("to")} ${d(p.end)}/${p.end.slice(0, 4)}</td><td class="num">${p.n.toLocaleString(Lecart.lang === "fr" ? "fr-FR" : "en-GB")}</td><td class="num">${f(p.v["Marine Le Pen"])}</td><td class="num">${f(p.v["Édouard Philippe"])}</td><td class="num">${f(p.v["Jean-Luc Mélenchon"])}</td></tr>`;
     }).join("");
   }
 

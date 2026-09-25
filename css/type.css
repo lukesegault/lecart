@@ -1,0 +1,46 @@
+/* The type scale: the only place a font family, size or weight is decided. css/pages.css (and the pages' JS) use
+   these tokens and nothing else; scripts/audit_type.py loads every page in a browser and fails if the rendered
+   text leaves this table (or has more than 12 family/size/weight combinations, or anything under 11px).
+
+   Roles
+     Bodoni Moda      h1 and h2 only                                      display 44 / 30, weight 500
+     Source Serif 4   all prose                                           17 (line-height 1.65) and 15, weight 400
+     IBM Plex Sans    labels, navigation, table headers, controls,        13 and 11, weights 400 / 600
+                      candidate names (11 is always uppercase, 0.08em tracking, set in
+                      pages.css's one label rule)
+     IBM Plex Mono    numerals only, never words                          15, 13 and 11, weights 400 / 600
+
+   Each --t-* token is a complete `font` shorthand: use it as `font: var(--t-prose)`, never split it and never
+   write a raw size or weight. Colour, margin and the rest stay in pages.css. Keep in step with fonts/fonts.css
+   (only the weights used here are shipped). */
+:root{
+  --font-display:"Bodoni Moda",Georgia,"Times New Roman",serif;
+  --font-prose:"Source Serif 4",Georgia,"Times New Roman",serif;
+  --font-ui:"IBM Plex Sans",-apple-system,"Segoe UI",Helvetica,Arial,sans-serif;
+  --font-num:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Consolas,"Liberation Mono",monospace;
+
+  --fs-display:44px; --fs-display-s:30px;
+  --fs-prose:17px;   --fs-prose-s:15px;
+  --fs-ui:13px;      --fs-label:11px;
+  --fs-num-l:15px;   --fs-num:13px;   --fs-num-s:11px;
+  --fw-regular:400;  --fw-semi:600;   --fw-display:500;
+  --lh-prose:1.65;   --track-label:.08em;
+
+  /* Bodoni Moda: h1 (44, 30 on phones) and h2 (30) */
+  --t-display:var(--fw-display) var(--fs-display)/1.15 var(--font-display);
+  --t-h2:var(--fw-display) var(--fs-display-s)/1.2 var(--font-display);
+  /* Source Serif 4: prose */
+  --t-prose:var(--fw-regular) var(--fs-prose)/var(--lh-prose) var(--font-prose);
+  --t-prose-s:var(--fw-regular) var(--fs-prose-s)/var(--lh-prose) var(--font-prose);
+  /* IBM Plex Sans: labels, navigation, controls, names */
+  --t-ui:var(--fw-regular) var(--fs-ui)/1.5 var(--font-ui);
+  --t-ui-b:var(--fw-semi) var(--fs-ui)/1.5 var(--font-ui);
+  --t-label:var(--fw-semi) var(--fs-label)/1.4 var(--font-ui);
+  /* IBM Plex Mono: numerals */
+  --t-num-l:var(--fw-semi) var(--fs-num-l)/1.3 var(--font-num);
+  --t-num:var(--fw-semi) var(--fs-num)/1.3 var(--font-num);
+  --t-num-r:var(--fw-regular) var(--fs-num)/1.3 var(--font-num);
+  --t-num-s:var(--fw-regular) var(--fs-num-s)/1.3 var(--font-num);
+}
+/* a numeral anywhere: mono, tabular; a component picks a larger/lighter --t-num-* where it needs one */
+.num{font:var(--t-num);font-variant-numeric:tabular-nums}
