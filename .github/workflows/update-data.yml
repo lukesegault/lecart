@@ -37,6 +37,6 @@ jobs:
         run: |
           git config user.name "lecart-bot"
           git config user.email "lecart-bot@users.noreply.github.com"
-          git add data.json data/ index.html candidat.html second-tour.html og-image.png
+          git add data.json data/ index.html candidat.html second-tour.html notes.html og-image.png
           git diff --cached --quiet || git commit -m "Daily data update $(date -u +%F)"
           git push
